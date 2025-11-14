@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,10 +14,11 @@ model User {
   password             String
   createdAt            DateTime @default(now())
   trialEndsAt          DateTime?
-  subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime'
-  planType             String   @default("starter") // 'starter', 'professional', 'business', 'lifetime'
+  subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime', 'expired'
+  planType             String   @default("starter") // 'starter', 'professional', 'business'
   stripeCustomerId     String?  @unique
 
+  agents               Agent[]
   whatsappConnections  WhatsAppConnection[]
   conversations        Conversation[]
   knowledgeBase        KnowledgeBase[]
@@ -26,10 +27,49 @@ model User {
   @@map("users")
 }
 
+// New: AI Agent model - users can create multiple agents
+model Agent {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?  @db.Text
+  businessType    String?  // 'ecommerce', 'realestate', 'education', etc.
+  aiTone          String   @default("friendly") // 'professional', 'friendly', 'direct', 'warm'
+  isActive        Boolean  @default(true)
+  isTemplate      Boolean  @default(false) // Pre-built templates
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  whatsappConnection WhatsAppConnection?
+  conversations      Conversation[]
+  agentKnowledge     AgentKnowledge[]
+
+  @@index([userId])
+  @@map("agents")
+}
+
+// Link agents to knowledge base entries
+model AgentKnowledge {
+  id              String   @id @default(uuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  knowledgeId     String
+  knowledge       KnowledgeBase @relation(fields: [knowledgeId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([agentId, knowledgeId])
+  @@index([agentId])
+  @@index([knowledgeId])
+  @@map("agent_knowledge")
+}
+
 model WhatsAppConnection {
   id              String   @id @default(uuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId         String?  @unique
+  agent           Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
   phoneNumber     String?
   sessionData     Json?    // Baileys session storage
   isConnected     Boolean  @default(false)
@@ -38,6 +78,8 @@ model WhatsAppConnection {
 
   conversations   Conversation[]
 
+  @@index([userId])
+  @@index([agentId])
   @@map("whatsapp_connections")
 }
 
@@ -45,6 +87,8 @@ model Conversation {
   id                    String   @id @default(uuid())
   userId                String
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId               String?
+  agent                 Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
   whatsappConnectionId  String
   whatsappConnection    WhatsAppConnection @relation(fields: [whatsappConnectionId], references: [id], onDelete: Cascade)
   customerPhone         String
@@ -57,6 +101,7 @@ model Conversation {
   messages              Message[]
 
   @@index([userId])
+  @@index([agentId])
   @@index([whatsappConnectionId])
   @@map("conversations")
 }
@@ -68,7 +113,7 @@ model Message {
   senderType      String   // 'customer', 'ai', 'user'
   messageText     String?  @db.Text
   mediaUrl        String?
-  messageType     String   @default("text") // 'text', 'voice', 'image', 'video'
+  messageType     String   @default("text") // 'text', 'voice', 'image', 'video', 'document'
   tokensUsed      Int      @default(0)
   createdAt       DateTime @default(now())
 
@@ -80,10 +125,16 @@ model KnowledgeBase {
   id          String   @id @default(uuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content     String   @db.Text
-  sourceType  String   @default("manual") // 'manual', 'pdf', 'website'
+  title       String?
+  content     String   @db.LongText  // Changed to LongText for MySQL (supports up to 4GB)
+  sourceType  String   @default("manual") // 'manual', 'pdf', 'word', 'website', 'document'
+  sourceUrl   String?  @db.Text
+  fileName    String?
+  fileSize    Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  agentKnowledge AgentKnowledge[]
 
   @@index([userId])
   @@map("knowledge_base")
