@@ -25,6 +25,7 @@
     "@whiskeysockets/baileys": "^6.6.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
+    "bufferutil": "^4.0.9",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
@@ -39,7 +40,8 @@
     "react-dom": "^18.2.0",
     "stripe": "^14.8.0",
     "tailwind-merge": "^2.1.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "utf-8-validate": "^6.0.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
