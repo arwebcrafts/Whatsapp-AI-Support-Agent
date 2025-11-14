@@ -3,6 +3,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
+  downloadMediaMessage,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
@@ -383,7 +384,7 @@ class WhatsAppServiceFixed {
 
   async handleIncomingMessage(userId: string, agentId: string, sock: any, msg: any): Promise<void> {
     try {
-      const messageText = this.extractMessageText(msg);
+      const messageText = await this.extractMessageText(msg);
       const customerPhone = msg.key.remoteJid?.split('@')[0] || '';
 
       console.log(`📱 Extracted message - phone: ${customerPhone}, text: ${messageText}`);
@@ -600,15 +601,74 @@ Instructions:
     }
   }
 
-  extractMessageText(msg: any): string {
+  async extractMessageText(msg: any): Promise<string> {
     const message = msg.message;
 
+    // Handle text messages
     if (message?.conversation) return message.conversation;
     if (message?.extendedTextMessage?.text) return message.extendedTextMessage.text;
     if (message?.imageMessage?.caption) return message.imageMessage.caption;
     if (message?.videoMessage?.caption) return message.videoMessage.caption;
 
+    // Handle voice/audio messages
+    if (message?.audioMessage) {
+      console.log('🎤 Voice message detected, transcribing...');
+      try {
+        return await this.transcribeVoiceMessage(msg);
+      } catch (error) {
+        console.error('❌ Error transcribing voice message:', error);
+        return '[Voice message - transcription failed]';
+      }
+    }
+
     return '';
+  }
+
+  async transcribeVoiceMessage(msg: any): Promise<string> {
+    try {
+      // Download the audio buffer
+      console.log('📥 Downloading voice message...');
+      const buffer = await downloadMediaMessage(msg, 'buffer', {});
+
+      if (!buffer) {
+        throw new Error('Failed to download voice message');
+      }
+
+      console.log(`✅ Downloaded ${buffer.length} bytes`);
+
+      // Save to temporary file
+      const tempDir = path.join(process.cwd(), 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const tempFilePath = path.join(tempDir, `voice_${Date.now()}.ogg`);
+      fs.writeFileSync(tempFilePath, buffer);
+
+      console.log('💾 Saved to temp file, transcribing with Whisper...');
+
+      // Transcribe using OpenAI Whisper
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(tempFilePath),
+        model: 'whisper-1',
+        language: 'en', // You can make this dynamic or auto-detect
+      });
+
+      console.log(`✅ Transcription: "${transcription.text}"`);
+
+      // Clean up temp file
+      fs.unlinkSync(tempFilePath);
+
+      return transcription.text || '[Voice message - no speech detected]';
+    } catch (error) {
+      console.error('Error in transcribeVoiceMessage:', error);
+      throw error;
+    }
   }
 
   getMessageType(msg: any): string {
