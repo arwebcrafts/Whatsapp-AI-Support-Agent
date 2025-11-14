@@ -59,7 +59,7 @@ class WhatsAppServiceFixed {
       sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        console.log('Connection update:', { connection, hasQR: !!qr });
+        console.log('Connection update:', { connection, hasQR: !!qr, agentId });
 
         if (qr) {
           try {
@@ -69,7 +69,8 @@ class WhatsAppServiceFixed {
             if (session) {
               session.qr = qrCode;
             }
-            console.log('QR Code generated successfully');
+            console.log(`✅ QR Code generated successfully for agent ${agentId}`);
+            console.log('📱 QR Code length:', qrCode?.length || 0);
           } catch (error) {
             console.error('Error generating QR code:', error);
           }
@@ -136,6 +137,23 @@ class WhatsAppServiceFixed {
         agentId,
         userId,
       });
+
+      // Create initial WhatsAppConnection record if it doesn't exist
+      const existingConnection = await prisma.whatsAppConnection.findFirst({
+        where: { agentId },
+      });
+
+      if (!existingConnection) {
+        await prisma.whatsAppConnection.create({
+          data: {
+            agentId,
+            isConnected: false,
+            phoneNumber: null,
+            lastActive: new Date(),
+          },
+        });
+        console.log(`📝 Created initial WhatsAppConnection record for agent ${agentId}`);
+      }
 
       return {
         qr: qrCode,
@@ -413,6 +431,7 @@ Instructions:
       });
 
       if (existing) {
+        // Update existing connection
         await prisma.whatsAppConnection.update({
           where: { id: existing.id },
           data: {
@@ -421,7 +440,19 @@ Instructions:
             lastActive: new Date(),
           },
         });
+      } else {
+        // Create new connection if it doesn't exist
+        await prisma.whatsAppConnection.create({
+          data: {
+            agentId,
+            isConnected,
+            phoneNumber,
+            lastActive: new Date(),
+          },
+        });
       }
+
+      console.log(`✅ Connection status updated for agent ${agentId}: ${isConnected ? 'Connected' : 'Disconnected'}`);
     } catch (error) {
       console.error('Error updating connection status:', error);
     }
@@ -460,6 +491,23 @@ Instructions:
     } else {
       throw new Error('WhatsApp not connected');
     }
+  }
+
+  // Add method to check if agent has active session
+  hasActiveSession(agentId: string): boolean {
+    const session = this.sessions.get(agentId);
+    return !!session && session.isConnected;
+  }
+
+  // Get all active sessions (for debugging)
+  getActiveSessions(): string[] {
+    const active: string[] = [];
+    this.sessions.forEach((session, agentId) => {
+      if (session.isConnected) {
+        active.push(agentId);
+      }
+    });
+    return active;
   }
 }
 

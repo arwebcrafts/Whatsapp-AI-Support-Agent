@@ -48,11 +48,30 @@ export async function GET(req: NextRequest) {
       where: { agentId: agentId },
     });
 
-    return NextResponse.json({
-      isConnected: connection?.isConnected || false,
+    const isConnected = connection?.isConnected || false;
+    const hasSession = !!sessionData;
+    const sessionConnected = sessionData?.isConnected || false;
+
+    // Log for debugging
+    console.log('📊 Status check:', {
+      agentId,
+      dbConnected: isConnected,
+      hasSession,
+      sessionConnected,
+      hasQR: !!sessionData?.qr,
       phoneNumber: connection?.phoneNumber,
-      lastActive: connection?.lastActive,
+    });
+
+    return NextResponse.json({
+      isConnected: isConnected,
+      phoneNumber: connection?.phoneNumber || null,
+      lastActive: connection?.lastActive || null,
       qr: sessionData?.qr || null,
+      debug: {
+        hasSession,
+        sessionConnected,
+        dbConnected: isConnected,
+      }
     });
   } catch (error) {
     console.error('WhatsApp status error:', error);
