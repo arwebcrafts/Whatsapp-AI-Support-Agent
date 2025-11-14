@@ -20,6 +20,18 @@ export default async function DashboardPage() {
     where: { email: session.user.email },
     include: {
       whatsappConnections: true,
+      agents: {
+        take: 3,
+        orderBy: { createdAt: "desc" },
+        include: {
+          whatsappConnection: true,
+          _count: {
+            select: {
+              conversations: true,
+            },
+          },
+        },
+      },
       conversations: {
         take: 5,
         orderBy: { lastMessageAt: "desc" },
@@ -179,6 +191,76 @@ export default async function DashboardPage() {
                 <p className="text-sm text-orange-800">
                   ⚠️ You're running low on messages. Consider upgrading your plan.
                 </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Agents Overview */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Your AI Agents</CardTitle>
+              <Link href="/dashboard/agents">
+                <Button variant="outline" size="sm">View All</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {user.agents && user.agents.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bot className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                <p>No AI agents yet</p>
+                <p className="text-sm mt-1">Create agents to handle different types of conversations</p>
+                <Link href="/dashboard/agents/new">
+                  <Button className="mt-4">Create Your First Agent</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {user.agents?.map((agent) => (
+                  <Link
+                    key={agent.id}
+                    href={`/dashboard/agents/${agent.id}`}
+                    className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">{agent.name}</span>
+                          {agent.isActive && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {agent._count.conversations} conversations
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {agent.whatsappConnection?.isConnected ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                            <span className="text-green-700">Connected</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-sm">
+                            <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+                            <span className="text-gray-500">Not connected</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                {user.agents && user.agents.length >= 3 && (
+                  <Link href="/dashboard/agents">
+                    <Button variant="outline" className="w-full">
+                      View All Agents
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>
