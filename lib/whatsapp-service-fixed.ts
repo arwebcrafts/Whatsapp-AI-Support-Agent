@@ -146,6 +146,7 @@ class WhatsAppServiceFixed {
       if (!existingConnection) {
         await prisma.whatsAppConnection.create({
           data: {
+            userId,  // ← Required field
             agentId,
             isConnected: false,
             phoneNumber: null,
@@ -442,8 +443,20 @@ Instructions:
         });
       } else {
         // Create new connection if it doesn't exist
+        // First, get the userId from the agent
+        const agent = await prisma.agent.findUnique({
+          where: { id: agentId },
+          select: { userId: true },
+        });
+
+        if (!agent) {
+          console.error(`Agent ${agentId} not found, cannot create connection`);
+          return;
+        }
+
         await prisma.whatsAppConnection.create({
           data: {
+            userId: agent.userId,  // ← Required field
             agentId,
             isConnected,
             phoneNumber,
