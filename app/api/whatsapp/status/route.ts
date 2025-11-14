@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { whatsappService } from '@/lib/whatsapp-service';
+import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
@@ -20,12 +20,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Get session from memory
-    const sessionData = whatsappService.getSession(user.id);
+    // Get agentId from query params
+    const { searchParams } = new URL(req.url);
+    const agentId = searchParams.get('agentId');
 
-    // Get connection from database
+    if (!agentId) {
+      return NextResponse.json({ message: 'Agent ID is required' }, { status: 400 });
+    }
+
+    // Verify agent belongs to user
+    const agent = await prisma.agent.findFirst({
+      where: {
+        id: agentId,
+        userId: user.id,
+      },
+    });
+
+    if (!agent) {
+      return NextResponse.json({ message: 'Agent not found' }, { status: 404 });
+    }
+
+    // Get session from memory for this specific agent
+    const sessionData = whatsappServiceFixed.getSession(agentId);
+
+    // Get connection from database for this agent
     const connection = await prisma.whatsAppConnection.findFirst({
-      where: { userId: user.id },
+      where: { agentId: agentId },
     });
 
     return NextResponse.json({

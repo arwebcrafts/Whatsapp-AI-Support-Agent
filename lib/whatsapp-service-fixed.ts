@@ -465,3 +465,6 @@ Instructions:
 
 // Singleton instance
 export const whatsappServiceFixed = new WhatsAppServiceFixed();
+
+// Export class for API routes that need to create their own instances
+export { WhatsAppServiceFixed };
