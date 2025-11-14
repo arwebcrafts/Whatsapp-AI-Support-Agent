@@ -31,7 +31,7 @@ class WhatsAppServiceFixed {
 
   async connectWhatsApp(userId: string, agentId: string): Promise<{ qr: string | null; status: string }> {
     try {
-      console.log(`Connecting WhatsApp for agent ${agentId}`);
+      console.log(`🔄 Connecting WhatsApp for agent ${agentId}...`);
 
       const agentAuthDir = path.join(this.authDir, agentId);
 
@@ -41,6 +41,8 @@ class WhatsAppServiceFixed {
 
       const { state, saveCreds } = await useMultiFileAuthState(agentAuthDir);
       const { version } = await fetchLatestBaileysVersion();
+
+      console.log('📡 Creating WebSocket connection...');
 
       const sock = makeWASocket({
         version,
@@ -55,65 +57,82 @@ class WhatsAppServiceFixed {
 
       let qrCode: string | null = null;
 
-      // Handle QR code generation
-      sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+      // Create a promise that resolves when QR is generated or connection opens
+      const qrPromise = new Promise<string | null>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log('⏱️ QR generation timeout after 30 seconds');
+          resolve(qrCode); // Return whatever we have
+        }, 30000); // 30 second timeout
 
-        console.log('Connection update:', { connection, hasQR: !!qr, agentId });
+        // Handle QR code generation
+        sock.ev.on('connection.update', async (update) => {
+          const { connection, lastDisconnect, qr } = update;
 
-        if (qr) {
-          try {
-            // Generate QR code as data URL
-            qrCode = await QRCode.toDataURL(qr);
+          console.log('📱 Connection update:', { connection, hasQR: !!qr, agentId });
+
+          if (qr) {
+            try {
+              // Generate QR code as data URL
+              qrCode = await QRCode.toDataURL(qr);
+              const session = this.sessions.get(agentId);
+              if (session) {
+                session.qr = qrCode;
+              }
+              console.log(`✅ QR Code generated successfully for agent ${agentId}`);
+              console.log('📊 QR Code length:', qrCode?.length || 0);
+
+              clearTimeout(timeout);
+              resolve(qrCode); // Resolve with QR code
+            } catch (error) {
+              console.error('❌ Error generating QR code:', error);
+            }
+          }
+
+          if (connection === 'close') {
+            const shouldReconnect =
+              (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+
+            console.log('🔌 Connection closed, should reconnect:', shouldReconnect);
+
+            if (shouldReconnect) {
+              // Retry connection after a delay
+              setTimeout(() => {
+                this.connectWhatsApp(userId, agentId);
+              }, 3000);
+            } else {
+              // Logged out - update database
+              await this.updateConnectionStatus(agentId, false, null);
+              this.sessions.delete(agentId);
+            }
+
+            clearTimeout(timeout);
+            resolve(null); // Connection closed without QR
+          } else if (connection === 'open') {
+            console.log('✅ WhatsApp connected successfully for agent:', agentId);
+
+            // Get phone number
+            const phoneNumber = sock.user?.id?.split(':')[0] || sock.user?.id || '';
+
+            // Update database
+            await this.updateConnectionStatus(agentId, true, phoneNumber);
+
+            // Update session
             const session = this.sessions.get(agentId);
             if (session) {
-              session.qr = qrCode;
+              session.isConnected = true;
+              session.qr = null; // Clear QR once connected
             }
-            console.log(`✅ QR Code generated successfully for agent ${agentId}`);
-            console.log('📱 QR Code length:', qrCode?.length || 0);
-          } catch (error) {
-            console.error('Error generating QR code:', error);
-          }
-        }
 
-        if (connection === 'close') {
-          const shouldReconnect =
-            (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
-
-          console.log('Connection closed, should reconnect:', shouldReconnect);
-
-          if (shouldReconnect) {
-            // Retry connection after a delay
+            // Import previous chats in background
             setTimeout(() => {
-              this.connectWhatsApp(userId, agentId);
-            }, 3000);
-          } else {
-            // Logged out - update database
-            await this.updateConnectionStatus(agentId, false, null);
-            this.sessions.delete(agentId);
+              this.importPreviousChats(userId, agentId, sock).catch(console.error);
+            }, 5000);
+
+            clearTimeout(timeout);
+            resolve(null); // Already connected, no QR needed
           }
-        } else if (connection === 'open') {
-          console.log('WhatsApp connected successfully for agent:', agentId);
-
-          // Get phone number
-          const phoneNumber = sock.user?.id?.split(':')[0] || sock.user?.id || '';
-
-          // Update database
-          await this.updateConnectionStatus(agentId, true, phoneNumber);
-
-          // Update session
-          const session = this.sessions.get(agentId);
-          if (session) {
-            session.isConnected = true;
-            session.qr = null; // Clear QR once connected
-          }
-
-          // Import previous chats in background
-          setTimeout(() => {
-            this.importPreviousChats(userId, agentId, sock).catch(console.error);
-          }, 5000);
-        }
-      });
+        });
+      }); // Close qrPromise
 
       // Handle credentials update
       sock.ev.on('creds.update', saveCreds);
@@ -154,6 +173,22 @@ class WhatsAppServiceFixed {
           },
         });
         console.log(`📝 Created initial WhatsAppConnection record for agent ${agentId}`);
+      }
+
+      // Wait for QR code to be generated
+      console.log('⏳ Waiting for QR code generation...');
+      qrCode = await qrPromise;
+
+      // Update session with QR code
+      const session = this.sessions.get(agentId);
+      if (session) {
+        session.qr = qrCode;
+      }
+
+      if (qrCode) {
+        console.log('🎉 QR Code ready! Returning to client...');
+      } else {
+        console.log('⚠️ No QR code generated (might already be connected)');
       }
 
       return {
