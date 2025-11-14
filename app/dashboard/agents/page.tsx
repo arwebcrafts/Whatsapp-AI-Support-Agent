@@ -233,10 +233,10 @@ export default function AgentsPage() {
                     </Badge>
                     <Badge variant="outline">
                       <MessageSquare className="h-3 w-3 mr-1" />
-                      {agent._count.conversations} chats
+                      {agent._count?.conversations || 0} chats
                     </Badge>
                     <Badge variant="outline">
-                      📚 {agent.agentKnowledge.length} knowledge items
+                      📚 {agent._count?.agentKnowledge || 0} knowledge items
                     </Badge>
                   </div>
 
