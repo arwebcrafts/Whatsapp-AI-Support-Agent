@@ -542,6 +542,8 @@ Business Information:
 ${businessKnowledge || 'No specific business information provided yet.'}
 
 Instructions:
+- You can receive both text and voice messages (voice messages are automatically transcribed to text for you)
+- Respond naturally to all messages whether they were originally text or voice
 - Reply in under 100 words
 - Be helpful and try to convert leads
 - Match the customer's language
@@ -656,7 +658,7 @@ Instructions:
       const transcription = await openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
-        language: 'en', // You can make this dynamic or auto-detect
+        // Auto-detect language (supports 50+ languages including English, Arabic, Urdu, etc.)
       });
 
       console.log(`✅ Transcription: "${transcription.text}"`);
