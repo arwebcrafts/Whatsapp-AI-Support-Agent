@@ -33,6 +33,18 @@ class WhatsAppServiceFixed {
     try {
       console.log(`🔄 Connecting WhatsApp for agent ${agentId}...`);
 
+      // Check if there's already an active session for this agent
+      const existingSession = this.sessions.get(agentId);
+      if (existingSession) {
+        console.log('⚠️ Found existing session for agent, disconnecting old session...');
+        try {
+          await existingSession.sock?.end();
+        } catch (error) {
+          console.error('Error closing existing socket:', error);
+        }
+        this.sessions.delete(agentId);
+      }
+
       const agentAuthDir = path.join(this.authDir, agentId);
 
       if (!fs.existsSync(agentAuthDir)) {
@@ -89,13 +101,49 @@ class WhatsAppServiceFixed {
           }
 
           if (connection === 'close') {
-            const shouldReconnect =
-              (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+            const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-            console.log('🔌 Connection closed, should reconnect:', shouldReconnect);
+            console.log('🔌 Connection closed:', {
+              statusCode,
+              shouldReconnect,
+              reason: lastDisconnect?.error?.message,
+            });
 
-            if (shouldReconnect) {
-              // Retry connection after a delay
+            // Check if it's a bad session / connection failure (expired credentials)
+            const isBadSession =
+              statusCode === DisconnectReason.badSession ||
+              statusCode === DisconnectReason.timedOut ||
+              lastDisconnect?.error?.message?.includes('Connection Failure') ||
+              lastDisconnect?.error?.message?.includes('Connection Error');
+
+            if (isBadSession) {
+              console.log('🗑️ Detected expired/invalid credentials, clearing session...');
+
+              // Clear the session directory to force fresh QR generation
+              try {
+                if (fs.existsSync(agentAuthDir)) {
+                  fs.rmSync(agentAuthDir, { recursive: true, force: true });
+                  console.log('✅ Cleared old session files');
+                }
+              } catch (error) {
+                console.error('❌ Error clearing session files:', error);
+              }
+
+              // Clear from memory
+              this.sessions.delete(agentId);
+
+              // Update database
+              await this.updateConnectionStatus(agentId, false, null);
+
+              console.log('🔄 Retrying with fresh credentials...');
+
+              // Retry connection after a short delay (will generate new QR)
+              setTimeout(() => {
+                this.connectWhatsApp(userId, agentId);
+              }, 2000);
+            } else if (shouldReconnect) {
+              // Other connection issues - retry without clearing
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
               }, 3000);
@@ -556,6 +604,39 @@ Instructions:
       }
     });
     return active;
+  }
+
+  // Manually clear session (force fresh connection)
+  async clearSession(agentId: string): Promise<void> {
+    console.log(`🗑️ Manually clearing session for agent ${agentId}...`);
+
+    // Close active socket if exists
+    const session = this.sessions.get(agentId);
+    if (session) {
+      try {
+        await session.sock?.end();
+      } catch (error) {
+        console.error('Error closing socket:', error);
+      }
+      this.sessions.delete(agentId);
+    }
+
+    // Delete session files from disk
+    const agentAuthDir = path.join(this.authDir, agentId);
+    try {
+      if (fs.existsSync(agentAuthDir)) {
+        fs.rmSync(agentAuthDir, { recursive: true, force: true });
+        console.log('✅ Cleared session files from disk');
+      }
+    } catch (error) {
+      console.error('❌ Error clearing session files:', error);
+      throw error;
+    }
+
+    // Update database
+    await this.updateConnectionStatus(agentId, false, null);
+
+    console.log('✅ Session cleared successfully');
   }
 }
 
