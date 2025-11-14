@@ -22,11 +22,66 @@ interface WhatsAppSession {
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
   private authDir = path.join(process.cwd(), 'whatsapp_sessions');
+  private initialized = false;
 
   constructor() {
     // Create auth directory if it doesn't exist
     if (!fs.existsSync(this.authDir)) {
       fs.mkdirSync(this.authDir, { recursive: true });
+    }
+
+    // Auto-restore sessions on server start (run async in background)
+    this.initializeConnections().catch(err =>
+      console.error('Error initializing WhatsApp connections:', err)
+    );
+  }
+
+  async initializeConnections() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    try {
+      console.log('🔄 Checking for existing WhatsApp connections to restore...');
+
+      // Find all connections marked as connected in database
+      const activeConnections = await prisma.whatsAppConnection.findMany({
+        where: { isConnected: true },
+        include: { agent: true },
+      });
+
+      if (activeConnections.length === 0) {
+        console.log('ℹ️ No active connections to restore');
+        return;
+      }
+
+      console.log(`📱 Found ${activeConnections.length} connection(s) to restore`);
+
+      // Restore each connection
+      for (const connection of activeConnections) {
+        if (!connection.agentId || !connection.userId) continue;
+
+        const agentAuthDir = path.join(this.authDir, connection.agentId);
+
+        // Check if session files exist
+        if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
+          console.log(`🔄 Restoring connection for agent ${connection.agent?.name || connection.agentId}...`);
+
+          // Reconnect in background
+          setTimeout(() => {
+            this.connectWhatsApp(connection.userId, connection.agentId!)
+              .catch(err => console.error(`Failed to restore connection for agent ${connection.agentId}:`, err));
+          }, 1000); // Stagger connections by 1 second each
+        } else {
+          console.log(`⚠️ No session files found for agent ${connection.agentId}, marking as disconnected`);
+          // Mark as disconnected since we can't restore it
+          await prisma.whatsAppConnection.update({
+            where: { id: connection.id },
+            data: { isConnected: false },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing connections:', error);
     }
   }
 
