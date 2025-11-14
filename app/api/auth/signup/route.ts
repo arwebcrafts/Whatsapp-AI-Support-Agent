@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Calculate trial end date (7 days from now)
+    // Calculate trial end date (3 days from now)
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 3);
 
     // Create user
     const user = await prisma.user.create({
