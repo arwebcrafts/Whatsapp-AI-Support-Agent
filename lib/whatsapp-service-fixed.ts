@@ -16,6 +16,7 @@ interface WhatsAppSession {
   isConnected: boolean;
   agentId: string;
   userId: string;
+  isReconnecting?: boolean; // Flag to prevent duplicate reconnections
 }
 
 class WhatsAppServiceFixed {
@@ -33,9 +34,21 @@ class WhatsAppServiceFixed {
     try {
       console.log(`🔄 Connecting WhatsApp for agent ${agentId}...`);
 
-      // Check if there's already an active session for this agent
+      // Check if there's already an active session or reconnection in progress
       const existingSession = this.sessions.get(agentId);
       if (existingSession) {
+        // If already reconnecting, don't create another connection
+        if (existingSession.isReconnecting) {
+          console.log('⏳ Reconnection already in progress for agent, skipping...');
+          return { qr: null, status: 'reconnecting' };
+        }
+
+        // If connected, return existing session info
+        if (existingSession.isConnected) {
+          console.log('✅ Agent already connected, returning existing session');
+          return { qr: existingSession.qr, status: 'connected' };
+        }
+
         console.log('⚠️ Found existing session for agent, disconnecting old session...');
         try {
           await existingSession.sock?.end();
@@ -110,6 +123,22 @@ class WhatsAppServiceFixed {
               reason: lastDisconnect?.error?.message,
             });
 
+            // Check for conflict error (multiple sessions)
+            const isConflict =
+              statusCode === 440 ||
+              lastDisconnect?.error?.message?.includes('conflict') ||
+              lastDisconnect?.error?.message?.includes('Stream Errored (conflict)');
+
+            if (isConflict) {
+              console.log('⚠️ Conflict detected (another session is active). Not reconnecting to avoid loop.');
+              // Don't reconnect on conflict - just clean up
+              this.sessions.delete(agentId);
+              await this.updateConnectionStatus(agentId, false, null);
+              clearTimeout(timeout);
+              resolve(null);
+              return;
+            }
+
             // Check if it's a bad session / connection failure (expired credentials)
             const isBadSession =
               statusCode === DisconnectReason.badSession ||
@@ -138,11 +167,30 @@ class WhatsAppServiceFixed {
 
               console.log('🔄 Retrying with fresh credentials...');
 
+              // Mark as reconnecting and retry
+              const tempSession: WhatsAppSession = {
+                sock: null,
+                qr: null,
+                isConnected: false,
+                agentId,
+                userId,
+                isReconnecting: true,
+              };
+              this.sessions.set(agentId, tempSession);
+
               // Retry connection after a short delay (will generate new QR)
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
               }, 2000);
             } else if (shouldReconnect) {
+              console.log('🔄 Connection lost, will reconnect...');
+
+              // Mark as reconnecting
+              const session = this.sessions.get(agentId);
+              if (session) {
+                session.isReconnecting = true;
+              }
+
               // Other connection issues - retry without clearing
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
@@ -169,6 +217,8 @@ class WhatsAppServiceFixed {
             if (session) {
               session.isConnected = true;
               session.qr = null; // Clear QR once connected
+              session.isReconnecting = false; // Clear reconnecting flag
+              session.sock = sock; // Update socket reference
             }
 
             // Import previous chats in background
@@ -187,9 +237,14 @@ class WhatsAppServiceFixed {
 
       // Handle incoming messages
       sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        console.log(`📨 Message event received: type=${type}, count=${messages.length}`);
+
         if (type === 'notify') {
           for (const msg of messages) {
+            console.log(`📩 Processing message: fromMe=${msg.key.fromMe}, hasMessage=${!!msg.message}`);
+
             if (!msg.key.fromMe && msg.message) {
+              console.log('✅ Valid incoming message, handling...');
               await this.handleIncomingMessage(userId, agentId, sock, msg).catch(console.error);
             }
           }
@@ -276,9 +331,14 @@ class WhatsAppServiceFixed {
       const messageText = this.extractMessageText(msg);
       const customerPhone = msg.key.remoteJid?.split('@')[0] || '';
 
-      if (!messageText || !customerPhone) return;
+      console.log(`📱 Extracted message - phone: ${customerPhone}, text: ${messageText}`);
 
-      console.log(`Incoming message from ${customerPhone}: ${messageText}`);
+      if (!messageText || !customerPhone) {
+        console.log('⚠️ Missing message text or customer phone, skipping');
+        return;
+      }
+
+      console.log(`✅ Incoming message from ${customerPhone}: ${messageText}`);
 
       // Find WhatsApp connection
       const whatsappConnection = await prisma.whatsAppConnection.findFirst({
@@ -331,14 +391,18 @@ class WhatsAppServiceFixed {
 
       // Generate AI response if enabled
       if (conversation.aiEnabled) {
+        console.log('🤖 AI is enabled for this conversation, checking limits...');
         const { canUserSendMessage } = await import('./trial-checker');
         const canSend = await canUserSendMessage(userId);
 
         if (canSend.allowed) {
+          console.log('✅ User can send messages, generating AI response...');
           await this.generateAIResponse(userId, agentId, conversation.id, sock, msg.key.remoteJid);
         } else {
-          console.log(`Cannot send AI reply: ${canSend.reason}`);
+          console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
         }
+      } else {
+        console.log('ℹ️ AI is disabled for this conversation');
       }
     } catch (error) {
       console.error('Error handling incoming message:', error);
