@@ -20,11 +20,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    const body = await req.json();
+    // Parse JSON body with error handling
+    let body;
+    try {
+      const text = await req.text();
+      if (!text || text.trim() === '') {
+        return NextResponse.json({ message: 'Request body is required' }, { status: 400 });
+      }
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return NextResponse.json({ message: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
     const { agentId } = body;
 
     if (!agentId) {
-      return NextResponse.json({ message: 'Agent ID is required' }, { status: 400 });
+      return NextResponse.json({ message: 'Agent ID is required. Please provide an agentId in the request body.' }, { status: 400 });
     }
 
     // Verify agent belongs to user

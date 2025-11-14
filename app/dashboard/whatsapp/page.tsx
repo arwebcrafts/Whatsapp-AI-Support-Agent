@@ -1,26 +1,59 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Smartphone, RefreshCw } from "lucide-react";
+import { Smartphone, RefreshCw, ArrowRight } from "lucide-react";
 
 export default function WhatsAppPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingAgent, setLoadingAgent] = useState(true);
   const [status, setStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [agentId, setAgentId] = useState<string | null>(null);
 
   useEffect(() => {
-    checkStatus();
-    // Poll status every 3 seconds
-    const interval = setInterval(checkStatus, 3000);
-    return () => clearInterval(interval);
+    loadDefaultAgent();
   }, []);
 
-  async function checkStatus() {
+  useEffect(() => {
+    if (agentId) {
+      checkStatus();
+      // Poll status every 3 seconds
+      const interval = setInterval(checkStatus, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [agentId]);
+
+  async function loadDefaultAgent() {
+    setLoadingAgent(true);
     try {
-      const res = await fetch('/api/whatsapp/status');
+      // Try to get user's first agent
+      const res = await fetch('/api/agents');
+      const data = await res.json();
+
+      if (data.agents && data.agents.length > 0) {
+        // Use first agent
+        setAgentId(data.agents[0].id);
+      } else {
+        // No agents exist - redirect to agent creation
+        router.push('/dashboard/agents/new');
+      }
+    } catch (error) {
+      console.error('Error loading agent:', error);
+    } finally {
+      setLoadingAgent(false);
+    }
+  }
+
+  async function checkStatus() {
+    if (!agentId) return;
+
+    try {
+      const res = await fetch(`/api/whatsapp/status?agentId=${agentId}`);
       const data = await res.json();
       setStatus(data);
       setQrCode(data.qr);
@@ -30,16 +63,32 @@ export default function WhatsAppPage() {
   }
 
   async function connect() {
+    if (!agentId) {
+      alert('No agent selected. Please create an agent first.');
+      router.push('/dashboard/agents/new');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/whatsapp/connect', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId }),
       });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.message || 'Failed to connect WhatsApp');
+        return;
+      }
+
       const data = await res.json();
       setQrCode(data.qr);
       setStatus({ ...status, qr: data.qr });
     } catch (error) {
       console.error('Error connecting:', error);
+      alert('Failed to connect WhatsApp. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,6 +111,19 @@ export default function WhatsAppPage() {
     }
   }
 
+  if (loadingAgent) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Smartphone className="h-12 w-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -69,6 +131,27 @@ export default function WhatsAppPage() {
           <h1 className="text-3xl font-bold">WhatsApp Connection</h1>
           <p className="text-gray-600">Connect your WhatsApp to start automating conversations</p>
         </div>
+
+        {/* Multi-Agent Notice */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold mb-1">🤖 Using Multi-Agent System</h3>
+                <p className="text-sm text-gray-700">
+                  Each agent can have its own WhatsApp connection. This page manages your first agent's connection.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard/agents')}
+              >
+                Manage Agents
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {status?.isConnected ? (
           <Card>
