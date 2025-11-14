@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  name                 String?
+  password             String
+  createdAt            DateTime @default(now())
+  trialEndsAt          DateTime?
+  subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime'
+  planType             String   @default("starter") // 'starter', 'professional', 'business', 'lifetime'
+  stripeCustomerId     String?  @unique
+
+  whatsappConnections  WhatsAppConnection[]
+  conversations        Conversation[]
+  knowledgeBase        KnowledgeBase[]
+  messageUsage         MessageUsage[]
+
+  @@map("users")
+}
+
+model WhatsAppConnection {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber     String?
+  sessionData     Json?    // Baileys session storage
+  isConnected     Boolean  @default(false)
+  lastActive      DateTime?
+  createdAt       DateTime @default(now())
+
+  conversations   Conversation[]
+
+  @@map("whatsapp_connections")
+}
+
+model Conversation {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  whatsappConnectionId  String
+  whatsappConnection    WhatsAppConnection @relation(fields: [whatsappConnectionId], references: [id], onDelete: Cascade)
+  customerPhone         String
+  customerName          String?
+  leadScore             String   @default("cold") // 'hot', 'warm', 'cold'
+  aiEnabled             Boolean  @default(true)
+  lastMessageAt         DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  messages              Message[]
+
+  @@index([userId])
+  @@index([whatsappConnectionId])
+  @@map("conversations")
+}
+
+model Message {
+  id              String   @id @default(uuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType      String   // 'customer', 'ai', 'user'
+  messageText     String?  @db.Text
+  mediaUrl        String?
+  messageType     String   @default("text") // 'text', 'voice', 'image', 'video'
+  tokensUsed      Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model KnowledgeBase {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  sourceType  String   @default("manual") // 'manual', 'pdf', 'website'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("knowledge_base")
+}
+
+model MessageUsage {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month         String   // Format: '2025-12'
+  messagesUsed  Int      @default(0)
+  messageLimit  Int      @default(2000)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@map("message_usage")
+}
