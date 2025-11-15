@@ -63,6 +63,9 @@ export async function POST(req: NextRequest) {
     if (force) {
       console.log('🗑️ Force reconnect requested, clearing existing session...');
       await whatsappServiceFixed.clearSession(agentId);
+      // Wait a moment to ensure cleanup completes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('✅ Session cleared, starting fresh connection...');
     }
 
     // Connect WhatsApp for this specific agent

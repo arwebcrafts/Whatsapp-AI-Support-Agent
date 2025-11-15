@@ -151,7 +151,15 @@ class WhatsAppServiceFixed {
         sock.ev.on('connection.update', async (update) => {
           const { connection, lastDisconnect, qr } = update;
 
-          console.log('📱 Connection update:', { connection, hasQR: !!qr, agentId });
+          console.log('📱 Connection update:', {
+            connection,
+            hasQR: !!qr,
+            agentId,
+            isConnecting: update.connection === 'connecting',
+            isOpen: update.connection === 'open',
+            isClose: update.connection === 'close',
+            lastDisconnectReason: lastDisconnect?.error?.message
+          });
 
           if (qr) {
             try {
@@ -169,6 +177,10 @@ class WhatsAppServiceFixed {
             } catch (error) {
               console.error('❌ Error generating QR code:', error);
             }
+          }
+
+          if (connection === 'connecting') {
+            console.log('🔄 WhatsApp is connecting for agent:', agentId);
           }
 
           if (connection === 'close') {
