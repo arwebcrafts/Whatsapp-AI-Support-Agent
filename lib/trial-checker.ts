@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { whatsappService } from "./whatsapp-service";
+import { whatsappServiceFixed } from "./whatsapp-service-fixed";
 
 /**
  * Check and enforce trial expiration
@@ -22,9 +22,16 @@ export async function checkAndExpireTrials() {
     console.log(`Found ${expiredTrialUsers.length} expired trial users`);
 
     for (const user of expiredTrialUsers) {
-      // Disconnect WhatsApp
+      // Disconnect all WhatsApp connections for this user's agents
       try {
-        await whatsappService.disconnectWhatsApp(user.id);
+        const agents = await prisma.agent.findMany({
+          where: { userId: user.id },
+          select: { id: true },
+        });
+
+        for (const agent of agents) {
+          await whatsappServiceFixed.disconnectWhatsApp(agent.id);
+        }
       } catch (error) {
         console.error(`Error disconnecting WhatsApp for user ${user.id}:`, error);
       }
