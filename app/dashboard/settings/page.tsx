@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,8 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Profile settings
   const [name, setName] = useState("");
@@ -34,11 +33,24 @@ export default function SettingsPage() {
   const [weeklyReports, setWeeklyReports] = useState(false);
 
   useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name || "");
-      setEmail(session.user.email || "");
+    loadUserData();
+  }, []);
+
+  async function loadUserData() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/user/me");
+      if (res.ok) {
+        const data = await res.json();
+        setName(data.user?.name || "");
+        setEmail(data.user?.email || "");
+      }
+    } catch (error) {
+      console.error("Error loading user:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [session]);
+  }
 
   async function handleSaveProfile() {
     try {
@@ -66,6 +78,16 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
