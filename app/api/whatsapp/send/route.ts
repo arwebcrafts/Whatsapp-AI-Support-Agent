@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Conversation not found' }, { status: 404 });
     }
 
+    if (!conversation.agentId) {
+      return NextResponse.json({ message: 'Agent not configured for this conversation' }, { status: 400 });
+    }
+
     // Send message
     const remoteJid = `${conversation.customerPhone}@s.whatsapp.net`;
     await whatsappServiceFixed.sendMessage(conversation.agentId, remoteJid, message);
