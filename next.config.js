@@ -11,10 +11,12 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Externalize native WebSocket modules for server-side
+      // Externalize native WebSocket modules and packages with modern syntax for server-side
       config.externals.push({
         'bufferutil': 'commonjs bufferutil',
         'utf-8-validate': 'commonjs utf-8-validate',
+        'undici': 'commonjs undici',
+        'cheerio': 'commonjs cheerio',
       });
     }
 
