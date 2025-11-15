@@ -240,6 +240,11 @@ class WhatsAppServiceFixed {
               }
             }
 
+            // Check for stream error (requires clearing session and fresh start)
+            const isStreamError =
+              statusCode === 515 ||
+              lastDisconnect?.error?.message?.includes('Stream Errored');
+
             // Check if it's a bad session / connection failure (expired credentials)
             const isBadSession =
               statusCode === DisconnectReason.badSession ||
@@ -247,8 +252,12 @@ class WhatsAppServiceFixed {
               lastDisconnect?.error?.message?.includes('Connection Failure') ||
               lastDisconnect?.error?.message?.includes('Connection Error');
 
-            if (isBadSession) {
-              console.log('🗑️ Detected expired/invalid credentials, clearing session...');
+            if (isStreamError || isBadSession) {
+              if (isStreamError) {
+                console.log('⚠️ Stream error detected after QR scan - clearing session and retrying...');
+              } else {
+                console.log('🗑️ Detected expired/invalid credentials, clearing session...');
+              }
 
               // Clear the session directory to force fresh QR generation
               try {
