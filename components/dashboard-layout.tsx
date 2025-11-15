@@ -31,9 +31,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Agents", href: "/dashboard/agents", icon: MessageSquare },
     { name: "Conversations", href: "/dashboard/conversations", icon: MessageSquare },
     { name: "Knowledge Base", href: "/dashboard/knowledge", icon: BookOpen },
-    { name: "WhatsApp", href: "/dashboard/whatsapp", icon: Smartphone },
     { name: "Templates", href: "/dashboard/templates", icon: FileText },
     { name: "Automation", href: "/dashboard/automation", icon: Zap },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },

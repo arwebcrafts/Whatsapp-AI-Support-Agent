@@ -39,20 +39,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Agent ID is required. Please provide an agentId in the request body.' }, { status: 400 });
     }
 
+    console.log(`📱 API: Connect request for agent ${agentId} from user ${user.email}`);
+
     // Verify agent belongs to user
     const agent = await prisma.agent.findFirst({
       where: {
         id: agentId,
         userId: user.id,
       },
+      include: {
+        whatsappConnection: true,
+      },
     });
 
     if (!agent) {
+      console.log(`❌ API: Agent ${agentId} not found or doesn't belong to user ${user.id}`);
       return NextResponse.json({ message: 'Agent not found' }, { status: 404 });
     }
 
+    console.log(`✅ API: Agent ${agent.name} found, existing connection: ${agent.whatsappConnection?.isConnected ? 'connected' : 'not connected'}`);
+
     // Connect WhatsApp for this specific agent
     const result = await whatsappServiceFixed.connectWhatsApp(user.id, agentId);
+
+    console.log(`📱 API: Connect result for agent ${agentId}: status=${result.status}, hasQR=${!!result.qr}`);
 
     return NextResponse.json(result);
   } catch (error) {
