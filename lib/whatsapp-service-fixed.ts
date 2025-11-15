@@ -18,6 +18,7 @@ interface WhatsAppSession {
   agentId: string;
   userId: string;
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
+  conflictRetries?: number; // Track conflict retry attempts
 }
 
 class WhatsAppServiceFixed {
@@ -89,6 +90,7 @@ class WhatsAppServiceFixed {
   async connectWhatsApp(userId: string, agentId: string): Promise<{ qr: string | null; status: string }> {
     try {
       console.log(`🔄 Connecting WhatsApp for agent ${agentId}...`);
+      console.log(`📊 Active sessions: ${this.sessions.size}, Connected: ${Array.from(this.sessions.values()).filter(s => s.isConnected).length}`);
 
       // Check if there's already an active session or reconnection in progress
       const existingSession = this.sessions.get(agentId);
@@ -179,20 +181,51 @@ class WhatsAppServiceFixed {
               reason: lastDisconnect?.error?.message,
             });
 
-            // Check for conflict error (multiple sessions)
+            // Check for conflict error (multiple sessions on same WhatsApp number)
             const isConflict =
               statusCode === 440 ||
               lastDisconnect?.error?.message?.includes('conflict') ||
               lastDisconnect?.error?.message?.includes('Stream Errored (conflict)');
 
             if (isConflict) {
-              console.log('⚠️ Conflict detected (another session is active). Not reconnecting to avoid loop.');
-              // Don't reconnect on conflict - just clean up
-              this.sessions.delete(agentId);
-              await this.updateConnectionStatus(agentId, false, null);
-              clearTimeout(timeout);
-              resolve(null);
-              return;
+              // Get current session to check retry count
+              const session = this.sessions.get(agentId);
+              const retryCount = (session?.conflictRetries || 0) + 1;
+
+              console.log(`⚠️ Conflict detected for agent ${agentId} (attempt ${retryCount}/3)`);
+
+              // Allow up to 3 retries for conflicts
+              // This handles cases where QR scanning takes time or network issues
+              if (retryCount < 3) {
+                console.log(`🔄 Retrying connection after conflict...`);
+
+                // Update session with retry count
+                if (session) {
+                  session.conflictRetries = retryCount;
+                  session.isReconnecting = true;
+                }
+
+                // Wait a bit longer before retrying (exponential backoff)
+                const backoffTime = retryCount * 3000; // 3s, 6s, 9s
+                setTimeout(() => {
+                  this.connectWhatsApp(userId, agentId);
+                }, backoffTime);
+
+                clearTimeout(timeout);
+                resolve(null);
+                return;
+              } else {
+                // After 3 attempts, give up to avoid infinite loops
+                console.log('❌ Max conflict retries reached. This WhatsApp number may already be connected elsewhere.');
+                console.log('💡 Tip: Make sure you\'re not scanning the same QR code on multiple devices, or disconnect from other sessions first.');
+
+                // Clean up
+                this.sessions.delete(agentId);
+                await this.updateConnectionStatus(agentId, false, null);
+                clearTimeout(timeout);
+                resolve(null);
+                return;
+              }
             }
 
             // Check if it's a bad session / connection failure (expired credentials)
@@ -274,6 +307,7 @@ class WhatsAppServiceFixed {
               session.isConnected = true;
               session.qr = null; // Clear QR once connected
               session.isReconnecting = false; // Clear reconnecting flag
+              session.conflictRetries = 0; // Reset conflict counter on successful connection
               session.sock = sock; // Update socket reference
             }
 
@@ -314,6 +348,8 @@ class WhatsAppServiceFixed {
         isConnected: false,
         agentId,
         userId,
+        isReconnecting: false,
+        conflictRetries: 0,
       });
 
       // Create initial WhatsAppConnection record if it doesn't exist
