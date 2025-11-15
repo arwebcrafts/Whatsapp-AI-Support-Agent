@@ -211,16 +211,22 @@ class WhatsAppServiceFixed {
               if (retryCount < 3) {
                 console.log(`🔄 Retrying connection after conflict...`);
 
-                // Update session with retry count
-                if (session) {
-                  session.conflictRetries = retryCount;
-                  session.isReconnecting = true;
-                }
+                // Store retry count before deleting session
+                const savedRetryCount = retryCount;
+
+                // Delete session to allow fresh reconnection
+                this.sessions.delete(agentId);
 
                 // Wait a bit longer before retrying (exponential backoff)
                 const backoffTime = retryCount * 3000; // 3s, 6s, 9s
                 setTimeout(() => {
-                  this.connectWhatsApp(userId, agentId);
+                  this.connectWhatsApp(userId, agentId).then(() => {
+                    // Restore conflict retry count after reconnection
+                    const newSession = this.sessions.get(agentId);
+                    if (newSession) {
+                      newSession.conflictRetries = savedRetryCount;
+                    }
+                  }).catch(console.error);
                 }, backoffTime);
 
                 clearTimeout(timeout);
@@ -277,31 +283,18 @@ class WhatsAppServiceFixed {
 
               console.log('🔄 Retrying with fresh credentials...');
 
-              // Mark as reconnecting and retry
-              const tempSession: WhatsAppSession = {
-                sock: null,
-                qr: null,
-                isConnected: false,
-                agentId,
-                userId,
-                isReconnecting: true,
-              };
-              this.sessions.set(agentId, tempSession);
-
               // Retry connection after a short delay (will generate new QR)
+              // Don't create a temporary session - let the retry create a fresh one
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
               }, 2000);
             } else if (shouldReconnect) {
               console.log('🔄 Connection lost, will reconnect...');
 
-              // Mark as reconnecting
-              const session = this.sessions.get(agentId);
-              if (session) {
-                session.isReconnecting = true;
-              }
+              // Clear session to allow fresh reconnection
+              this.sessions.delete(agentId);
 
-              // Other connection issues - retry without clearing
+              // Other connection issues - retry without clearing session files
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
               }, 3000);
