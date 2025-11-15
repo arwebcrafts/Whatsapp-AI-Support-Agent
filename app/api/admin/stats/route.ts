@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         month: currentMonth,
       },
       _sum: {
-        messagesSent: true,
+        messagesUsed: true,
       },
     });
 
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
         totalConversations,
         totalMessages,
         activeConnections,
-        monthlyMessages: monthlyUsage._sum.messagesSent || 0,
+        monthlyMessages: monthlyUsage._sum.messagesUsed || 0,
         estimatedMRR,
         subscriptionBreakdown,
       },
