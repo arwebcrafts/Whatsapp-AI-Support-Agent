@@ -31,16 +31,12 @@ export default function WhatsAppPage() {
   async function loadDefaultAgent() {
     setLoadingAgent(true);
     try {
-      // Try to get user's first agent
-      const res = await fetch('/api/agents');
+      // Get or create user's default agent
+      const res = await fetch('/api/whatsapp/default-agent');
       const data = await res.json();
 
-      if (data.agents && data.agents.length > 0) {
-        // Use first agent
-        setAgentId(data.agents[0].id);
-      } else {
-        // No agents exist - redirect to agent creation
-        router.push('/dashboard/agents/new');
+      if (data.agent) {
+        setAgentId(data.agent.id);
       }
     } catch (error) {
       console.error('Error loading agent:', error);
@@ -64,8 +60,7 @@ export default function WhatsAppPage() {
 
   async function connect() {
     if (!agentId) {
-      alert('No agent selected. Please create an agent first.');
-      router.push('/dashboard/agents/new');
+      alert('No agent found. Please try refreshing the page.');
       return;
     }
 
@@ -74,7 +69,7 @@ export default function WhatsAppPage() {
       const res = await fetch('/api/whatsapp/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId }),
+        body: JSON.stringify({ agentId, force: true }), // Force clear previous session
       });
 
       if (!res.ok) {
@@ -96,11 +91,14 @@ export default function WhatsAppPage() {
 
   async function disconnect() {
     if (!confirm('Are you sure you want to disconnect WhatsApp?')) return;
+    if (!agentId) return;
 
     setLoading(true);
     try {
       await fetch('/api/whatsapp/disconnect', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId }),
       });
       setQrCode(null);
       setStatus({ isConnected: false });
@@ -129,29 +127,8 @@ export default function WhatsAppPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">WhatsApp Connection</h1>
-          <p className="text-gray-600">Connect your WhatsApp to start automating conversations</p>
+          <p className="text-gray-600">Connect your WhatsApp to start automating conversations with AI</p>
         </div>
-
-        {/* Multi-Agent Notice */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold mb-1">🤖 Using Multi-Agent System</h3>
-                <p className="text-sm text-gray-700">
-                  Each agent can have its own WhatsApp connection. This page manages your first agent's connection.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/dashboard/agents')}
-              >
-                Manage Agents
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {status?.isConnected ? (
           <Card>

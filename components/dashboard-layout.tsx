@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Agents", href: "/dashboard/agents", icon: Bot },
+    { name: "WhatsApp", href: "/dashboard/whatsapp", icon: Smartphone },
     { name: "Conversations", href: "/dashboard/conversations", icon: MessageSquare },
     { name: "Knowledge Base", href: "/dashboard/knowledge", icon: BookOpen },
     { name: "Templates", href: "/dashboard/templates", icon: FileText },

@@ -31,7 +31,7 @@ interface Agent {
 }
 
 export default function AutomationPage() {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -46,19 +46,19 @@ export default function AutomationPage() {
   );
 
   useEffect(() => {
-    loadAgents();
+    loadAgent();
   }, []);
 
-  async function loadAgents() {
+  async function loadAgent() {
     try {
       setLoading(true);
-      const res = await fetch("/api/agents");
+      const res = await fetch("/api/whatsapp/default-agent");
       if (res.ok) {
         const data = await res.json();
-        setAgents(data.agents || []);
+        setAgent(data.agent || null);
       }
     } catch (error) {
-      console.error("Error loading agents:", error);
+      console.error("Error loading agent:", error);
     } finally {
       setLoading(false);
     }
@@ -206,70 +206,51 @@ export default function AutomationPage() {
                 <CardTitle>AI-Powered Automation</CardTitle>
               </div>
               <CardDescription>
-                Your agents with active AI automation
+                Your WhatsApp AI assistant status
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {agents.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No agents created yet</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => (window.location.href = "/dashboard/agents/new")}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Agent
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {agents.map((agent) => (
-                    <div
-                      key={agent.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Bot className="w-5 h-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{agent.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {agent.whatsappConnection?.isConnected ? (
-                              <>
-                                <Badge variant="default" className="text-xs">
-                                  Connected
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {agent.whatsappConnection.phoneNumber}
-                                </span>
-                              </>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                Not Connected
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={agent.isActive ? "default" : "secondary"}
-                        >
-                          {agent.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            (window.location.href = `/dashboard/agents/${agent.id}`)
-                          }
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+              {agent ? (
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Bot className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{agent.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {agent.whatsappConnection?.isConnected ? (
+                          <>
+                            <Badge variant="default" className="text-xs">
+                              Connected
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {agent.whatsappConnection.phoneNumber}
+                            </span>
+                          </>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            Not Connected
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={agent.isActive ? "default" : "secondary"}>
+                      {agent.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => (window.location.href = "/dashboard/whatsapp")}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Loading WhatsApp AI...</p>
                 </div>
               )}
             </CardContent>

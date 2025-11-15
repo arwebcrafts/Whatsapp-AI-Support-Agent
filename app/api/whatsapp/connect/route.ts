@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Invalid JSON in request body' }, { status: 400 });
     }
 
-    const { agentId } = body;
+    const { agentId, force } = body;
 
     if (!agentId) {
       return NextResponse.json({ message: 'Agent ID is required. Please provide an agentId in the request body.' }, { status: 400 });
     }
 
-    console.log(`📱 API: Connect request for agent ${agentId} from user ${user.email}`);
+    console.log(`📱 API: Connect request for agent ${agentId} from user ${user.email} (force: ${force})`);
 
     // Verify agent belongs to user
     const agent = await prisma.agent.findFirst({
@@ -58,6 +58,12 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`✅ API: Agent ${agent.name} found, existing connection: ${agent.whatsappConnection?.isConnected ? 'connected' : 'not connected'}`);
+
+    // If force is true, clear the session first
+    if (force) {
+      console.log('🗑️ Force reconnect requested, clearing existing session...');
+      await whatsappServiceFixed.clearSession(agentId);
+    }
 
     // Connect WhatsApp for this specific agent
     const result = await whatsappServiceFixed.connectWhatsApp(user.id, agentId);
