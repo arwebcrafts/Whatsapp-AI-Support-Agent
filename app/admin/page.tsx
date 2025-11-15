@@ -84,8 +84,8 @@ export default function AdminDashboard() {
               <Button variant="outline" onClick={() => router.push("/admin/users")}>
                 Manage Users
               </Button>
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                Back to Dashboard
+              <Button variant="outline" onClick={() => router.push("/dashboard/agents")}>
+                My Agents
               </Button>
             </div>
           </div>

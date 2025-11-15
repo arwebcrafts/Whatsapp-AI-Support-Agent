@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -17,6 +17,8 @@ import {
   CreditCard,
   LogOut,
   Menu,
+  Shield,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -28,10 +30,27 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const navigation = [
+  useEffect(() => {
+    // Check if user is admin
+    async function checkAdminStatus() {
+      try {
+        const res = await fetch("/api/user/me");
+        if (res.ok) {
+          const data = await res.json();
+          setIsAdmin(data.user?.role === 'admin');
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    }
+    checkAdminStatus();
+  }, []);
+
+  const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Agents", href: "/dashboard/agents", icon: MessageSquare },
+    { name: "Agents", href: "/dashboard/agents", icon: Bot },
     { name: "Conversations", href: "/dashboard/conversations", icon: MessageSquare },
     { name: "Knowledge Base", href: "/dashboard/knowledge", icon: BookOpen },
     { name: "Templates", href: "/dashboard/templates", icon: FileText },
@@ -40,6 +59,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];
+
+  // Add Admin Panel link if user is admin
+  const navigation = isAdmin
+    ? [{ name: "Admin Panel", href: "/admin", icon: Shield }, ...baseNavigation]
+    : baseNavigation;
 
   return (
     <div className="min-h-screen bg-gray-50">

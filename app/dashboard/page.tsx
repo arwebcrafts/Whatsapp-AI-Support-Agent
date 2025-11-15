@@ -43,6 +43,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // Redirect admins to admin panel
+  if (user.role === 'admin') {
+    redirect("/admin");
+  }
+
   // Get message usage for current month
   const currentMonth = new Date().toISOString().slice(0, 7);
   const usage = await prisma.messageUsage.findUnique({
