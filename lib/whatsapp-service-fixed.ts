@@ -211,16 +211,22 @@ class WhatsAppServiceFixed {
               if (retryCount < 3) {
                 console.log(`🔄 Retrying connection after conflict...`);
 
-                // Update session with retry count
-                if (session) {
-                  session.conflictRetries = retryCount;
-                  session.isReconnecting = true;
-                }
+                // Store retry count before deleting session
+                const savedRetryCount = retryCount;
+
+                // Delete session to allow fresh reconnection
+                this.sessions.delete(agentId);
 
                 // Wait a bit longer before retrying (exponential backoff)
                 const backoffTime = retryCount * 3000; // 3s, 6s, 9s
                 setTimeout(() => {
-                  this.connectWhatsApp(userId, agentId);
+                  this.connectWhatsApp(userId, agentId).then(() => {
+                    // Restore conflict retry count after reconnection
+                    const newSession = this.sessions.get(agentId);
+                    if (newSession) {
+                      newSession.conflictRetries = savedRetryCount;
+                    }
+                  }).catch(console.error);
                 }, backoffTime);
 
                 clearTimeout(timeout);
@@ -240,14 +246,61 @@ class WhatsAppServiceFixed {
               }
             }
 
+            // Check for stream error
+            const isStreamError =
+              statusCode === 515 ||
+              lastDisconnect?.error?.message?.includes('Stream Errored');
+
+            // Stream error 515 is normal after QR scan pairing - it means "restart connection"
+            // Only clear credentials if pairing never completed (no creds.json exists)
+            if (isStreamError) {
+              const credsPath = path.join(agentAuthDir, 'creds.json');
+              const hasCredentials = fs.existsSync(credsPath);
+
+              if (hasCredentials) {
+                // Credentials exist - this is normal post-pairing restart
+                console.log('⚠️ Stream error after pairing - reconnecting with saved credentials...');
+
+                // Clear from memory but keep session files
+                this.sessions.delete(agentId);
+
+                // Reconnect with existing credentials (don't clear session files)
+                setTimeout(() => {
+                  this.connectWhatsApp(userId, agentId);
+                }, 2000);
+              } else {
+                // No credentials - pairing never completed, clear everything
+                console.log('⚠️ Stream error without credentials - clearing and retrying...');
+
+                // Clear the session directory
+                try {
+                  if (fs.existsSync(agentAuthDir)) {
+                    fs.rmSync(agentAuthDir, { recursive: true, force: true });
+                    console.log('✅ Cleared old session files');
+                  }
+                } catch (error) {
+                  console.error('❌ Error clearing session files:', error);
+                }
+
+                // Clear from memory
+                this.sessions.delete(agentId);
+
+                // Update database
+                await this.updateConnectionStatus(agentId, false, null);
+
+                // Retry connection
+                setTimeout(() => {
+                  this.connectWhatsApp(userId, agentId);
+                }, 2000);
+              }
+            }
             // Check if it's a bad session / connection failure (expired credentials)
-            const isBadSession =
+            else if (
               statusCode === DisconnectReason.badSession ||
               statusCode === DisconnectReason.timedOut ||
               lastDisconnect?.error?.message?.includes('Connection Failure') ||
-              lastDisconnect?.error?.message?.includes('Connection Error');
-
-            if (isBadSession) {
+              lastDisconnect?.error?.message?.includes('Connection Error')
+            ) {
               console.log('🗑️ Detected expired/invalid credentials, clearing session...');
 
               // Clear the session directory to force fresh QR generation
@@ -268,17 +321,6 @@ class WhatsAppServiceFixed {
 
               console.log('🔄 Retrying with fresh credentials...');
 
-              // Mark as reconnecting and retry
-              const tempSession: WhatsAppSession = {
-                sock: null,
-                qr: null,
-                isConnected: false,
-                agentId,
-                userId,
-                isReconnecting: true,
-              };
-              this.sessions.set(agentId, tempSession);
-
               // Retry connection after a short delay (will generate new QR)
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
@@ -286,13 +328,10 @@ class WhatsAppServiceFixed {
             } else if (shouldReconnect) {
               console.log('🔄 Connection lost, will reconnect...');
 
-              // Mark as reconnecting
-              const session = this.sessions.get(agentId);
-              if (session) {
-                session.isReconnecting = true;
-              }
+              // Clear session to allow fresh reconnection
+              this.sessions.delete(agentId);
 
-              // Other connection issues - retry without clearing
+              // Other connection issues - retry without clearing session files
               setTimeout(() => {
                 this.connectWhatsApp(userId, agentId);
               }, 3000);
