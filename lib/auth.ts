@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
-        token.role = user.role
+        token.role = (user as any).role || "user"
       }
 
       return token
