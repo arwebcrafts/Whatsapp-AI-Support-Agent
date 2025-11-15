@@ -3,6 +3,12 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  // Configure body size limit for file uploads
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Externalize native WebSocket modules for server-side
