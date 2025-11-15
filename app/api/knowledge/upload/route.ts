@@ -72,11 +72,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Increase upload size limit
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
+// Route segment config for Next.js 14 App Router
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds for file uploads
