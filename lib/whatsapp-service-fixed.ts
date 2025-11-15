@@ -11,6 +11,18 @@ import path from 'path';
 import fs from 'fs';
 import { prisma } from './prisma';
 
+// Simple logger for Baileys
+const logger = {
+  level: 'silent' as const,
+  fatal: () => {},
+  error: () => {},
+  warn: () => {},
+  info: () => {},
+  debug: () => {},
+  trace: () => {},
+  child: () => logger,
+};
+
 interface WhatsAppSession {
   sock: any;
   qr: string | null;
@@ -131,7 +143,7 @@ class WhatsAppServiceFixed {
         version,
         auth: {
           creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, console),
+          keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         printQRInTerminal: true, // Also print to terminal for debugging
         browser: ['WhaSales AI', 'Chrome', '1.0.0'],
