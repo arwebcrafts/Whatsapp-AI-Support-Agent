@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { whatsappService } from '@/lib/whatsapp-service';
+import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Send message
     const remoteJid = `${conversation.customerPhone}@s.whatsapp.net`;
-    await whatsappService.sendMessage(user.id, remoteJid, message);
+    await whatsappServiceFixed.sendMessage(conversation.agentId, remoteJid, message);
 
     // Save message
     await prisma.message.create({
