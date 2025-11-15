@@ -24,6 +24,7 @@ interface Agent {
   agentKnowledge: Array<{ knowledge: any }>;
   _count: {
     conversations: number;
+    agentKnowledge: number;
   };
 }
 
