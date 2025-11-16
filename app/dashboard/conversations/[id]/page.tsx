@@ -160,32 +160,32 @@ export default function ConversationPage() {
     <DashboardLayout>
       <div className="h-[calc(100vh-4rem)] flex flex-col bg-[#E5DDD5]">
         {/* WhatsApp-Style Header */}
-        <div className="bg-[#075E54] text-white px-4 py-3 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-3 flex-1">
+        <div className="bg-[#075E54] text-white px-2 md:px-4 py-2 md:py-3 flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <Link href="/dashboard/conversations">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E]">
-                <ArrowLeft className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10">
+                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </Link>
 
             {/* Profile Picture */}
-            <div className="w-10 h-10 rounded-full bg-[#128C7E] flex items-center justify-center font-semibold text-lg">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#128C7E] flex items-center justify-center font-semibold text-sm md:text-lg flex-shrink-0">
               {conversation.customerName?.[0]?.toUpperCase() || conversation.customerPhone?.[0]}
             </div>
 
             {/* Contact Info */}
-            <div className="flex-1">
-              <h2 className="font-semibold text-base">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-sm md:text-base truncate">
                 {conversation.customerName || conversation.customerPhone}
               </h2>
-              <p className="text-xs text-gray-200">
+              <p className="text-xs text-gray-200 truncate hidden md:block">
                 {conversation.customerPhone}
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <Badge
               className={`${
                 conversation.leadScore === "hot"
@@ -193,29 +193,29 @@ export default function ConversationPage() {
                   : conversation.leadScore === "warm"
                   ? "bg-orange-500"
                   : "bg-blue-500"
-              } text-white`}
+              } text-white text-xs px-1.5 md:px-2`}
             >
               {conversation.leadScore.toUpperCase()}
             </Badge>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E]">
-              <Video className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Video className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E]">
-              <Phone className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Phone className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E]">
-              <MoreVertical className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10">
+              <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
           </div>
         </div>
 
         {/* Settings Bar */}
-        <div className="bg-[#F0F2F5] px-4 py-3 border-b border-gray-300">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-4">
+        <div className="bg-[#F0F2F5] px-3 md:px-4 py-2 md:py-3 border-b border-gray-300">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-2 md:mb-3">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <div className="flex items-center gap-2">
-                <Label htmlFor="ai-toggle" className="text-sm font-medium text-gray-700">
-                  🤖 AI Enabled
+                <Label htmlFor="ai-toggle" className="text-xs md:text-sm font-medium text-gray-700 whitespace-nowrap">
+                  🤖 AI
                 </Label>
                 <Switch
                   id="ai-toggle"
@@ -226,28 +226,28 @@ export default function ConversationPage() {
 
               {/* AI Mode Selection */}
               {conversation.aiEnabled && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium text-gray-700">Mode:</Label>
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <Label className="text-xs md:text-sm font-medium text-gray-700 hidden md:inline">Mode:</Label>
                   <select
                     value={conversation.aiMode || 'auto'}
                     onChange={(e) => updateAiMode(e.target.value)}
-                    className="text-xs px-2 py-1 border rounded-md bg-white"
+                    className="text-xs px-1.5 md:px-2 py-0.5 md:py-1 border rounded-md bg-white"
                   >
-                    <option value="auto">⚡ Auto-Reply</option>
+                    <option value="auto">⚡ Auto</option>
                     <option value="copilot">✨ Co-Pilot</option>
-                    <option value="manual">👤 Manual Only</option>
+                    <option value="manual">👤 Manual</option>
                   </select>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 md:gap-2">
               {["hot", "warm", "cold"].map((score) => (
                 <Button
                   key={score}
                   variant={conversation.leadScore === score ? "default" : "outline"}
                   size="sm"
-                  className={`text-xs ${
+                  className={`text-xs px-2 md:px-3 ${
                     conversation.leadScore === score
                       ? score === "hot"
                         ? "bg-red-500 hover:bg-red-600"
@@ -266,7 +266,7 @@ export default function ConversationPage() {
 
           {/* Co-Pilot Info Banner */}
           {conversation.aiEnabled && conversation.aiMode === 'copilot' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-2 md:px-3 py-1.5 md:py-2">
               <p className="text-xs text-blue-800">
                 ✨ <strong>Co-Pilot Mode:</strong> Click "Get AI Suggestion" to see what the AI recommends. You can edit before sending.
               </p>
@@ -355,7 +355,7 @@ export default function ConversationPage() {
         </div>
 
         {/* Input Area - WhatsApp Style */}
-        <div className="bg-[#F0F2F5] px-4 py-3 border-t border-gray-300">
+        <div className="bg-[#F0F2F5] px-2 md:px-4 py-2 md:py-3 border-t border-gray-300">
           {/* Co-Pilot Suggestion Button */}
           {conversation.aiMode === 'copilot' && !aiSuggestion && (
             <div className="mb-2">
@@ -364,31 +364,31 @@ export default function ConversationPage() {
                 disabled={loadingSuggestion}
                 variant="outline"
                 size="sm"
-                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
+                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600 text-xs md:text-sm"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Sparkles className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" />
                 {loadingSuggestion ? "Generating..." : "Get AI Suggestion"}
               </Button>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-10 w-10">
-              <Smile className="h-6 w-6" />
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Smile className="h-5 w-5 md:h-6 md:w-6" />
             </Button>
 
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-10 w-10">
-              <Paperclip className="h-6 w-6" />
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Paperclip className="h-5 w-5 md:h-6 md:w-6" />
             </Button>
 
             <div className="flex-1 relative">
               <Input
-                placeholder={conversation.aiMode === 'copilot' ? "Type or use AI suggestion..." : "Type a message"}
+                placeholder={conversation.aiMode === 'copilot' ? "Type or use AI..." : "Type a message"}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
                 disabled={loading}
-                className="rounded-full bg-white border-none shadow-sm pl-4 pr-12 py-6 text-[15px] focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="rounded-full bg-white border-none shadow-sm pl-3 md:pl-4 pr-3 md:pr-12 py-5 md:py-6 text-sm md:text-[15px] focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
 
@@ -396,13 +396,13 @@ export default function ConversationPage() {
               <Button
                 onClick={sendMessage}
                 disabled={loading}
-                className="rounded-full bg-[#25D366] hover:bg-[#20BD5B] h-12 w-12 p-0 shadow-md"
+                className="rounded-full bg-[#25D366] hover:bg-[#20BD5B] h-10 w-10 md:h-12 md:w-12 p-0 shadow-md flex-shrink-0"
               >
-                <Send className="h-5 w-5 text-white" />
+                <Send className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </Button>
             ) : (
-              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-10 w-10">
-                <Mic className="h-6 w-6" />
+              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10">
+                <Mic className="h-5 w-5 md:h-6 md:w-6" />
               </Button>
             )}
           </div>
