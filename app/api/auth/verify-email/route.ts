@@ -128,6 +128,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Ensure token is not null
+    if (!token) {
+      return NextResponse.json(
+        { message: "Failed to generate verification token" },
+        { status: 500 }
+      );
+    }
+
     // Resend verification email
     const { sendVerificationEmail } = await import("@/lib/email-service");
     const sent = await sendVerificationEmail(user.email, user.name || 'there', token);
