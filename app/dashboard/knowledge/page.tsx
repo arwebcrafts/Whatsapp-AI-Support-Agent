@@ -8,7 +8,22 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, Trash2, Edit, Upload, Globe, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { BookOpen, Plus, Trash2, Edit, Upload, Globe, FileText, ChevronDown } from "lucide-react";
 
 export default function KnowledgeBasePage() {
   const [knowledgeItems, setKnowledgeItems] = useState<any[]>([]);
@@ -18,8 +33,20 @@ export default function KnowledgeBasePage() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [scrapingWebsite, setScrapingWebsite] = useState(false);
 
+  // FAQ states
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [isFaqDialogOpen, setIsFaqDialogOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<any>(null);
+  const [faqFormData, setFaqFormData] = useState({
+    question: "",
+    answer: "",
+    category: "general",
+  });
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+
   useEffect(() => {
     loadKnowledge();
+    loadFaqs();
   }, []);
 
   async function loadKnowledge() {
@@ -139,6 +166,79 @@ export default function KnowledgeBasePage() {
     } finally {
       setScrapingWebsite(false);
     }
+  }
+
+  // FAQ Functions
+  async function loadFaqs() {
+    try {
+      const res = await fetch("/api/faqs");
+      const data = await res.json();
+      setFaqs(data.faqs || []);
+      // Set first FAQ as open by default
+      if (data.faqs && data.faqs.length > 0) {
+        setOpenFaqId(data.faqs[0].id);
+      }
+    } catch (error) {
+      console.error("Error loading FAQs:", error);
+    }
+  }
+
+  async function handleFaqSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    try {
+      if (editingFaq) {
+        await fetch(`/api/faqs/${editingFaq.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqFormData),
+        });
+      } else {
+        await fetch("/api/faqs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqFormData),
+        });
+      }
+
+      setIsFaqDialogOpen(false);
+      setEditingFaq(null);
+      setFaqFormData({ question: "", answer: "", category: "general" });
+      await loadFaqs();
+    } catch (error) {
+      console.error("Error saving FAQ:", error);
+      alert("Failed to save FAQ");
+    }
+  }
+
+  async function deleteFaq(id: string) {
+    if (!confirm("Are you sure you want to delete this FAQ?")) return;
+
+    try {
+      await fetch(`/api/faqs/${id}`, {
+        method: "DELETE",
+      });
+      await loadFaqs();
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+      alert("Failed to delete FAQ");
+    }
+  }
+
+  function openCreateFaqDialog() {
+    setEditingFaq(null);
+    setFaqFormData({ question: "", answer: "", category: "general" });
+    setIsFaqDialogOpen(true);
+  }
+
+  function openEditFaqDialog(faq: any) {
+    setEditingFaq(faq);
+    setFaqFormData({
+      question: faq.question,
+      answer: faq.answer,
+      category: faq.category,
+    });
+    setIsFaqDialogOpen(true);
   }
 
   return (
@@ -425,25 +525,144 @@ export default function KnowledgeBasePage() {
           <TabsContent value="faq" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Frequently Asked Questions</CardTitle>
-                <CardDescription>
-                  Add common questions and answers for better AI responses
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Frequently Asked Questions</CardTitle>
+                    <CardDescription>
+                      Add common questions and answers for better AI responses
+                    </CardDescription>
+                  </div>
+                  <Button onClick={openCreateFaqDialog}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add FAQ
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <p className="text-sm text-yellow-800">
-                    💡 FAQ builder coming soon! For now, you can add FAQs in the Manual Input tab
-                    using this format:
-                  </p>
-                  <p className="text-sm text-yellow-800 mt-2 font-mono">
-                    Q: What's your delivery time?
-                    <br />
-                    A: We deliver in 3-5 business days.
-                  </p>
-                </div>
+                {faqs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-semibold mb-2">No FAQs yet</h3>
+                    <p className="text-gray-600 mb-4">
+                      Create your first FAQ to help your AI provide better answers
+                    </p>
+                    <Button onClick={openCreateFaqDialog}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First FAQ
+                    </Button>
+                  </div>
+                ) : (
+                  <Accordion type="single" collapsible value={openFaqId || undefined} onValueChange={setOpenFaqId}>
+                    {faqs.map((faq) => (
+                      <AccordionItem key={faq.id} value={faq.id}>
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <span className="text-left font-medium">{faq.question}</span>
+                            <Badge variant="secondary" className="ml-2">
+                              {faq.category}
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pt-2 pb-4">
+                            <p className="text-gray-700 mb-4">{faq.answer}</p>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditFaqDialog(faq)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteFaq(faq.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
               </CardContent>
             </Card>
+
+            {/* FAQ Dialog */}
+            <Dialog open={isFaqDialogOpen} onOpenChange={setIsFaqDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingFaq ? "Edit FAQ" : "Create New FAQ"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingFaq
+                      ? "Update your frequently asked question"
+                      : "Add a common question and answer to help your AI"}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleFaqSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="faq-question">Question</Label>
+                      <Input
+                        id="faq-question"
+                        value={faqFormData.question}
+                        onChange={(e) =>
+                          setFaqFormData({ ...faqFormData, question: e.target.value })
+                        }
+                        placeholder="What's your delivery time?"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="faq-answer">Answer</Label>
+                      <Textarea
+                        id="faq-answer"
+                        value={faqFormData.answer}
+                        onChange={(e) =>
+                          setFaqFormData({ ...faqFormData, answer: e.target.value })
+                        }
+                        placeholder="We deliver in 3-5 business days to all locations."
+                        rows={4}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="faq-category">Category</Label>
+                      <Input
+                        id="faq-category"
+                        value={faqFormData.category}
+                        onChange={(e) =>
+                          setFaqFormData({ ...faqFormData, category: e.target.value })
+                        }
+                        placeholder="general"
+                      />
+                    </div>
+                  </div>
+
+                  <DialogFooter className="mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsFaqDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit">
+                      {editingFaq ? "Update" : "Create"} FAQ
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>
