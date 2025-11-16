@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send, Bot, User, Phone, Video, MoreVertical, Check, CheckCheck, Smile, Paperclip, Mic } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, Phone, Video, MoreVertical, Check, CheckCheck, Smile, Paperclip, Mic, Sparkles, ThumbsUp, X } from "lucide-react";
 import Link from "next/link";
 
 export default function ConversationPage() {
@@ -20,6 +20,8 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +98,46 @@ export default function ConversationPage() {
     }
   }
 
+  async function updateAiMode(mode: string) {
+    try {
+      await fetch(`/api/conversations/${conversationId}/update-ai-mode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiMode: mode }),
+      });
+      await loadConversation();
+    } catch (error) {
+      console.error("Error updating AI mode:", error);
+    }
+  }
+
+  async function getAiSuggestion() {
+    setLoadingSuggestion(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/suggest`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      setAiSuggestion(data.suggestion);
+      setNewMessage(data.suggestion);
+    } catch (error) {
+      console.error("Error getting AI suggestion:", error);
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  }
+
+  function acceptSuggestion() {
+    if (aiSuggestion) {
+      setNewMessage(aiSuggestion);
+      setAiSuggestion(null);
+    }
+  }
+
+  function dismissSuggestion() {
+    setAiSuggestion(null);
+  }
+
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -168,39 +210,68 @@ export default function ConversationPage() {
         </div>
 
         {/* Settings Bar */}
-        <div className="bg-[#F0F2F5] px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="ai-toggle" className="text-sm font-medium text-gray-700">
-              🤖 AI Auto-Reply
-            </Label>
-            <Switch
-              id="ai-toggle"
-              checked={conversation.aiEnabled}
-              onCheckedChange={toggleAI}
-            />
+        <div className="bg-[#F0F2F5] px-4 py-3 border-b border-gray-300">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="ai-toggle" className="text-sm font-medium text-gray-700">
+                  🤖 AI Enabled
+                </Label>
+                <Switch
+                  id="ai-toggle"
+                  checked={conversation.aiEnabled}
+                  onCheckedChange={toggleAI}
+                />
+              </div>
+
+              {/* AI Mode Selection */}
+              {conversation.aiEnabled && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium text-gray-700">Mode:</Label>
+                  <select
+                    value={conversation.aiMode || 'auto'}
+                    onChange={(e) => updateAiMode(e.target.value)}
+                    className="text-xs px-2 py-1 border rounded-md bg-white"
+                  >
+                    <option value="auto">⚡ Auto-Reply</option>
+                    <option value="copilot">✨ Co-Pilot</option>
+                    <option value="manual">👤 Manual Only</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              {["hot", "warm", "cold"].map((score) => (
+                <Button
+                  key={score}
+                  variant={conversation.leadScore === score ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs ${
+                    conversation.leadScore === score
+                      ? score === "hot"
+                        ? "bg-red-500 hover:bg-red-600"
+                        : score === "warm"
+                        ? "bg-orange-500 hover:bg-orange-600"
+                        : "bg-blue-500 hover:bg-blue-600"
+                      : ""
+                  }`}
+                  onClick={() => updateLeadScore(score)}
+                >
+                  {score.toUpperCase()}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            {["hot", "warm", "cold"].map((score) => (
-              <Button
-                key={score}
-                variant={conversation.leadScore === score ? "default" : "outline"}
-                size="sm"
-                className={`text-xs ${
-                  conversation.leadScore === score
-                    ? score === "hot"
-                      ? "bg-red-500 hover:bg-red-600"
-                      : score === "warm"
-                      ? "bg-orange-500 hover:bg-orange-600"
-                      : "bg-blue-500 hover:bg-blue-600"
-                    : ""
-                }`}
-                onClick={() => updateLeadScore(score)}
-              >
-                {score.toUpperCase()}
-              </Button>
-            ))}
-          </div>
+          {/* Co-Pilot Info Banner */}
+          {conversation.aiEnabled && conversation.aiMode === 'copilot' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+              <p className="text-xs text-blue-800">
+                ✨ <strong>Co-Pilot Mode:</strong> Click "Get AI Suggestion" to see what the AI recommends. You can edit before sending.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Messages Area - WhatsApp Style */}
@@ -285,6 +356,22 @@ export default function ConversationPage() {
 
         {/* Input Area - WhatsApp Style */}
         <div className="bg-[#F0F2F5] px-4 py-3 border-t border-gray-300">
+          {/* Co-Pilot Suggestion Button */}
+          {conversation.aiMode === 'copilot' && !aiSuggestion && (
+            <div className="mb-2">
+              <Button
+                onClick={getAiSuggestion}
+                disabled={loadingSuggestion}
+                variant="outline"
+                size="sm"
+                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {loadingSuggestion ? "Generating..." : "Get AI Suggestion"}
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-10 w-10">
               <Smile className="h-6 w-6" />
@@ -296,7 +383,7 @@ export default function ConversationPage() {
 
             <div className="flex-1 relative">
               <Input
-                placeholder="Type a message"
+                placeholder={conversation.aiMode === 'copilot' ? "Type or use AI suggestion..." : "Type a message"}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}

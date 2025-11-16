@@ -653,9 +653,12 @@ class WhatsAppServiceFixed {
         data: { lastMessageAt: new Date() },
       });
 
-      // Generate AI response if enabled
-      if (conversation.aiEnabled) {
-        console.log('🤖 AI is enabled for this conversation, checking limits...');
+      // Check if AI should auto-reply
+      const aiMode = conversation.aiMode || 'auto';
+      const shouldAutoReply = conversation.aiEnabled && aiMode === 'auto';
+
+      if (shouldAutoReply) {
+        console.log('🤖 AI is enabled in AUTO mode, checking limits...');
         const { canUserSendMessage } = await import('./trial-checker');
         const canSend = await canUserSendMessage(userId);
 
@@ -665,6 +668,10 @@ class WhatsAppServiceFixed {
         } else {
           console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
         }
+      } else if (conversation.aiEnabled && aiMode === 'copilot') {
+        console.log('✨ AI is in CO-PILOT mode - user will request suggestions manually');
+      } else if (conversation.aiEnabled && aiMode === 'manual') {
+        console.log('👤 AI is in MANUAL mode - user will reply manually');
       } else {
         console.log('ℹ️ AI is disabled for this conversation');
       }
@@ -1031,6 +1038,9 @@ Remember: You're not just answering questions - you're building relationships an
         },
       });
 
+      // Calculate engagement score (like Dealism's conversion tracking)
+      await this.updateEngagementScore(conversationId);
+
       // Update message usage
       const currentMonth = new Date().toISOString().slice(0, 7);
       const usage = await prisma.messageUsage.findUnique({
@@ -1144,6 +1154,67 @@ Remember: You're not just answering questions - you're building relationships an
     if (message?.documentMessage) return 'document';
 
     return 'text';
+  }
+
+  async updateEngagementScore(conversationId: string): Promise<void> {
+    try {
+      // Get conversation with messages
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+          },
+        },
+      });
+
+      if (!conversation) return;
+
+      // Calculate engagement score (0-100) based on:
+      // 1. Message count (more messages = higher engagement)
+      // 2. Customer response rate
+      // 3. Conversation length
+      // 4. Recency
+
+      const messages = conversation.messages;
+      const totalMessages = messages.length;
+
+      // Base score from message count (0-40 points)
+      let score = Math.min(40, totalMessages * 2);
+
+      // Customer messages count (shows they're engaged)
+      const customerMessages = messages.filter(m => m.senderType === 'customer').length;
+      const responseRate = totalMessages > 0 ? (customerMessages / totalMessages) : 0;
+
+      // Response rate score (0-30 points)
+      score += responseRate * 30;
+
+      // Conversation length in time (0-15 points)
+      const conversationAge = Date.now() - new Date(conversation.createdAt).getTime();
+      const daysOld = conversationAge / (1000 * 60 * 60 * 24);
+      const lengthScore = Math.min(15, daysOld * 3);
+      score += lengthScore;
+
+      // Recent activity bonus (0-15 points)
+      const lastMessageAge = Date.now() - new Date(conversation.lastMessageAt).getTime();
+      const hoursOld = lastMessageAge / (1000 * 60 * 60);
+      const recencyScore = Math.max(0, 15 - hoursOld);
+      score += recencyScore;
+
+      // Cap at 100
+      const finalScore = Math.min(100, Math.round(score));
+
+      // Update engagement score
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { engagementScore: finalScore },
+      });
+
+      console.log(`📊 Updated engagement score for conversation ${conversationId}: ${finalScore}%`);
+    } catch (error) {
+      console.error('Error updating engagement score:', error);
+    }
   }
 
   async updateConnectionStatus(
