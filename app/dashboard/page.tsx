@@ -6,7 +6,20 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { MessageSquare, Bot, Users, TrendingUp } from "lucide-react";
+import {
+  MessageSquare,
+  Bot,
+  Users,
+  TrendingUp,
+  Zap,
+  Plus,
+  Send,
+  BookOpen,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+  Clock
+} from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -20,9 +33,16 @@ export default async function DashboardPage() {
     where: { email: session.user.email },
     include: {
       whatsappConnections: true,
+      agents: { where: { isActive: true } },
       conversations: {
         take: 5,
         orderBy: { lastMessageAt: "desc" },
+        include: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1
+          }
+        }
       },
     },
   });
@@ -57,6 +77,30 @@ export default async function DashboardPage() {
     },
   });
 
+  // Get unread messages count (messages from customers in last 24h)
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const unreadConversations = await prisma.conversation.count({
+    where: {
+      userId: user.id,
+      lastMessageAt: { gte: oneDayAgo },
+      messages: {
+        some: {
+          senderType: 'customer',
+          createdAt: { gte: oneDayAgo }
+        }
+      }
+    }
+  });
+
+  // Get hot leads count
+  const hotLeads = await prisma.conversation.count({
+    where: {
+      userId: user.id,
+      leadScore: 'hot',
+      goalAchieved: false
+    }
+  });
+
   // Get AI messages count
   const aiMessagesCount = await prisma.message.count({
     where: {
@@ -79,163 +123,253 @@ export default async function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user.name || "there"}!</p>
+        {/* Header with Greeting */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Welcome back, {user.name || "there"}! 👋</h1>
+            <p className="text-gray-600 mt-1">Here's what's happening with your WhatsApp AI today</p>
+          </div>
+          <div className="text-right text-sm text-gray-500">
+            <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
         </div>
 
         {/* Trial Banner */}
         {user.subscriptionStatus === "trial" && daysUntilTrialEnds > 0 && (
-          <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">
-                    Free Trial - {daysUntilTrialEnds} days remaining
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Upgrade to continue using WhaSales AI after your trial ends
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="bg-purple-100 p-3 rounded-full">
+                    <Zap className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">
+                      🎉 Free Trial Active - {daysUntilTrialEnds} days remaining
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      You're on the {user.planType.toUpperCase()} plan. Upgrade anytime to unlock unlimited features!
+                    </p>
+                  </div>
                 </div>
                 <Link href="/dashboard/billing">
-                  <Button>Upgrade Now</Button>
+                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                    Upgrade Now
+                  </Button>
                 </Link>
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Link href="/dashboard/conversations">
+                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span className="text-sm">View Chats</span>
+                  {unreadConversations > 0 && (
+                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {unreadConversations}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+
+              <Link href="/dashboard/agents/new">
+                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  <span className="text-sm">New Agent</span>
+                </Button>
+              </Link>
+
+              <Link href="/dashboard/knowledge">
+                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  <span className="text-sm">Add Knowledge</span>
+                </Button>
+              </Link>
+
+              <Link href="/dashboard/analytics">
+                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  <span className="text-sm">View Analytics</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Total Chats
+                Unread Messages
               </CardTitle>
-              <MessageSquare className="h-4 w-4 text-gray-600" />
+              <Bell className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalConversations}</div>
+              <div className="text-3xl font-bold text-blue-600">{unreadConversations}</div>
+              <Link href="/dashboard/conversations">
+                <p className="text-xs text-blue-600 mt-2 hover:underline cursor-pointer">
+                  View all conversations →
+                </p>
+              </Link>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-                AI Messages
+                Hot Leads
               </CardTitle>
-              <Bot className="h-4 w-4 text-gray-600" />
+              <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{aiMessagesCount}</div>
-              <p className="text-xs text-gray-600">
-                {messagesUsed} / {messageLimit.toLocaleString()} this month
+              <div className="text-3xl font-bold text-red-600">{hotLeads}</div>
+              <p className="text-xs text-gray-600 mt-2">
+                Need follow-up
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
                 Active Today
               </CardTitle>
-              <Users className="h-4 w-4 text-gray-600" />
+              <Users className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{activeToday}</div>
+              <div className="text-3xl font-bold text-green-600">{activeToday}</div>
+              <p className="text-xs text-gray-600 mt-2">
+                Total: {totalConversations}
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Conversion
+                AI Messages
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-gray-600" />
+              <Bot className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--%</div>
-              <p className="text-xs text-gray-600">Coming soon</p>
+              <div className="text-3xl font-bold text-purple-600">{aiMessagesCount}</div>
+              <p className="text-xs text-gray-600 mt-2">
+                {messagesUsed} / {messageLimit.toLocaleString()} this month
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Message Usage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Message Usage This Month</CardTitle>
-            <CardDescription>
-              You've used {messagesUsed} of {messageLimit.toLocaleString()} messages
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Progress value={usagePercentage} className="h-3 mb-2" />
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>{messagesUsed.toLocaleString()} used</span>
-              <span>{usagePercentage.toFixed(0)}%</span>
-            </div>
-            {usagePercentage > 80 && (
-              <div className="mt-4 bg-orange-50 p-3 rounded-md">
-                <p className="text-sm text-orange-800">
-                  ⚠️ You're running low on messages. Consider upgrading your plan.
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Message Usage */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Message Usage This Month</CardTitle>
+              <CardDescription>
+                You've used {messagesUsed} of {messageLimit.toLocaleString()} messages
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Progress
+                value={usagePercentage}
+                className={`h-3 mb-2 ${usagePercentage > 80 ? 'bg-red-100' : ''}`}
+              />
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>{messagesUsed.toLocaleString()} used</span>
+                <span>{usagePercentage.toFixed(0)}%</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* WhatsApp Connection Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>WhatsApp Connection Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {whatsappConnected ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+              {usagePercentage > 80 && (
+                <div className="mt-4 bg-orange-50 border border-orange-200 p-3 rounded-md flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
                   <div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 bg-green-500 rounded-full"></div>
-                      <span className="font-semibold">Connected</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Phone: {user.whatsappConnections[0]?.phoneNumber || "Connected"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Last active: {user.whatsappConnections[0]?.lastActive
-                        ? new Date(user.whatsappConnections[0].lastActive).toLocaleString()
-                        : "Recently"}
+                    <p className="text-sm font-medium text-orange-800">Running low on messages</p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      Consider upgrading your plan to avoid interruptions
                     </p>
                   </div>
-                  <Link href="/dashboard/whatsapp">
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </Link>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-3 w-3 bg-yellow-500 rounded-full"></div>
-                    <span className="font-semibold">Not Connected</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Connect your WhatsApp to start receiving and replying to messages
-                  </p>
-                  <Link href="/dashboard/whatsapp">
-                    <Button>Connect WhatsApp</Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Recent Conversations */}
+          {/* WhatsApp Connection Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>WhatsApp Connection</CardTitle>
+              <CardDescription>Manage your WhatsApp integration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {whatsappConnected ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="font-semibold text-green-800">Connected & Active</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        📱 {user.whatsappConnections[0]?.phoneNumber || "Connected"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Last active: {user.whatsappConnections[0]?.lastActive
+                          ? new Date(user.whatsappConnections[0].lastActive).toLocaleString()
+                          : "Recently"}
+                      </p>
+                    </div>
+                    <Link href="/dashboard/whatsapp">
+                      <Button variant="outline" size="sm">Manage</Button>
+                    </Link>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-green-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>AI is ready to respond to messages</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-3 w-3 bg-yellow-500 rounded-full"></div>
+                      <span className="font-semibold text-yellow-800">Not Connected</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Connect your WhatsApp to start receiving and replying to messages automatically
+                    </p>
+                    <Link href="/dashboard/whatsapp">
+                      <Button className="w-full">
+                        <Zap className="h-4 w-4 mr-2" />
+                        Connect WhatsApp Now
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Recent Conversations</CardTitle>
+              <div>
+                <CardTitle>Recent Conversations</CardTitle>
+                <CardDescription>Your latest customer interactions</CardDescription>
+              </div>
               <Link href="/dashboard/conversations">
                 <Button variant="outline" size="sm">View All</Button>
               </Link>
@@ -243,51 +377,118 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {user.conversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                <p>No conversations yet</p>
-                <p className="text-sm mt-1">Connect WhatsApp to start chatting with customers</p>
+              <div className="text-center py-12 text-gray-500">
+                <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
+                <p className="text-sm mb-4">Connect WhatsApp to start chatting with customers</p>
+                {!whatsappConnected && (
+                  <Link href="/dashboard/whatsapp">
+                    <Button>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Connect WhatsApp
+                    </Button>
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {user.conversations.map((conversation) => (
-                  <Link
-                    key={conversation.id}
-                    href="/dashboard/conversations"
-                    className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">
-                          {conversation.customerName || conversation.customerPhone}
+                {user.conversations.map((conversation) => {
+                  const lastMessage = conversation.messages[0];
+                  const isCustomerMessage = lastMessage?.senderType === 'customer';
+
+                  return (
+                    <Link
+                      key={conversation.id}
+                      href="/dashboard/conversations"
+                      className="block p-4 border rounded-lg hover:bg-gray-50 hover:border-primary/50 transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium">
+                              {conversation.customerName || conversation.customerPhone}
+                            </h3>
+                            {isCustomerMessage && (
+                              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                                New
+                              </span>
+                            )}
+                          </div>
+                          {lastMessage && (
+                            <p className="text-sm text-gray-600 line-clamp-1">
+                              {isCustomerMessage ? '💬 ' : '🤖 '}
+                              {lastMessage.messageText || 'Media message'}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            {new Date(conversation.lastMessageAt).toLocaleString()}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(conversation.lastMessageAt).toLocaleString()}
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            {conversation.aiEnabled && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                🤖 {conversation.aiMode}
+                              </span>
+                            )}
+                            <span className={`text-xs px-2 py-1 rounded font-medium ${
+                              conversation.leadScore === "hot"
+                                ? "bg-red-100 text-red-700"
+                                : conversation.leadScore === "warm"
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}>
+                              🔥 {conversation.leadScore.toUpperCase()}
+                            </span>
+                          </div>
+                          <Progress value={conversation.engagementScore} className="w-20 h-2" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {conversation.aiEnabled && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                            🤖 AI
-                          </span>
-                        )}
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          conversation.leadScore === "hot"
-                            ? "bg-red-100 text-red-700"
-                            : conversation.leadScore === "warm"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}>
-                          {conversation.leadScore.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Active Agents */}
+        {user.agents.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Active AI Agents</CardTitle>
+                <Link href="/dashboard/agents">
+                  <Button variant="outline" size="sm">Manage Agents</Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {user.agents.map((agent) => (
+                  <div key={agent.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-medium">{agent.name}</h3>
+                        <p className="text-xs text-gray-500">{agent.businessType || 'General'}</p>
+                      </div>
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {agent.description || 'No description'}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                        {agent.aiTone}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

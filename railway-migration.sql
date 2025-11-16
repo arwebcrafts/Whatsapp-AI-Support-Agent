@@ -17,7 +17,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS `users_verificationToken_key` ON `users`(`veri
 
 -- Step 4: Add notes field to conversations (if not exists)
 ALTER TABLE `conversations`
-ADD COLUMN IF NOT EXISTS `notes` TEXT NULL;
+ADD COLUMN IF NOT EXISTS `notes` TEXT NULL,
+ADD COLUMN IF NOT EXISTS `tags` TEXT NULL,
+ADD COLUMN IF NOT EXISTS `status` VARCHAR(191) NOT NULL DEFAULT 'active',
+ADD COLUMN IF NOT EXISTS `assignedTo` VARCHAR(191) NULL;
 
 -- Step 5: Create conversation_analytics table (if not exists)
 CREATE TABLE IF NOT EXISTS `conversation_analytics` (

@@ -108,6 +108,9 @@ model Conversation {
   aiEnabled             Boolean  @default(true)
   aiMode                String   @default("auto") // 'auto', 'copilot', 'manual'
   notes                 String?  @db.Text
+  tags                  String?  @db.Text // JSON array: ["Hot Lead", "Follow-up", "VIP"]
+  status                String   @default("active") // 'active', 'archived', 'spam'
+  assignedTo            String?  // Team member assigned to this conversation
   lastMessageAt         DateTime @default(now())
   createdAt             DateTime @default(now())
 

@@ -1233,6 +1233,87 @@ Remember: You're not just answering questions - you're building relationships an
     }
   }
 
+  /**
+   * Send message with quick reply buttons
+   * Example: Yes/No questions, Book Now, See Menu, etc.
+   */
+  async sendMessageWithButtons(
+    agentId: string,
+    remoteJid: string,
+    message: string,
+    buttons: Array<{ id: string; text: string }>
+  ): Promise<void> {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock || !session.isConnected) {
+      throw new Error('WhatsApp not connected');
+    }
+
+    // WhatsApp supports up to 3 buttons
+    if (buttons.length > 3) {
+      console.warn('WhatsApp only supports up to 3 buttons, truncating...');
+      buttons = buttons.slice(0, 3);
+    }
+
+    const buttonMessage = {
+      text: message,
+      footer: 'Powered by WhaSales AI',
+      buttons: buttons.map((btn, index) => ({
+        buttonId: btn.id,
+        buttonText: { displayText: btn.text },
+        type: 1,
+      })),
+      headerType: 1,
+    };
+
+    try {
+      await session.sock.sendMessage(remoteJid, buttonMessage);
+      console.log(`✅ Sent message with ${buttons.length} buttons`);
+    } catch (error) {
+      // Fallback to regular message if buttons not supported
+      console.error('Error sending buttons, falling back to text:', error);
+      await session.sock.sendMessage(remoteJid, { text: message });
+    }
+  }
+
+  /**
+   * Send message with list/menu
+   * Example: Select from multiple options
+   */
+  async sendMessageWithList(
+    agentId: string,
+    remoteJid: string,
+    message: string,
+    buttonText: string,
+    sections: Array<{
+      title: string;
+      rows: Array<{ id: string; title: string; description?: string }>;
+    }>
+  ): Promise<void> {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock || !session.isConnected) {
+      throw new Error('WhatsApp not connected');
+    }
+
+    const listMessage = {
+      text: message,
+      footer: 'Powered by WhaSales AI',
+      title: 'Please select an option',
+      buttonText: buttonText,
+      sections: sections,
+    };
+
+    try {
+      await session.sock.sendMessage(remoteJid, listMessage);
+      console.log(`✅ Sent list message with ${sections.length} sections`);
+    } catch (error) {
+      // Fallback to regular message if list not supported
+      console.error('Error sending list, falling back to text:', error);
+      await session.sock.sendMessage(remoteJid, { text: message });
+    }
+  }
+
   // Add method to check if agent has active session
   hasActiveSession(agentId: string): boolean {
     const session = this.sessions.get(agentId);
