@@ -493,6 +493,12 @@ class WhatsAppServiceFixed {
         return;
       }
 
+      // CRITICAL: Prevent processing our own messages
+      if (msg.key.fromMe) {
+        console.log('⚠️ Skipping message from self (fromMe=true)');
+        return;
+      }
+
       console.log(`✅ Incoming message from ${customerPhone}: ${messageText}`);
 
       // Find WhatsApp connection
@@ -526,6 +532,31 @@ class WhatsAppServiceFixed {
             aiEnabled: true,
           },
         });
+      }
+
+      // Check if we recently responded to avoid spam
+      const recentMessages = await prisma.message.findMany({
+        where: {
+          conversationId: conversation.id,
+          senderType: 'ai',
+          createdAt: {
+            gte: new Date(Date.now() - 5000), // Last 5 seconds
+          },
+        },
+      });
+
+      if (recentMessages.length > 0) {
+        console.log('⚠️ Recently responded, skipping to avoid spam');
+        // Still save customer message but don't respond
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderType: 'customer',
+            messageText,
+            messageType: this.getMessageType(msg),
+          },
+        });
+        return;
       }
 
       // Save customer message

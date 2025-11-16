@@ -1,7 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,59 +16,111 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export default function AdminDashboard() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+export default async function AdminDashboard() {
+  const session = await getServerSession(authOptions);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  async function loadStats() {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/stats");
-
-      if (res.status === 403) {
-        // Not authorized - redirect to main dashboard
-        router.push("/dashboard");
-        return;
-      }
-
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error("Error loading stats:", error);
-    } finally {
-      setLoading(false);
-    }
+  if (!session?.user?.email) {
+    redirect("/login");
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+  // Check if user is admin
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (user?.role !== 'admin') {
+    redirect("/dashboard");
   }
 
-  if (!stats) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You need admin privileges to access this page.</p>
-          <Button onClick={() => router.push("/dashboard")}>
-            Go to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Get platform stats
+  const [
+    totalUsers,
+    activeUsers,
+    trialUsers,
+    totalAgents,
+    totalConversations,
+    totalMessages,
+    activeConnections,
+  ] = await Promise.all([
+    // Total users
+    prisma.user.count(),
+
+    // Active paid users
+    prisma.user.count({
+      where: {
+        subscriptionStatus: { in: ['active', 'lifetime'] },
+      },
+    }),
+
+    // Trial users
+    prisma.user.count({
+      where: {
+        subscriptionStatus: 'trial',
+      },
+    }),
+
+    // Total agents
+    prisma.agent.count(),
+
+    // Total conversations
+    prisma.conversation.count(),
+
+    // Total messages
+    prisma.message.count(),
+
+    // Active WhatsApp connections
+    prisma.whatsAppConnection.count({
+      where: {
+        isConnected: true,
+      },
+    }),
+  ]);
+
+  // Get this month's message usage
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthlyUsage = await prisma.messageUsage.aggregate({
+    where: {
+      month: currentMonth,
+    },
+    _sum: {
+      messagesUsed: true,
+    },
+  });
+
+  // Get revenue estimate (based on subscriptions)
+  const planRevenue = {
+    starter: 29,
+    professional: 99,
+    business: 299,
+  };
+
+  const subscriptionBreakdown = await prisma.user.groupBy({
+    by: ['planType'],
+    where: {
+      subscriptionStatus: { in: ['active', 'lifetime'] },
+    },
+    _count: true,
+  });
+
+  let estimatedMRR = 0;
+  subscriptionBreakdown.forEach((sub) => {
+    const plan = sub.planType as keyof typeof planRevenue;
+    estimatedMRR += (planRevenue[plan] || 0) * sub._count;
+  });
+
+  const stats = {
+    totalUsers,
+    activeUsers,
+    trialUsers,
+    totalAgents,
+    totalConversations,
+    totalMessages,
+    activeConnections,
+    monthlyMessages: monthlyUsage._sum.messagesUsed || 0,
+    estimatedMRR,
+    subscriptionBreakdown,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,12 +133,12 @@ export default function AdminDashboard() {
               <h1 className="text-2xl font-bold">Admin Panel</h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.push("/admin/users")}>
-                Manage Users
-              </Button>
-              <Button variant="outline" onClick={() => router.push("/dashboard/whatsapp")}>
-                My WhatsApp
-              </Button>
+              <Link href="/admin/users">
+                <Button variant="outline">Manage Users</Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button variant="outline">My Dashboard</Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -207,10 +259,12 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 md:grid-cols-3">
-              <Button variant="outline" onClick={() => router.push("/admin/users")}>
-                <Users className="w-4 h-4 mr-2" />
-                Manage Users
-              </Button>
+              <Link href="/admin/users">
+                <Button variant="outline" className="w-full">
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Users
+                </Button>
+              </Link>
               <Button variant="outline" disabled>
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Analytics
