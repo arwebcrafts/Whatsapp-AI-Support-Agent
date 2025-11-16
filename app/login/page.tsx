@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,18 @@ export default function LoginPage() {
         throw new Error(result.error);
       }
 
-      router.push("/dashboard");
+      // Fetch user session to get role
+      const response = await fetch("/api/auth/session");
+      const session = await response.json();
+
+      // Redirect based on role
+      if (session?.user?.role === "admin") {
+        router.push("/admin");
+        router.refresh(); // Force refresh to update session
+      } else {
+        router.push("/dashboard");
+        router.refresh(); // Force refresh to update session
+      }
     } catch (error: any) {
       setError(error.message || "Invalid email or password");
     } finally {

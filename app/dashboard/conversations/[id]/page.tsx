@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send, Bot, User } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, Phone, Video, MoreVertical, Check, CheckCheck, Smile, Paperclip, Mic, Sparkles, ThumbsUp, X } from "lucide-react";
 import Link from "next/link";
 
 export default function ConversationPage() {
@@ -21,12 +20,23 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadConversation();
     const interval = setInterval(loadConversation, 3000);
     return () => clearInterval(interval);
   }, [conversationId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   async function loadConversation() {
     try {
@@ -88,6 +98,54 @@ export default function ConversationPage() {
     }
   }
 
+  async function updateAiMode(mode: string) {
+    try {
+      await fetch(`/api/conversations/${conversationId}/update-ai-mode`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiMode: mode }),
+      });
+      await loadConversation();
+    } catch (error) {
+      console.error("Error updating AI mode:", error);
+    }
+  }
+
+  async function getAiSuggestion() {
+    setLoadingSuggestion(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/suggest`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      setAiSuggestion(data.suggestion);
+      setNewMessage(data.suggestion);
+    } catch (error) {
+      console.error("Error getting AI suggestion:", error);
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  }
+
+  function acceptSuggestion() {
+    if (aiSuggestion) {
+      setNewMessage(aiSuggestion);
+      setAiSuggestion(null);
+    }
+  }
+
+  function dismissSuggestion() {
+    setAiSuggestion(null);
+  }
+
+  const formatTime = (date: string) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   if (!conversation) {
     return (
       <DashboardLayout>
@@ -100,176 +158,253 @@ export default function ConversationPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/conversations">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">
-              {conversation.customerName || conversation.customerPhone}
-            </h1>
-            <p className="text-sm text-gray-600">{conversation.customerPhone}</p>
+      <div className="h-[calc(100vh-4rem)] flex flex-col bg-[#E5DDD5]">
+        {/* WhatsApp-Style Header */}
+        <div className="bg-[#075E54] text-white px-2 md:px-4 py-2 md:py-3 flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            <Link href="/dashboard/conversations">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10">
+                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+            </Link>
+
+            {/* Profile Picture */}
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#128C7E] flex items-center justify-center font-semibold text-sm md:text-lg flex-shrink-0">
+              {conversation.customerName?.[0]?.toUpperCase() || conversation.customerPhone?.[0]}
+            </div>
+
+            {/* Contact Info */}
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-sm md:text-base truncate">
+                {conversation.customerName || conversation.customerPhone}
+              </h2>
+              <p className="text-xs text-gray-200 truncate hidden md:block">
+                {conversation.customerPhone}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <Badge
-              variant={
+              className={`${
                 conversation.leadScore === "hot"
-                  ? "destructive"
+                  ? "bg-red-500"
                   : conversation.leadScore === "warm"
-                  ? "default"
-                  : "secondary"
-              }
+                  ? "bg-orange-500"
+                  : "bg-blue-500"
+              } text-white text-xs px-1.5 md:px-2`}
             >
               {conversation.leadScore.toUpperCase()}
             </Badge>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Video className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Phone className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-[#128C7E] h-8 w-8 md:h-10 md:w-10">
+              <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Chat Area */}
-          <div className="lg:col-span-3">
-            <Card className="h-[600px] flex flex-col">
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Messages</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="ai-toggle" className="text-sm">
-                      AI Auto-Reply
-                    </Label>
-                    <Switch
-                      id="ai-toggle"
-                      checked={conversation.aiEnabled}
-                      onCheckedChange={toggleAI}
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${
-                        message.senderType === "customer" ? "justify-start" : "justify-end"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          message.senderType === "customer"
-                            ? "bg-gray-100"
-                            : message.senderType === "ai"
-                            ? "bg-green-100"
-                            : "bg-blue-100"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {message.senderType === "ai" && (
-                            <Bot className="h-3 w-3 text-green-600" />
-                          )}
-                          {message.senderType === "user" && (
-                            <User className="h-3 w-3 text-blue-600" />
-                          )}
-                          <span className="text-xs font-semibold">
-                            {message.senderType === "customer"
-                              ? "Customer"
-                              : message.senderType === "ai"
-                              ? "AI Agent"
-                              : "You"}
-                          </span>
-                        </div>
-                        <p className="text-sm">{message.messageText}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(message.createdAt).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-
-              <div className="border-t p-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                    disabled={loading}
-                  />
-                  <Button onClick={sendMessage} disabled={loading}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+        {/* Settings Bar */}
+        <div className="bg-[#F0F2F5] px-3 md:px-4 py-2 md:py-3 border-b border-gray-300">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-2 md:mb-3">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="ai-toggle" className="text-xs md:text-sm font-medium text-gray-700 whitespace-nowrap">
+                  🤖 AI
+                </Label>
+                <Switch
+                  id="ai-toggle"
+                  checked={conversation.aiEnabled}
+                  onCheckedChange={toggleAI}
+                />
               </div>
-            </Card>
+
+              {/* AI Mode Selection */}
+              {conversation.aiEnabled && (
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <Label className="text-xs md:text-sm font-medium text-gray-700 hidden md:inline">Mode:</Label>
+                  <select
+                    value={conversation.aiMode || 'auto'}
+                    onChange={(e) => updateAiMode(e.target.value)}
+                    className="text-xs px-1.5 md:px-2 py-0.5 md:py-1 border rounded-md bg-white"
+                  >
+                    <option value="auto">⚡ Auto</option>
+                    <option value="copilot">✨ Co-Pilot</option>
+                    <option value="manual">👤 Manual</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-1.5 md:gap-2">
+              {["hot", "warm", "cold"].map((score) => (
+                <Button
+                  key={score}
+                  variant={conversation.leadScore === score ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs px-2 md:px-3 ${
+                    conversation.leadScore === score
+                      ? score === "hot"
+                        ? "bg-red-500 hover:bg-red-600"
+                        : score === "warm"
+                        ? "bg-orange-500 hover:bg-orange-600"
+                        : "bg-blue-500 hover:bg-blue-600"
+                      : ""
+                  }`}
+                  onClick={() => updateLeadScore(score)}
+                >
+                  {score.toUpperCase()}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Customer Info</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-xs text-gray-600">Name</Label>
-                  <p className="font-medium">
-                    {conversation.customerName || "Unknown"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600">Phone</Label>
-                  <p className="font-medium">{conversation.customerPhone}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-600">Last Active</Label>
-                  <p className="text-sm">
-                    {new Date(conversation.lastMessageAt).toLocaleString()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Co-Pilot Info Banner */}
+          {conversation.aiEnabled && conversation.aiMode === 'copilot' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-2 md:px-3 py-1.5 md:py-2">
+              <p className="text-xs text-blue-800">
+                ✨ <strong>Co-Pilot Mode:</strong> Click "Get AI Suggestion" to see what the AI recommends. You can edit before sending.
+              </p>
+            </div>
+          )}
+        </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Lead Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {["hot", "warm", "cold"].map((score) => (
-                    <Button
-                      key={score}
-                      variant={conversation.leadScore === score ? "default" : "outline"}
-                      className="w-full"
-                      onClick={() => updateLeadScore(score)}
-                    >
-                      {score.toUpperCase()}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Messages Area - WhatsApp Style */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 bg-[#E5DDD5] space-y-3"
+             style={{
+               backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M10 10 L90 90 M90 10 L10 90\' stroke=\'%23D1D7DB\' stroke-width=\'0.5\' opacity=\'0.2\'/%3E%3C/svg%3E")',
+               backgroundSize: '100px 100px'
+             }}>
+          {messages.map((message, index) => {
+            const isCustomer = message.senderType === "customer";
+            const isAI = message.senderType === "ai";
+            const isUser = message.senderType === "user";
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full">
-                  Export Chat
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Add Notes
-                </Button>
-                <Button variant="destructive" className="w-full">
-                  Block Contact
-                </Button>
-              </CardContent>
-            </Card>
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isCustomer ? "justify-start" : "justify-end"} mb-2`}
+              >
+                <div
+                  className={`relative max-w-[75%] md:max-w-[60%] rounded-lg px-3 py-2 shadow-sm ${
+                    isCustomer
+                      ? "bg-white"
+                      : "bg-[#DCF8C6]"
+                  }`}
+                  style={{
+                    borderRadius: isCustomer ? "0px 8px 8px 8px" : "8px 0px 8px 8px"
+                  }}
+                >
+                  {/* Sender Badge for AI/User */}
+                  {!isCustomer && (
+                    <div className="flex items-center gap-1 mb-1">
+                      {isAI ? (
+                        <>
+                          <Bot className="h-3 w-3 text-green-700" />
+                          <span className="text-[10px] font-semibold text-green-700">AI Agent</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="h-3 w-3 text-blue-700" />
+                          <span className="text-[10px] font-semibold text-blue-700">You</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Message Text */}
+                  <p className="text-[14.2px] leading-[19px] text-gray-900 break-words whitespace-pre-wrap">
+                    {message.messageText}
+                  </p>
+
+                  {/* Timestamp and Status */}
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <span className="text-[11px] text-gray-600">
+                      {formatTime(message.createdAt)}
+                    </span>
+                    {!isCustomer && (
+                      <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
+                    )}
+                  </div>
+
+                  {/* WhatsApp Bubble Tail */}
+                  <div
+                    className={`absolute top-0 ${
+                      isCustomer ? "-left-2" : "-right-2"
+                    }`}
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderStyle: "solid",
+                      borderWidth: isCustomer ? "0 0 10px 10px" : "0 10px 10px 0",
+                      borderColor: isCustomer
+                        ? "transparent transparent white transparent"
+                        : "transparent #DCF8C6 transparent transparent",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area - WhatsApp Style */}
+        <div className="bg-[#F0F2F5] px-2 md:px-4 py-2 md:py-3 border-t border-gray-300">
+          {/* Co-Pilot Suggestion Button */}
+          {conversation.aiMode === 'copilot' && !aiSuggestion && (
+            <div className="mb-2">
+              <Button
+                onClick={getAiSuggestion}
+                disabled={loadingSuggestion}
+                variant="outline"
+                size="sm"
+                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600 text-xs md:text-sm"
+              >
+                <Sparkles className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                {loadingSuggestion ? "Generating..." : "Get AI Suggestion"}
+              </Button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Smile className="h-5 w-5 md:h-6 md:w-6" />
+            </Button>
+
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10 hidden sm:flex">
+              <Paperclip className="h-5 w-5 md:h-6 md:w-6" />
+            </Button>
+
+            <div className="flex-1 relative">
+              <Input
+                placeholder={conversation.aiMode === 'copilot' ? "Type or use AI..." : "Type a message"}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                disabled={loading}
+                className="rounded-full bg-white border-none shadow-sm pl-3 md:pl-4 pr-3 md:pr-12 py-5 md:py-6 text-sm md:text-[15px] focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+
+            {newMessage.trim() ? (
+              <Button
+                onClick={sendMessage}
+                disabled={loading}
+                className="rounded-full bg-[#25D366] hover:bg-[#20BD5B] h-10 w-10 md:h-12 md:w-12 p-0 shadow-md flex-shrink-0"
+              >
+                <Send className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 h-8 w-8 md:h-10 md:w-10">
+                <Mic className="h-5 w-5 md:h-6 md:w-6" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

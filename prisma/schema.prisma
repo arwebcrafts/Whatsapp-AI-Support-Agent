@@ -12,7 +12,7 @@ model User {
   email                String   @unique
   name                 String?
   password             String
-  role                 String   @default("user") // 'user', 'admin'
+  role                 String   @default("user") // 'user', 'admin', 'developer'
   createdAt            DateTime @default(now())
   trialEndsAt          DateTime?
   subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime', 'expired'
@@ -24,6 +24,8 @@ model User {
   conversations        Conversation[]
   knowledgeBase        KnowledgeBase[]
   messageUsage         MessageUsage[]
+  messageTemplates     MessageTemplate[]
+  faqs                 FAQ[]
 
   @@map("users")
 }
@@ -95,7 +97,11 @@ model Conversation {
   customerPhone         String
   customerName          String?
   leadScore             String   @default("cold") // 'hot', 'warm', 'cold'
+  engagementScore       Int      @default(0) // 0-100 progress bar
+  conversationGoal      String   @default("info") // 'booking', 'buying', 'follow-up', 'info', 'support'
+  goalAchieved          Boolean  @default(false)
   aiEnabled             Boolean  @default(true)
+  aiMode                String   @default("auto") // 'auto', 'copilot', 'manual'
   lastMessageAt         DateTime @default(now())
   createdAt             DateTime @default(now())
 
@@ -152,4 +158,36 @@ model MessageUsage {
   @@unique([userId, month])
   @@index([userId])
   @@map("message_usage")
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String   @default("general") // 'greetings', 'sales', 'support', 'follow-up', 'info', 'general'
+  message     String   @db.Text
+  usageCount  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("message_templates")
+}
+
+model FAQ {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    String   @db.Text
+  answer      String   @db.Text
+  category    String   @default("general")
+  priority    Int      @default(0) // Higher priority FAQs shown first
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("faqs")
 }

@@ -461,7 +461,7 @@ class WhatsAppServiceFixed {
 
   async importPreviousChats(userId: string, agentId: string, sock: any): Promise<void> {
     try {
-      console.log('Starting to import previous chats...');
+      console.log('📥 Starting to import previous WhatsApp chats...');
 
       // Get WhatsApp connection from database
       const whatsappConnection = await prisma.whatsAppConnection.findFirst({
@@ -469,15 +469,93 @@ class WhatsAppServiceFixed {
       });
 
       if (!whatsappConnection) {
-        console.log('No WhatsApp connection found');
+        console.log('⚠️ No WhatsApp connection found');
         return;
       }
 
-      // This is simplified - Baileys doesn't directly expose chat list
-      // In production, you'd listen for chat updates
-      console.log('Previous chat import completed');
+      // Fetch all chats from WhatsApp
+      const chats = await sock.groupFetchAllParticipating?.() || {};
+      const allChats = Object.values(chats);
+
+      console.log(`📱 Found ${allChats.length} group chats`);
+
+      // Also try to get individual chats from messages
+      // Baileys stores messages in the store
+      if (sock.store?.messages) {
+        const messageChats = Object.keys(sock.store.messages);
+        console.log(`💬 Found ${messageChats.length} individual chats with message history`);
+
+        for (const chatId of messageChats) {
+          // Skip group chats (they end with @g.us)
+          if (chatId.endsWith('@g.us')) continue;
+
+          const customerPhone = chatId.split('@')[0];
+
+          // Check if conversation already exists
+          const existingConversation = await prisma.conversation.findFirst({
+            where: {
+              agentId,
+              whatsappConnectionId: whatsappConnection.id,
+              customerPhone,
+            },
+          });
+
+          if (existingConversation) {
+            console.log(`✓ Conversation with ${customerPhone} already exists, skipping`);
+            continue;
+          }
+
+          // Get messages for this chat
+          const messages = sock.store.messages[chatId] || [];
+          if (messages.length === 0) continue;
+
+          console.log(`📝 Importing conversation with ${customerPhone} (${messages.length} messages)`);
+
+          // Create conversation
+          const conversation = await prisma.conversation.create({
+            data: {
+              userId,
+              agentId,
+              whatsappConnectionId: whatsappConnection.id,
+              customerPhone,
+              customerName: messages[0]?.pushName || customerPhone,
+              leadScore: 'warm',
+              aiEnabled: true,
+              lastMessageAt: new Date(),
+            },
+          });
+
+          // Import up to 50 most recent messages per conversation
+          const recentMessages = messages.slice(-50);
+
+          for (const msg of recentMessages) {
+            try {
+              const messageText = await this.extractMessageText(msg);
+              if (!messageText) continue;
+
+              await prisma.message.create({
+                data: {
+                  conversationId: conversation.id,
+                  senderType: msg.key.fromMe ? 'user' : 'customer',
+                  messageText,
+                  messageType: this.getMessageType(msg),
+                  createdAt: msg.messageTimestamp
+                    ? new Date(Number(msg.messageTimestamp) * 1000)
+                    : new Date(),
+                },
+              });
+            } catch (msgError) {
+              console.error('Error importing message:', msgError);
+            }
+          }
+
+          console.log(`✅ Imported ${recentMessages.length} messages for ${customerPhone}`);
+        }
+      }
+
+      console.log('✅ Previous chat import completed successfully');
     } catch (error) {
-      console.error('Error importing previous chats:', error);
+      console.error('❌ Error importing previous chats:', error);
     }
   }
 
@@ -490,6 +568,12 @@ class WhatsAppServiceFixed {
 
       if (!messageText || !customerPhone) {
         console.log('⚠️ Missing message text or customer phone, skipping');
+        return;
+      }
+
+      // CRITICAL: Prevent processing our own messages
+      if (msg.key.fromMe) {
+        console.log('⚠️ Skipping message from self (fromMe=true)');
         return;
       }
 
@@ -528,6 +612,31 @@ class WhatsAppServiceFixed {
         });
       }
 
+      // Check if we recently responded to avoid spam
+      const recentMessages = await prisma.message.findMany({
+        where: {
+          conversationId: conversation.id,
+          senderType: 'ai',
+          createdAt: {
+            gte: new Date(Date.now() - 5000), // Last 5 seconds
+          },
+        },
+      });
+
+      if (recentMessages.length > 0) {
+        console.log('⚠️ Recently responded, skipping to avoid spam');
+        // Still save customer message but don't respond
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderType: 'customer',
+            messageText,
+            messageType: this.getMessageType(msg),
+          },
+        });
+        return;
+      }
+
       // Save customer message
       await prisma.message.create({
         data: {
@@ -544,9 +653,12 @@ class WhatsAppServiceFixed {
         data: { lastMessageAt: new Date() },
       });
 
-      // Generate AI response if enabled
-      if (conversation.aiEnabled) {
-        console.log('🤖 AI is enabled for this conversation, checking limits...');
+      // Check if AI should auto-reply
+      const aiMode = conversation.aiMode || 'auto';
+      const shouldAutoReply = conversation.aiEnabled && aiMode === 'auto';
+
+      if (shouldAutoReply) {
+        console.log('🤖 AI is enabled in AUTO mode, checking limits...');
         const { canUserSendMessage } = await import('./trial-checker');
         const canSend = await canUserSendMessage(userId);
 
@@ -556,6 +668,10 @@ class WhatsAppServiceFixed {
         } else {
           console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
         }
+      } else if (conversation.aiEnabled && aiMode === 'copilot') {
+        console.log('✨ AI is in CO-PILOT mode - user will request suggestions manually');
+      } else if (conversation.aiEnabled && aiMode === 'manual') {
+        console.log('👤 AI is in MANUAL mode - user will reply manually');
       } else {
         console.log('ℹ️ AI is disabled for this conversation');
       }
@@ -608,7 +724,27 @@ class WhatsAppServiceFixed {
         .map(ak => ak.knowledge.content)
         .join('\n\n') || '';
 
+      // Get FAQs for the user
+      const faqs = await prisma.fAQ.findMany({
+        where: {
+          userId,
+          isActive: true,
+        },
+        orderBy: {
+          priority: 'desc',
+        },
+        take: 20,
+      });
+
+      const faqKnowledge = faqs.length > 0
+        ? faqs.map(faq => `Q: ${faq.question}\nA: ${faq.answer}`).join('\n\n')
+        : '';
+
       const aiTone = conversation.agent?.aiTone || 'friendly';
+      const agentName = conversation.agent?.name || 'AI Assistant';
+      const agentDescription = conversation.agent?.description || '';
+      const businessType = conversation.agent?.businessType || '';
+      const conversationGoal = conversation.conversationGoal || 'info';
 
       // Generate AI response
       const OpenAI = (await import('openai')).default;
@@ -623,12 +759,206 @@ class WhatsAppServiceFixed {
           content: m.messageText || '',
         }));
 
-      const systemPrompts = {
-        professional: 'You are a professional business assistant. Be formal, clear, and concise.',
-        friendly: 'You are a friendly and helpful assistant. Be warm, approachable, and conversational.',
-        direct: 'You are a direct sales assistant. Be quick, to-the-point, and sales-focused.',
-        warm: 'You are a warm and supportive assistant. Be empathetic, caring, and helpful.',
+      // SPECIALIZED AGENT PROMPTS - Like Dealism's "Vibe Selling"
+      const businessTypePrompts: any = {
+        ecommerce: `🛍️ **E-COMMERCE SALES SPECIALIST**
+
+YOUR MISSION: Convert browsers into buyers. Every message should move towards a sale.
+
+SALES PSYCHOLOGY:
+- Create urgency without being pushy
+- Highlight benefits over features
+- Use social proof ("bestseller", "popular choice")
+- Handle objections smoothly
+- Always suggest next steps
+
+SALES TACTICS:
+1. **Build Trust**: Answer questions thoroughly, be honest about products
+2. **Create Desire**: Paint a picture of how the product improves their life
+3. **Remove Friction**: Make buying easy, address concerns proactively
+4. **Close Confidently**: Use soft closes like "Ready to place your order?" or "Shall I help you complete your purchase?"
+
+RESPONSE STRATEGY:
+- Product questions → Describe benefits + suggest related items
+- Price concerns → Emphasize value + any promotions
+- Hesitation → Offer free shipping, guarantees, or limited-time deals
+- Ready to buy → Streamline checkout process`,
+
+        realestate: `🏠 **REAL ESTATE ADVISOR**
+
+YOUR MISSION: Match clients with their dream property and secure viewings/deals.
+
+RELATIONSHIP-FIRST APPROACH:
+- Listen carefully to understand their needs (budget, location, property type)
+- Build trust through expertise and market knowledge
+- Create emotional connections to properties
+- Guide them through the buying/renting process
+
+CONVERSATION FLOW:
+1. **Discovery**: "What brings you to look for a new place?" → Learn their needs
+2. **Qualify**: Understand budget, timeline, must-haves
+3. **Present Options**: Describe properties vividly, highlight selling points
+4. **Create Urgency**: "This area is in high demand", "Great value for the neighborhood"
+5. **Book Viewing**: Make scheduling easy and convenient
+
+GOAL: Every conversation should move towards booking a property viewing or signing a lease.`,
+
+        restaurant: `🍕 **RESTAURANT & DELIVERY EXPERT**
+
+YOUR MISSION: Make mouths water and convert hunger into orders.
+
+HOSPITALITY MINDSET:
+- Be warm, welcoming, and helpful
+- Make ordering easy and enjoyable
+- Upsell naturally (sides, drinks, desserts)
+- Handle dietary restrictions professionally
+
+ORDER CONVERSION TACTICS:
+1. **Greet Warmly**: "Hi! Hungry for something delicious?"
+2. **Recommend Specials**: "Our chef's special today is amazing!"
+3. **Paint the Picture**: Describe dishes appetizingly
+4. **Suggest Combos**: "Add garlic bread for just $3?"
+5. **Close the Order**: "Shall I place that order for you? Delivery or pickup?"
+
+ALWAYS: Mention delivery time, confirm order, thank them genuinely.`,
+
+        fitness: `💪 **FITNESS & WELLNESS COACH**
+
+YOUR MISSION: Motivate, inspire, and convert interest into memberships/sessions.
+
+MOTIVATIONAL PSYCHOLOGY:
+- Tap into their fitness goals and aspirations
+- Create excitement about transformation
+- Remove barriers ("too expensive", "too busy", "not fit enough")
+- Build confidence and belief
+
+CONVERSION PATH:
+1. **Connect with Goals**: "What brings you to look into fitness today?"
+2. **Understand Barriers**: "What's held you back before?"
+3. **Paint Success**: "Imagine how you'll feel after your first month"
+4. **Offer Trial**: "Try our FREE first week - zero commitment"
+5. **Close**: "Let's book your first session - when works for you?"
+
+TONE: Encouraging, supportive, energetic - like a personal cheerleader!`,
+
+        education: `📚 **EDUCATION & TUTORING ADVISOR**
+
+YOUR MISSION: Help students/parents find the perfect learning solution.
+
+CONSULTATIVE SELLING:
+- Understand their academic challenges and goals
+- Show empathy for learning struggles
+- Build confidence in your tutors/programs
+- Emphasize results and success stories
+
+CONVERSATION STRUCTURE:
+1. **Assess Needs**: "Which subject are you looking to improve?"
+2. **Understand Context**: Grade level, current struggles, goals
+3. **Present Solution**: Match them with right tutor/program
+4. **Build Confidence**: "Our tutors specialize in exactly this"
+5. **Offer Trial**: "First session 50% off - see the difference yourself"
+6. **Schedule**: Make booking immediate and easy
+
+TONE: Patient, knowledgeable, encouraging - like a caring teacher.`,
       };
+
+      const systemPrompts = {
+        professional: `You are ${agentName}, a professional business assistant. ${agentDescription}
+
+Your communication style:
+- Be formal, clear, and concise
+- Use professional language and proper grammar
+- Provide detailed, well-structured information
+- Focus on facts and solutions
+- Maintain a respectful, business-appropriate tone`,
+
+        friendly: `You are ${agentName}, a friendly and helpful assistant. ${agentDescription}
+
+Your communication style:
+- Be warm, approachable, and conversational
+- Use a casual but respectful tone
+- Show enthusiasm and positivity
+- Make customers feel comfortable and valued
+- Build rapport while staying professional`,
+
+        direct: `You are ${agentName}, a direct sales-focused assistant. ${agentDescription}
+
+Your communication style:
+- Be quick, clear, and to-the-point
+- Focus on converting interest into action
+- Identify needs and provide solutions
+- Use confident, persuasive language
+- Drive towards clear next steps (purchases, bookings, sign-ups)`,
+
+        warm: `You are ${agentName}, a warm and empathetic assistant. ${agentDescription}
+
+Your communication style:
+- Be caring, supportive, and understanding
+- Show genuine interest in helping customers
+- Use friendly, encouraging language
+- Make customers feel heard and appreciated
+- Build trust through empathy and patience`,
+      };
+
+      // Apply business-specific prompt if available
+      const specializedPrompt = businessTypePrompts[businessType] || '';
+
+      // Goal-specific instructions
+      const goalInstructions: any = {
+        booking: `🎯 **PRIMARY GOAL: Secure a booking/appointment**
+
+Your focus: Every response should move closer to getting them to book.
+- Ask about their preferred dates/times
+- Remove scheduling friction ("I have Tuesday at 3pm available, does that work?")
+- Confirm details clearly
+- Send calendar confirmations
+- Success = Date & time confirmed`,
+
+        buying: `🎯 **PRIMARY GOAL: Close the sale**
+
+Your focus: Convert interest into purchase.
+- Identify which product/service they want
+- Address concerns confidently
+- Create urgency naturally
+- Make checkout seamless
+- Success = Order placed or payment confirmed`,
+
+        'follow-up': `🎯 **PRIMARY GOAL: Re-engage and move forward**
+
+Your focus: Bring them back into the conversation.
+- Reference previous interaction
+- Offer new value ("New arrivals!", "Special offer for you")
+- Ask if they're ready to proceed
+- Remove previous blockers
+- Success = Customer re-engages actively`,
+
+        support: `🎯 **PRIMARY GOAL: Resolve their issue**
+
+Your focus: Fix problems, answer questions, provide solutions.
+- Listen carefully to understand the problem
+- Provide clear, step-by-step solutions
+- Follow up to ensure resolution
+- Be patient and empathetic
+- Success = Problem solved, customer satisfied`,
+
+        info: `🎯 **PRIMARY GOAL: Educate and qualify**
+
+Your focus: Answer questions and identify serious leads.
+- Provide thorough, helpful information
+- Ask qualifying questions
+- Gauge interest level
+- Suggest next steps when appropriate
+- Success = Customer has clarity, we know their intent`,
+      };
+
+      const knowledgeSection = businessKnowledge || faqKnowledge
+        ? `
+
+📚 YOUR KNOWLEDGE BASE:
+${businessKnowledge ? `\n=== Business Information ===\n${businessKnowledge}\n` : ''}
+${faqKnowledge ? `\n=== Frequently Asked Questions ===\n${faqKnowledge}\n` : ''}
+`
+        : '\nNote: No specific business information or FAQs have been added yet. Answer based on general knowledge and ask clarifying questions.';
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -636,21 +966,60 @@ class WhatsAppServiceFixed {
           {
             role: 'system',
             content: `${systemPrompts[aiTone as keyof typeof systemPrompts]}
+${specializedPrompt ? `\n${specializedPrompt}\n` : ''}
+${knowledgeSection}
+${goalInstructions[conversationGoal] || ''}
 
-Business Information:
-${businessKnowledge || 'No specific business information provided yet.'}
+🎯 **CONVERSATION MASTERY** (Like Dealism's "Vibe Selling"):
+1. **Read the Vibe**: Understand customer's emotion and intent
+2. **Match Their Energy**: Adapt to their communication style
+3. **Build Trust**: Be genuine, helpful, and human
+4. **Guide Naturally**: Nudge towards the goal without being pushy
+5. **Close Confidently**: When ready, ask for the commitment
 
-Instructions:
-- You can receive both text and voice messages (voice messages are automatically transcribed to text for you)
-- Respond naturally to all messages whether they were originally text or voice
-- Reply in under 100 words
-- Be helpful and try to convert leads
-- Match the customer's language
-- Use emojis sparingly and naturally`,
+📱 MESSAGE HANDLING:
+- You receive both text and voice messages (voice is transcribed to text)
+- Respond naturally to all message types
+- Match the customer's language and communication style
+- If they write in Spanish, respond in Spanish, etc.
+
+✅ RESPONSE GUIDELINES:
+- Keep responses under 100 words (be concise and punchy)
+- Use emojis naturally but sparingly (1-2 per message max)
+- If you don't know something, be honest and offer to check
+- When referencing your knowledge base, do so naturally
+- For complex questions, break down your answer into clear points
+- **Always end with a relevant question or call-to-action** - keep the conversation moving
+
+🚫 AVOID:
+- Making up information not in your knowledge base
+- Being overly salesy or pushy (build trust first!)
+- Using too many emojis or excessive punctuation (!!!)
+- Generic responses - be specific and personal
+- Giving legal, medical, or financial advice unless in your knowledge base
+- Letting the conversation die - always give them something to respond to
+
+💡 CONVERSATION FLOW (Like talking to a friend who's also an expert):
+- **First message**: Warm greeting + understand their need
+- **Discovery**: Ask smart questions to qualify
+- **Value delivery**: Answer thoroughly, show expertise
+- **Build desire**: Help them see the benefit
+- **Handle objections**: Address concerns smoothly
+- **Close**: When signals are positive, confidently suggest next step
+- **Follow-up**: If they go silent, friendly nudge
+
+🏆 **SUCCESS METRICS**:
+- Engagement: Are they responding actively?
+- Qualification: Do we know what they need?
+- Progress: Are we moving towards the goal?
+- Conversion: Did we achieve the conversation goal?
+
+Remember: You're not just answering questions - you're building relationships and driving results. Be helpful, be human, be effective. Every conversation is an opportunity to make someone's day better AND achieve your goal.`,
           },
           ...chatHistory,
         ],
-        max_tokens: 200,
+        max_tokens: 300,
+        temperature: 0.7,
       });
 
       const aiReply = response.choices[0].message.content || '';
@@ -668,6 +1037,9 @@ Instructions:
           tokensUsed: response.usage?.total_tokens || 0,
         },
       });
+
+      // Calculate engagement score (like Dealism's conversion tracking)
+      await this.updateEngagementScore(conversationId);
 
       // Update message usage
       const currentMonth = new Date().toISOString().slice(0, 7);
@@ -782,6 +1154,67 @@ Instructions:
     if (message?.documentMessage) return 'document';
 
     return 'text';
+  }
+
+  async updateEngagementScore(conversationId: string): Promise<void> {
+    try {
+      // Get conversation with messages
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+          },
+        },
+      });
+
+      if (!conversation) return;
+
+      // Calculate engagement score (0-100) based on:
+      // 1. Message count (more messages = higher engagement)
+      // 2. Customer response rate
+      // 3. Conversation length
+      // 4. Recency
+
+      const messages = conversation.messages;
+      const totalMessages = messages.length;
+
+      // Base score from message count (0-40 points)
+      let score = Math.min(40, totalMessages * 2);
+
+      // Customer messages count (shows they're engaged)
+      const customerMessages = messages.filter(m => m.senderType === 'customer').length;
+      const responseRate = totalMessages > 0 ? (customerMessages / totalMessages) : 0;
+
+      // Response rate score (0-30 points)
+      score += responseRate * 30;
+
+      // Conversation length in time (0-15 points)
+      const conversationAge = Date.now() - new Date(conversation.createdAt).getTime();
+      const daysOld = conversationAge / (1000 * 60 * 60 * 24);
+      const lengthScore = Math.min(15, daysOld * 3);
+      score += lengthScore;
+
+      // Recent activity bonus (0-15 points)
+      const lastMessageAge = Date.now() - new Date(conversation.lastMessageAt).getTime();
+      const hoursOld = lastMessageAge / (1000 * 60 * 60);
+      const recencyScore = Math.max(0, 15 - hoursOld);
+      score += recencyScore;
+
+      // Cap at 100
+      const finalScore = Math.min(100, Math.round(score));
+
+      // Update engagement score
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { engagementScore: finalScore },
+      });
+
+      console.log(`📊 Updated engagement score for conversation ${conversationId}: ${finalScore}%`);
+    } catch (error) {
+      console.error('Error updating engagement score:', error);
+    }
   }
 
   async updateConnectionStatus(
