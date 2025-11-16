@@ -22,7 +22,7 @@ const EMAIL_CONFIG = {
 };
 
 // Create reusable transporter
-const transporter = nodemailer.createTransporter(EMAIL_CONFIG);
+const transporter = nodemailer.createTransport(EMAIL_CONFIG);
 
 // Email template types
 export type EmailTemplate =
