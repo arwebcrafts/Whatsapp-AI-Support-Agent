@@ -12,6 +12,11 @@ model User {
   email                String   @unique
   name                 String?
   password             String
+  company              String?
+  phone                String?
+  emailVerified        Boolean  @default(false)
+  verificationToken    String?  @unique
+  verificationTokenExpiry DateTime?
   role                 String   @default("user") // 'user', 'admin', 'developer'
   createdAt            DateTime @default(now())
   trialEndsAt          DateTime?
@@ -102,6 +107,7 @@ model Conversation {
   goalAchieved          Boolean  @default(false)
   aiEnabled             Boolean  @default(true)
   aiMode                String   @default("auto") // 'auto', 'copilot', 'manual'
+  notes                 String?  @db.Text
   lastMessageAt         DateTime @default(now())
   createdAt             DateTime @default(now())
 
