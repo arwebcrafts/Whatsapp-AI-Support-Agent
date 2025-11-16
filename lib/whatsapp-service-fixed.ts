@@ -374,11 +374,6 @@ class WhatsAppServiceFixed {
               session.sock = sock; // Update socket reference
             }
 
-            // Import previous chats in background
-            setTimeout(() => {
-              this.importPreviousChats(userId, agentId, sock).catch(console.error);
-            }, 5000);
-
             clearTimeout(timeout);
             resolve(null); // Already connected, no QR needed
           }
@@ -459,105 +454,6 @@ class WhatsAppServiceFixed {
     }
   }
 
-  async importPreviousChats(userId: string, agentId: string, sock: any): Promise<void> {
-    try {
-      console.log('📥 Starting to import previous WhatsApp chats...');
-
-      // Get WhatsApp connection from database
-      const whatsappConnection = await prisma.whatsAppConnection.findFirst({
-        where: { agentId, userId },
-      });
-
-      if (!whatsappConnection) {
-        console.log('⚠️ No WhatsApp connection found');
-        return;
-      }
-
-      // Fetch all chats from WhatsApp
-      const chats = await sock.groupFetchAllParticipating?.() || {};
-      const allChats = Object.values(chats);
-
-      console.log(`📱 Found ${allChats.length} group chats`);
-
-      // Also try to get individual chats from messages
-      // Baileys stores messages in the store
-      if (sock.store?.messages) {
-        const messageChats = Object.keys(sock.store.messages);
-        console.log(`💬 Found ${messageChats.length} individual chats with message history`);
-
-        for (const chatId of messageChats) {
-          // Skip group chats (they end with @g.us)
-          if (chatId.endsWith('@g.us')) continue;
-
-          const customerPhone = chatId.split('@')[0];
-
-          // Check if conversation already exists
-          const existingConversation = await prisma.conversation.findFirst({
-            where: {
-              agentId,
-              whatsappConnectionId: whatsappConnection.id,
-              customerPhone,
-            },
-          });
-
-          if (existingConversation) {
-            console.log(`✓ Conversation with ${customerPhone} already exists, skipping`);
-            continue;
-          }
-
-          // Get messages for this chat
-          const messages = sock.store.messages[chatId] || [];
-          if (messages.length === 0) continue;
-
-          console.log(`📝 Importing conversation with ${customerPhone} (${messages.length} messages)`);
-
-          // Create conversation
-          const conversation = await prisma.conversation.create({
-            data: {
-              userId,
-              agentId,
-              whatsappConnectionId: whatsappConnection.id,
-              customerPhone,
-              customerName: messages[0]?.pushName || customerPhone,
-              leadScore: 'warm',
-              aiEnabled: true,
-              lastMessageAt: new Date(),
-            },
-          });
-
-          // Import up to 50 most recent messages per conversation
-          const recentMessages = messages.slice(-50);
-
-          for (const msg of recentMessages) {
-            try {
-              const messageText = await this.extractMessageText(msg);
-              if (!messageText) continue;
-
-              await prisma.message.create({
-                data: {
-                  conversationId: conversation.id,
-                  senderType: msg.key.fromMe ? 'user' : 'customer',
-                  messageText,
-                  messageType: this.getMessageType(msg),
-                  createdAt: msg.messageTimestamp
-                    ? new Date(Number(msg.messageTimestamp) * 1000)
-                    : new Date(),
-                },
-              });
-            } catch (msgError) {
-              console.error('Error importing message:', msgError);
-            }
-          }
-
-          console.log(`✅ Imported ${recentMessages.length} messages for ${customerPhone}`);
-        }
-      }
-
-      console.log('✅ Previous chat import completed successfully');
-    } catch (error) {
-      console.error('❌ Error importing previous chats:', error);
-    }
-  }
 
   async handleIncomingMessage(userId: string, agentId: string, sock: any, msg: any): Promise<void> {
     try {
@@ -1024,6 +920,41 @@ Remember: You're not just answering questions - you're building relationships an
 
       const aiReply = response.choices[0].message.content || '';
 
+      // Calculate realistic typing delay based on message length
+      // Simulate human typing behavior:
+      // - Short messages (< 50 chars): 10-15 seconds
+      // - Medium messages (50-150 chars): 20-30 seconds
+      // - Long messages (> 150 chars): 30-40 seconds
+      const messageLength = aiReply.length;
+      let typingDelay: number;
+
+      if (messageLength < 50) {
+        typingDelay = 10000 + Math.random() * 5000; // 10-15 seconds
+      } else if (messageLength < 150) {
+        typingDelay = 20000 + Math.random() * 10000; // 20-30 seconds
+      } else {
+        typingDelay = 30000 + Math.random() * 10000; // 30-40 seconds
+      }
+
+      console.log(`⌨️ Showing typing indicator for ${Math.round(typingDelay / 1000)} seconds...`);
+
+      // Show "typing..." indicator
+      try {
+        await sock.sendPresenceUpdate('composing', remoteJid);
+      } catch (error) {
+        console.error('Error sending typing indicator:', error);
+      }
+
+      // Wait for realistic typing delay
+      await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+      // Stop typing indicator and set to "available"
+      try {
+        await sock.sendPresenceUpdate('paused', remoteJid);
+      } catch (error) {
+        console.error('Error clearing typing indicator:', error);
+      }
+
       // Send message via WhatsApp
       await sock.sendMessage(remoteJid, { text: aiReply });
 
@@ -1299,6 +1230,87 @@ Remember: You're not just answering questions - you're building relationships an
       await session.sock.sendMessage(remoteJid, { text: message });
     } else {
       throw new Error('WhatsApp not connected');
+    }
+  }
+
+  /**
+   * Send message with quick reply buttons
+   * Example: Yes/No questions, Book Now, See Menu, etc.
+   */
+  async sendMessageWithButtons(
+    agentId: string,
+    remoteJid: string,
+    message: string,
+    buttons: Array<{ id: string; text: string }>
+  ): Promise<void> {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock || !session.isConnected) {
+      throw new Error('WhatsApp not connected');
+    }
+
+    // WhatsApp supports up to 3 buttons
+    if (buttons.length > 3) {
+      console.warn('WhatsApp only supports up to 3 buttons, truncating...');
+      buttons = buttons.slice(0, 3);
+    }
+
+    const buttonMessage = {
+      text: message,
+      footer: 'Powered by WhaSales AI',
+      buttons: buttons.map((btn, index) => ({
+        buttonId: btn.id,
+        buttonText: { displayText: btn.text },
+        type: 1,
+      })),
+      headerType: 1,
+    };
+
+    try {
+      await session.sock.sendMessage(remoteJid, buttonMessage);
+      console.log(`✅ Sent message with ${buttons.length} buttons`);
+    } catch (error) {
+      // Fallback to regular message if buttons not supported
+      console.error('Error sending buttons, falling back to text:', error);
+      await session.sock.sendMessage(remoteJid, { text: message });
+    }
+  }
+
+  /**
+   * Send message with list/menu
+   * Example: Select from multiple options
+   */
+  async sendMessageWithList(
+    agentId: string,
+    remoteJid: string,
+    message: string,
+    buttonText: string,
+    sections: Array<{
+      title: string;
+      rows: Array<{ id: string; title: string; description?: string }>;
+    }>
+  ): Promise<void> {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock || !session.isConnected) {
+      throw new Error('WhatsApp not connected');
+    }
+
+    const listMessage = {
+      text: message,
+      footer: 'Powered by WhaSales AI',
+      title: 'Please select an option',
+      buttonText: buttonText,
+      sections: sections,
+    };
+
+    try {
+      await session.sock.sendMessage(remoteJid, listMessage);
+      console.log(`✅ Sent list message with ${sections.length} sections`);
+    } catch (error) {
+      // Fallback to regular message if list not supported
+      console.error('Error sending list, falling back to text:', error);
+      await session.sock.sendMessage(remoteJid, { text: message });
     }
   }
 

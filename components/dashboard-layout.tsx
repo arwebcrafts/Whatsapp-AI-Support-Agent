@@ -56,6 +56,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Templates", href: "/dashboard/templates", icon: FileText },
     { name: "Automation", href: "/dashboard/automation", icon: Zap },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Agent Learning", href: "/dashboard/agent-learning", icon: Bot },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];
@@ -142,7 +143,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.href = "/";
+              }}
             >
               <LogOut className="h-5 w-5 mr-3" />
               Sign Out

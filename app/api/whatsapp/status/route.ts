@@ -62,8 +62,33 @@ export async function GET(req: NextRequest) {
       phoneNumber: connection?.phoneNumber,
     });
 
+    // FIX: If DB shows connected but no in-memory session exists (server restart/logout scenario)
+    // Try to reconnect using saved auth files
+    if (isConnected && !hasSession) {
+      console.log('🔄 DB shows connected but no session in memory - attempting reconnection...');
+
+      // Trigger reconnection in background (don't await)
+      whatsappServiceFixed.connectWhatsApp(user.id, agentId)
+        .catch(err => console.error('Auto-reconnect failed:', err));
+
+      // Return status showing reconnecting state
+      return NextResponse.json({
+        isConnected: false,
+        reconnecting: true,
+        phoneNumber: connection?.phoneNumber || null,
+        lastActive: connection?.lastActive || null,
+        qr: null,
+        debug: {
+          hasSession,
+          sessionConnected,
+          dbConnected: isConnected,
+          autoReconnecting: true,
+        }
+      });
+    }
+
     return NextResponse.json({
-      isConnected: isConnected,
+      isConnected: isConnected && hasSession && sessionConnected,
       phoneNumber: connection?.phoneNumber || null,
       lastActive: connection?.lastActive || null,
       qr: sessionData?.qr || null,

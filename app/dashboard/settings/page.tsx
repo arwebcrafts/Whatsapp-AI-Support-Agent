@@ -12,7 +12,6 @@ import {
   Settings,
   User,
   Bell,
-  Key,
   Save,
   Shield,
 } from "lucide-react";
@@ -44,6 +43,8 @@ export default function SettingsPage() {
         const data = await res.json();
         setName(data.user?.name || "");
         setEmail(data.user?.email || "");
+        setCompany(data.user?.company || "");
+        setPhone(data.user?.phone || "");
       }
     } catch (error) {
       console.error("Error loading user:", error);
@@ -55,9 +56,17 @@ export default function SettingsPage() {
   async function handleSaveProfile() {
     try {
       setSaving(true);
-      // Save profile logic here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated save
-      alert("Profile updated successfully!");
+      const res = await fetch("/api/user/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, company, phone }),
+      });
+
+      if (res.ok) {
+        alert("Profile updated successfully!");
+      } else {
+        throw new Error("Failed to update profile");
+      }
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Failed to save profile");
@@ -224,34 +233,6 @@ export default function SettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {saving ? "Saving..." : "Save Preferences"}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* API Keys */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Key className="w-5 h-5 text-primary" />
-                <CardTitle>API Configuration</CardTitle>
-              </div>
-              <CardDescription>
-                Your OpenAI API key for AI responses
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="openai-key">OpenAI API Key</Label>
-                <Input
-                  id="openai-key"
-                  type="password"
-                  value={process.env.NEXT_PUBLIC_OPENAI_API_KEY || "••••••••••••••••"}
-                  disabled
-                  placeholder="sk-..."
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Configure your OpenAI API key in your environment variables
-                </p>
               </div>
             </CardContent>
           </Card>
