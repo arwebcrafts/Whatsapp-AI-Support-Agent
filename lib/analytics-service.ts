@@ -223,7 +223,7 @@ export async function saveConversationAnalytics(conversationId: string): Promise
     const needsImprovement =
       !wasSuccessful ||
       sentimentScore < -0.2 ||
-      (metrics.avgResponseTime && metrics.avgResponseTime > 180);
+      (metrics.avgResponseTime ? metrics.avgResponseTime > 180 : false);
 
     // Upsert analytics
     await prisma.conversationAnalytics.upsert({
