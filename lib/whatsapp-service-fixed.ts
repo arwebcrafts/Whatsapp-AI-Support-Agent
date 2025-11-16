@@ -920,6 +920,41 @@ Remember: You're not just answering questions - you're building relationships an
 
       const aiReply = response.choices[0].message.content || '';
 
+      // Calculate realistic typing delay based on message length
+      // Simulate human typing behavior:
+      // - Short messages (< 50 chars): 10-15 seconds
+      // - Medium messages (50-150 chars): 20-30 seconds
+      // - Long messages (> 150 chars): 30-40 seconds
+      const messageLength = aiReply.length;
+      let typingDelay: number;
+
+      if (messageLength < 50) {
+        typingDelay = 10000 + Math.random() * 5000; // 10-15 seconds
+      } else if (messageLength < 150) {
+        typingDelay = 20000 + Math.random() * 10000; // 20-30 seconds
+      } else {
+        typingDelay = 30000 + Math.random() * 10000; // 30-40 seconds
+      }
+
+      console.log(`⌨️ Showing typing indicator for ${Math.round(typingDelay / 1000)} seconds...`);
+
+      // Show "typing..." indicator
+      try {
+        await sock.sendPresenceUpdate('composing', remoteJid);
+      } catch (error) {
+        console.error('Error sending typing indicator:', error);
+      }
+
+      // Wait for realistic typing delay
+      await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+      // Stop typing indicator and set to "available"
+      try {
+        await sock.sendPresenceUpdate('paused', remoteJid);
+      } catch (error) {
+        console.error('Error clearing typing indicator:', error);
+      }
+
       // Send message via WhatsApp
       await sock.sendMessage(remoteJid, { text: aiReply });
 
