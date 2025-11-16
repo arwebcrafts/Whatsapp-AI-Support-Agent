@@ -33,7 +33,7 @@ interface Conversation {
   aiMode: string;
   lastMessageAt: string;
   messages: Message[];
-  notes?: string;
+  notes?: string | null;
 }
 
 interface Message {
