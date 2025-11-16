@@ -16,7 +16,10 @@ import {
   TrendingUp,
   StickyNote,
   Bot,
-  Save
+  Save,
+  ThumbsUp,
+  ThumbsDown,
+  Star
 } from "lucide-react";
 
 interface Conversation {
@@ -49,6 +52,8 @@ export default function ConversationsClient({ initialConversations }: { initialC
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [updatingMode, setUpdatingMode] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   // Load notes when conversation changes
   useEffect(() => {
@@ -129,6 +134,51 @@ export default function ConversationsClient({ initialConversations }: { initialC
       setUpdatingMode(false);
     }
   };
+
+  // Submit feedback
+  const handleSubmitFeedback = async (feedbackRating: number) => {
+    if (!selectedConv) return;
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          agentId: null, // Will be populated from conversation
+          rating: feedbackRating,
+          feedbackType: feedbackRating >= 4 ? 'positive' : feedbackRating >= 2 ? 'neutral' : 'negative'
+        }),
+      });
+
+      if (res.ok) {
+        setRating(feedbackRating);
+        setFeedbackSubmitted(true);
+
+        // Trigger analytics update
+        await fetch("/api/conversation-analytics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: selectedConv.id,
+            triggerLearning: false
+          }),
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("Failed to submit feedback");
+    }
+  };
+
+  // Reset feedback when conversation changes
+  useEffect(() => {
+    if (selectedConv) {
+      setNotes(selectedConv.notes || "");
+      setRating(0);
+      setFeedbackSubmitted(false);
+    }
+  }, [selectedConv?.id]);
 
   // Get AI suggestion for co-pilot mode
   useEffect(() => {
@@ -392,6 +442,40 @@ export default function ConversationsClient({ initialConversations }: { initialC
                 </Card>
               </div>
             )}
+
+            {/* Conversation Feedback */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <Star className="h-3.5 w-3.5" />
+                Rate This Conversation
+              </h3>
+              {feedbackSubmitted ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                  <ThumbsUp className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <p className="text-xs text-green-700 font-medium">Thank you for your feedback!</p>
+                  <p className="text-xs text-green-600 mt-1">Rating: {rating} stars</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex justify-center gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => handleSubmitFeedback(star)}
+                        className="text-gray-300 hover:text-yellow-400 transition-colors"
+                      >
+                        <Star
+                          className={`h-6 w-6 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : ''}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    Click to rate agent performance
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Notes */}
             <div>

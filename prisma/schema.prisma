@@ -197,3 +197,173 @@ model FAQ {
   @@index([userId])
   @@map("faqs")
 }
+
+// Agent Learning System Models
+
+// Track conversation quality metrics
+model ConversationAnalytics {
+  id                      String   @id @default(uuid())
+  conversationId          String   @unique
+  agentId                 String?
+  userId                  String
+
+  // Timing metrics
+  avgResponseTime         Int?     // Average response time in seconds
+  firstResponseTime       Int?     // Time to first response in seconds
+  conversationDuration    Int?     // Total conversation duration in minutes
+
+  // Message metrics
+  totalMessages           Int      @default(0)
+  customerMessages        Int      @default(0)
+  agentMessages           Int      @default(0)
+
+  // Quality metrics
+  resolutionStatus        String   @default("pending") // 'resolved', 'pending', 'escalated', 'abandoned'
+  customerSatisfaction    Float?   // 0-5 rating
+  sentimentScore          Float?   // -1 to 1 (negative to positive)
+
+  // Engagement metrics
+  messageExchangeRate     Float?   // Messages per minute
+  customerEngagement      Int      @default(0) // 0-100 score
+
+  // Learning indicators
+  wasSuccessful           Boolean  @default(false)
+  goalAchieved            Boolean  @default(false)
+  needsImprovement        Boolean  @default(false)
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([resolutionStatus])
+  @@index([wasSuccessful])
+  @@map("conversation_analytics")
+}
+
+// Store user feedback on agent responses
+model AgentFeedback {
+  id              String   @id @default(uuid())
+  conversationId  String
+  agentId         String?
+  userId          String
+  messageId       String?  // Specific message being rated
+
+  // Feedback data
+  rating          Int?     // 1-5 stars
+  feedbackType    String   // 'positive', 'negative', 'neutral'
+  feedbackTags    String?  @db.Text // JSON array: ['helpful', 'quick', 'accurate']
+  comment         String?  @db.Text
+
+  // Context
+  wasHelpful      Boolean  @default(true)
+  wasAccurate     Boolean  @default(true)
+  wasPolite       Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([feedbackType])
+  @@map("agent_feedback")
+}
+
+// Track agent performance over time
+model AgentPerformance {
+  id                        String   @id @default(uuid())
+  agentId                   String
+  userId                    String
+  period                    String   // Format: '2025-11-16' for daily, '2025-11-W46' for weekly, '2025-11' for monthly
+  periodType                String   // 'daily', 'weekly', 'monthly'
+
+  // Volume metrics
+  totalConversations        Int      @default(0)
+  successfulConversations   Int      @default(0)
+  failedConversations       Int      @default(0)
+
+  // Quality metrics
+  averageSatisfaction       Float?   // 0-5
+  averageSentiment          Float?   // -1 to 1
+  resolutionRate            Float?   // Percentage
+
+  // Efficiency metrics
+  avgResponseTime           Float?   // Seconds
+  avgConversationDuration   Float?   // Minutes
+  totalMessagesHandled      Int      @default(0)
+
+  // Learning metrics
+  improvementScore          Float?   // 0-100 - how much the agent has improved
+  learningRate              Float?   // Rate of improvement
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@unique([agentId, period, periodType])
+  @@index([agentId])
+  @@index([userId])
+  @@index([periodType])
+  @@map("agent_performance")
+}
+
+// Store learned patterns and insights
+model ConversationInsight {
+  id                String   @id @default(uuid())
+  agentId           String
+  userId            String
+
+  // Insight data
+  insightType       String   // 'successful_pattern', 'common_question', 'effective_response', 'customer_preference'
+  title             String
+  description       String   @db.Text
+
+  // Pattern data
+  triggerPattern    String?  @db.Text // What triggers this insight (customer message pattern)
+  responsePattern   String?  @db.Text // Effective response pattern
+
+  // Metrics
+  successRate       Float?   // How often this pattern leads to success
+  usageCount        Int      @default(0)
+  confidence        Float?   // 0-1 confidence score
+
+  // Context
+  category          String?  // 'greeting', 'pricing', 'support', 'objection_handling', etc.
+  context           String?  @db.Text // Additional context or examples
+
+  // Status
+  isActive          Boolean  @default(true)
+  isApproved        Boolean  @default(false) // User can approve insights
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([insightType])
+  @@index([isActive])
+  @@map("conversation_insights")
+}
+
+// Track agent learning progress
+model AgentLearningLog {
+  id              String   @id @default(uuid())
+  agentId         String
+  userId          String
+
+  // Learning event
+  eventType       String   // 'insight_discovered', 'pattern_learned', 'performance_improved', 'feedback_received'
+  eventData       String   @db.Text // JSON data about the learning event
+
+  // Impact
+  impactScore     Float?   // 0-100 - estimated impact of this learning
+
+  // Description
+  description     String   @db.Text
+
+  createdAt       DateTime @default(now())
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([eventType])
+  @@map("agent_learning_log")
+}

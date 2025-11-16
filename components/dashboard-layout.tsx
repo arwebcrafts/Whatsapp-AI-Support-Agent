@@ -56,6 +56,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Templates", href: "/dashboard/templates", icon: FileText },
     { name: "Automation", href: "/dashboard/automation", icon: Zap },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Agent Learning", href: "/dashboard/agent-learning", icon: Bot },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   ];
