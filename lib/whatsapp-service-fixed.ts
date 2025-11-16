@@ -374,11 +374,6 @@ class WhatsAppServiceFixed {
               session.sock = sock; // Update socket reference
             }
 
-            // Import previous chats in background
-            setTimeout(() => {
-              this.importPreviousChats(userId, agentId, sock).catch(console.error);
-            }, 5000);
-
             clearTimeout(timeout);
             resolve(null); // Already connected, no QR needed
           }
@@ -459,105 +454,6 @@ class WhatsAppServiceFixed {
     }
   }
 
-  async importPreviousChats(userId: string, agentId: string, sock: any): Promise<void> {
-    try {
-      console.log('📥 Starting to import previous WhatsApp chats...');
-
-      // Get WhatsApp connection from database
-      const whatsappConnection = await prisma.whatsAppConnection.findFirst({
-        where: { agentId, userId },
-      });
-
-      if (!whatsappConnection) {
-        console.log('⚠️ No WhatsApp connection found');
-        return;
-      }
-
-      // Fetch all chats from WhatsApp
-      const chats = await sock.groupFetchAllParticipating?.() || {};
-      const allChats = Object.values(chats);
-
-      console.log(`📱 Found ${allChats.length} group chats`);
-
-      // Also try to get individual chats from messages
-      // Baileys stores messages in the store
-      if (sock.store?.messages) {
-        const messageChats = Object.keys(sock.store.messages);
-        console.log(`💬 Found ${messageChats.length} individual chats with message history`);
-
-        for (const chatId of messageChats) {
-          // Skip group chats (they end with @g.us)
-          if (chatId.endsWith('@g.us')) continue;
-
-          const customerPhone = chatId.split('@')[0];
-
-          // Check if conversation already exists
-          const existingConversation = await prisma.conversation.findFirst({
-            where: {
-              agentId,
-              whatsappConnectionId: whatsappConnection.id,
-              customerPhone,
-            },
-          });
-
-          if (existingConversation) {
-            console.log(`✓ Conversation with ${customerPhone} already exists, skipping`);
-            continue;
-          }
-
-          // Get messages for this chat
-          const messages = sock.store.messages[chatId] || [];
-          if (messages.length === 0) continue;
-
-          console.log(`📝 Importing conversation with ${customerPhone} (${messages.length} messages)`);
-
-          // Create conversation
-          const conversation = await prisma.conversation.create({
-            data: {
-              userId,
-              agentId,
-              whatsappConnectionId: whatsappConnection.id,
-              customerPhone,
-              customerName: messages[0]?.pushName || customerPhone,
-              leadScore: 'warm',
-              aiEnabled: true,
-              lastMessageAt: new Date(),
-            },
-          });
-
-          // Import up to 50 most recent messages per conversation
-          const recentMessages = messages.slice(-50);
-
-          for (const msg of recentMessages) {
-            try {
-              const messageText = await this.extractMessageText(msg);
-              if (!messageText) continue;
-
-              await prisma.message.create({
-                data: {
-                  conversationId: conversation.id,
-                  senderType: msg.key.fromMe ? 'user' : 'customer',
-                  messageText,
-                  messageType: this.getMessageType(msg),
-                  createdAt: msg.messageTimestamp
-                    ? new Date(Number(msg.messageTimestamp) * 1000)
-                    : new Date(),
-                },
-              });
-            } catch (msgError) {
-              console.error('Error importing message:', msgError);
-            }
-          }
-
-          console.log(`✅ Imported ${recentMessages.length} messages for ${customerPhone}`);
-        }
-      }
-
-      console.log('✅ Previous chat import completed successfully');
-    } catch (error) {
-      console.error('❌ Error importing previous chats:', error);
-    }
-  }
 
   async handleIncomingMessage(userId: string, agentId: string, sock: any, msg: any): Promise<void> {
     try {

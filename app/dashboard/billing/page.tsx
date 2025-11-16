@@ -83,7 +83,7 @@ export default function BillingPage() {
       yearlyPrice: 79,
       lifetimePrice: 79,
       messages: "2,000",
-      features: ["2,000 messages/month", "1 WhatsApp number", "AI auto-replies", "Knowledge base"],
+      features: ["2,000 messages/month", "1 WhatsApp Connection", "1 Agent", "AI auto-replies", "Knowledge base"],
     },
     {
       name: "Professional",
@@ -92,7 +92,7 @@ export default function BillingPage() {
       yearlyPrice: 169,
       lifetimePrice: 149,
       messages: "5,000",
-      features: ["5,000 messages/month", "3 WhatsApp numbers", "Voice notes", "Smart follow-ups", "Priority support"],
+      features: ["5,000 messages/month", "1 WhatsApp Connection", "1 Agent", "Voice notes", "Smart follow-ups", "Priority support"],
       popular: true,
     },
     {
@@ -102,7 +102,7 @@ export default function BillingPage() {
       yearlyPrice: 349,
       lifetimePrice: 249,
       messages: "12,000",
-      features: ["12,000 messages/month", "10 WhatsApp numbers", "All features", "Analytics", "VIP support"],
+      features: ["12,000 messages/month", "1 WhatsApp Connection", "1 Agent", "All features", "Analytics", "VIP support"],
     },
   ];
 

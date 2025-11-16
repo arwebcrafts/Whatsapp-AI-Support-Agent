@@ -53,6 +53,11 @@ export default function WhatsAppPage() {
       const data = await res.json();
       setStatus(data);
       setQrCode(data.qr);
+
+      // If reconnecting, show info to user
+      if (data.reconnecting) {
+        console.log('🔄 WhatsApp reconnecting after server restart or logout...');
+      }
     } catch (error) {
       console.error('Error checking status:', error);
     }
@@ -130,7 +135,27 @@ export default function WhatsAppPage() {
           <p className="text-gray-600">Connect your WhatsApp to start automating conversations with AI</p>
         </div>
 
-        {status?.isConnected ? (
+        {status?.reconnecting ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                Reconnecting...
+              </CardTitle>
+              <CardDescription>
+                Restoring your WhatsApp connection (this happens automatically after logout or server restart)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  Your WhatsApp connection is being restored. This usually takes just a few seconds.
+                  The connection persists even when you logout and login.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : status?.isConnected ? (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -167,16 +192,15 @@ export default function WhatsAppPage() {
                   <h4 className="font-semibold text-green-900 mb-2">✅ Connection Active</h4>
                   <p className="text-sm text-green-800">
                     Your AI agent is now active and will automatically respond to incoming WhatsApp messages.
-                    Previous chats have been analyzed to better understand your conversation style.
                   </p>
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="font-semibold text-blue-900 mb-2">📱 How it works</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• AI analyzes your previous chats to learn your style</li>
-                    <li>• Automatically responds to new messages</li>
-                    <li>• Tries to convert cold leads from your history</li>
+                    <li>• Automatically responds to new incoming messages</li>
+                    <li>• Uses your knowledge base to provide accurate answers</li>
+                    <li>• Scores and tracks leads automatically</li>
                     <li>• You can take over any conversation manually</li>
                   </ul>
                 </div>
@@ -226,10 +250,10 @@ export default function WhatsAppPage() {
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                     <h4 className="font-semibold text-yellow-900 mb-2">📋 What happens next?</h4>
                     <ul className="text-sm text-yellow-800 space-y-1">
-                      <li>✓ Your previous WhatsApp chats will be imported</li>
-                      <li>✓ AI will analyze conversations to understand your style</li>
-                      <li>✓ Cold leads will be identified for potential follow-ups</li>
-                      <li>✓ AI will start auto-responding to new messages</li>
+                      <li>✓ Connection will be established with WhatsApp</li>
+                      <li>✓ New incoming messages will be tracked</li>
+                      <li>✓ AI will use your knowledge base to respond</li>
+                      <li>✓ Leads will be automatically scored and tracked</li>
                     </ul>
                   </div>
                 </div>
