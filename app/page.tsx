@@ -12,7 +12,8 @@ import {
   BookOpen,
   CheckCircle2,
   ArrowRight,
-  Flame
+  Flame,
+  Send
 } from "lucide-react";
 
 export default function Home() {
