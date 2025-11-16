@@ -93,7 +93,7 @@ export default function Home() {
                   <div className="text-sm text-gray-600">Response Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">< 30s</div>
+                  <div className="text-3xl font-bold text-green-600">&lt; 30s</div>
                   <div className="text-sm text-gray-600">Avg. Reply Time</div>
                 </div>
               </div>
