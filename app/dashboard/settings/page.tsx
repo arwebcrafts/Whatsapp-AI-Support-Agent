@@ -43,6 +43,8 @@ export default function SettingsPage() {
         const data = await res.json();
         setName(data.user?.name || "");
         setEmail(data.user?.email || "");
+        setCompany(data.user?.company || "");
+        setPhone(data.user?.phone || "");
       }
     } catch (error) {
       console.error("Error loading user:", error);
@@ -54,9 +56,17 @@ export default function SettingsPage() {
   async function handleSaveProfile() {
     try {
       setSaving(true);
-      // Save profile logic here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated save
-      alert("Profile updated successfully!");
+      const res = await fetch("/api/user/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, company, phone }),
+      });
+
+      if (res.ok) {
+        alert("Profile updated successfully!");
+      } else {
+        throw new Error("Failed to update profile");
+      }
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Failed to save profile");

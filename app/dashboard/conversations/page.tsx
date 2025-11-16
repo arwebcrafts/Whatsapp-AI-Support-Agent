@@ -42,6 +42,7 @@ export default async function ConversationsPage() {
     conversationGoal: conv.conversationGoal,
     aiEnabled: conv.aiEnabled,
     aiMode: conv.aiMode,
+    notes: conv.notes,
     lastMessageAt: conv.lastMessageAt.toISOString(),
     messages: conv.messages.map((msg) => ({
       id: msg.id,

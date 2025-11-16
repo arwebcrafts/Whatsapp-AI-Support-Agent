@@ -253,7 +253,7 @@ export default async function DashboardPage() {
                 {user.conversations.map((conversation) => (
                   <Link
                     key={conversation.id}
-                    href={`/dashboard/conversations/${conversation.id}`}
+                    href="/dashboard/conversations"
                     className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center justify-between">

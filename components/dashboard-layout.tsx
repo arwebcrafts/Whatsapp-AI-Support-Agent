@@ -142,7 +142,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Button
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.href = "/";
+              }}
             >
               <LogOut className="h-5 w-5 mr-3" />
               Sign Out
