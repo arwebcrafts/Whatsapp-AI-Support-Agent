@@ -141,9 +141,9 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <Users className="h-10 w-10 text-primary mb-2" />
-                  <CardTitle>Unlimited Agents</CardTitle>
+                  <CardTitle>Multiple AI Agents</CardTitle>
                   <CardDescription>
-                    Create multiple AI agents for different business needs.
+                    Create multiple AI agents for different business needs and products.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -647,8 +647,8 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600">
-                    After 7 days, you can choose a paid plan or continue with our free forever plan
-                    (limited features). No credit card required for trial.
+                    After 3 days, you can choose a paid plan to continue using all features.
+                    No credit card required for trial.
                   </p>
                 </CardContent>
               </Card>
@@ -665,14 +665,15 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="cursor-pointer" id="faq-api">
                 <CardHeader>
                   <CardTitle>Do I need the official WhatsApp Business API?</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600">
-                    No! That's the beauty of WhaSales AI. No API needed, no Meta approval required.
-                    Just scan QR code and you're live.
+                    No! WhaSales AI works with your regular WhatsApp number - no official API required.
+                    We use the same connection method as WhatsApp Web, so there's no complex Meta approval process.
+                    Just scan the QR code and you're ready to go in 30 seconds.
                   </p>
                 </CardContent>
               </Card>
@@ -742,6 +743,17 @@ export default function Home() {
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
             <p>&copy; 2025 WhaSales AI. All rights reserved.</p>
+            <p className="mt-2">
+              Powered by{" "}
+              <a
+                href="https://arwebcrafts.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-semibold"
+              >
+                AR Web Crafts
+              </a>
+            </p>
           </div>
         </div>
       </footer>

@@ -12,7 +12,7 @@ model User {
   email                String   @unique
   name                 String?
   password             String
-  role                 String   @default("user") // 'user', 'admin'
+  role                 String   @default("user") // 'user', 'admin', 'developer'
   createdAt            DateTime @default(now())
   trialEndsAt          DateTime?
   subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime', 'expired'
