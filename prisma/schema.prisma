@@ -24,6 +24,8 @@ model User {
   conversations        Conversation[]
   knowledgeBase        KnowledgeBase[]
   messageUsage         MessageUsage[]
+  messageTemplates     MessageTemplate[]
+  faqs                 FAQ[]
 
   @@map("users")
 }
@@ -152,4 +154,36 @@ model MessageUsage {
   @@unique([userId, month])
   @@index([userId])
   @@map("message_usage")
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String   @default("general") // 'greetings', 'sales', 'support', 'follow-up', 'info', 'general'
+  message     String   @db.Text
+  usageCount  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("message_templates")
+}
+
+model FAQ {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    String   @db.Text
+  answer      String   @db.Text
+  category    String   @default("general")
+  priority    Int      @default(0) // Higher priority FAQs shown first
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("faqs")
 }
