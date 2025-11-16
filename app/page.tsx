@@ -81,9 +81,78 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Video Demo Placeholder */}
-              <div className="bg-gray-200 rounded-lg aspect-video flex items-center justify-center">
-                <p className="text-gray-500">Demo Video Coming Soon</p>
+              {/* Social Proof Stats */}
+              <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">2,847</div>
+                  <div className="text-sm text-gray-600">Active Users</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">98%</div>
+                  <div className="text-sm text-gray-600">Response Rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">< 30s</div>
+                  <div className="text-sm text-gray-600">Avg. Reply Time</div>
+                </div>
+              </div>
+
+              {/* Animated Dashboard Preview */}
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg aspect-video flex items-center justify-center relative overflow-hidden shadow-2xl border-4 border-gray-700">
+                <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-blue-500/10 animate-pulse"></div>
+
+                {/* Simulated Chat Interface */}
+                <div className="relative z-10 w-full h-full p-8 flex items-center justify-center">
+                  <div className="bg-white rounded-lg shadow-xl w-full max-w-md h-[400px] flex flex-col">
+                    {/* Header */}
+                    <div className="bg-[#075E54] text-white px-4 py-3 rounded-t-lg flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#128C7E] rounded-full flex items-center justify-center font-bold">
+                        A
+                      </div>
+                      <div>
+                        <div className="font-semibold">Alex (Customer)</div>
+                        <div className="text-xs text-gray-200">Online</div>
+                      </div>
+                      <div className="ml-auto">
+                        <div className="bg-green-400 text-green-900 text-xs px-2 py-1 rounded-full font-semibold animate-pulse">
+                          🤖 AI Active
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="flex-1 bg-[#E5DDD5] p-4 space-y-3 overflow-hidden">
+                      <div className="flex justify-start animate-fade-in">
+                        <div className="bg-white rounded-lg px-3 py-2 max-w-[70%] shadow">
+                          <p className="text-sm">Is this available?</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-end animate-fade-in-delayed">
+                        <div className="bg-[#DCF8C6] rounded-lg px-3 py-2 max-w-[70%] shadow">
+                          <p className="text-sm">Yes! In stock now 😊</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-start animate-fade-in-delayed-2">
+                        <div className="bg-white rounded-lg px-3 py-2 max-w-[70%] shadow">
+                          <p className="text-sm">Great! I'll take it</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Input */}
+                    <div className="bg-[#F0F2F5] px-4 py-3 rounded-b-lg flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="AI is typing..."
+                        className="flex-1 bg-white rounded-full px-4 py-2 text-sm"
+                        disabled
+                      />
+                      <div className="bg-[#25D366] rounded-full p-2">
+                        <Send className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -157,6 +226,160 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
               </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Before/After Section */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">See The Difference AI Makes</h2>
+              <p className="text-xl text-gray-600">Real conversations, real results</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              {/* Before - Without AI */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <div className="bg-red-100 text-red-700 px-4 py-2 rounded-full font-semibold">
+                    ❌ Before (Without AI)
+                  </div>
+                </div>
+
+                {/* Chat Mockup */}
+                <div className="bg-gray-100 rounded-lg p-6 space-y-4 min-h-[400px] border-2 border-gray-300">
+                  {/* Customer message */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-sm">Hi! Do you have this in blue? What's the price?</p>
+                      <p className="text-xs text-gray-500 mt-1">10:23 AM</p>
+                    </div>
+                  </div>
+
+                  {/* No response */}
+                  <div className="text-center py-8 text-gray-400 italic">
+                    <p className="text-sm">😴 No response...</p>
+                    <p className="text-xs mt-2">Customer waits 5 hours</p>
+                  </div>
+
+                  {/* Customer follows up */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-sm">Hello? Anyone there?</p>
+                      <p className="text-xs text-gray-500 mt-1">3:45 PM</p>
+                    </div>
+                  </div>
+
+                  {/* Late response */}
+                  <div className="flex justify-end">
+                    <div className="bg-blue-100 rounded-lg rounded-tr-none px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-sm">Sorry for late reply! Yes, $49</p>
+                      <p className="text-xs text-gray-500 mt-1">6:20 PM</p>
+                    </div>
+                  </div>
+
+                  {/* Customer lost */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-sm">Bought from competitor already. Thanks anyway.</p>
+                      <p className="text-xs text-gray-500 mt-1">6:22 PM</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-semibold text-red-800">❌ Lost Sale: $49</p>
+                  <p className="text-xs text-red-600 mt-1">8 hours response time</p>
+                </div>
+              </div>
+
+              {/* After - With AI */}
+              <div className="space-y-4 relative">
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <div className="bg-green-100 text-green-700 px-4 py-2 rounded-full font-semibold animate-pulse">
+                    ✅ After (With WhaSales AI)
+                  </div>
+                </div>
+
+                {/* Chat Mockup */}
+                <div className="bg-[#E5DDD5] rounded-lg p-6 space-y-4 min-h-[400px] border-2 border-green-300 shadow-lg">
+                  {/* Customer message */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-md">
+                      <p className="text-sm">Hi! Do you have this in blue? What's the price?</p>
+                      <p className="text-xs text-gray-500 mt-1">10:23 AM</p>
+                    </div>
+                  </div>
+
+                  {/* Instant AI response */}
+                  <div className="flex justify-end">
+                    <div className="bg-[#DCF8C6] rounded-lg rounded-tr-none px-4 py-3 max-w-[80%] shadow-md relative">
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        🤖 AI
+                      </div>
+                      <p className="text-sm">Hey! Yes, we have it in Royal Blue and Sky Blue 😊 Price is $49 with free shipping!</p>
+                      <p className="text-xs text-gray-500 mt-1">10:23 AM ✓✓</p>
+                    </div>
+                  </div>
+
+                  {/* Customer interested */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-md">
+                      <p className="text-sm">Perfect! Royal Blue please. How long for delivery?</p>
+                      <p className="text-xs text-gray-500 mt-1">10:24 AM</p>
+                    </div>
+                  </div>
+
+                  {/* AI continues */}
+                  <div className="flex justify-end">
+                    <div className="bg-[#DCF8C6] rounded-lg rounded-tr-none px-4 py-3 max-w-[80%] shadow-md">
+                      <p className="text-sm">Great choice! 2-3 business days to your location. Want me to send you the payment link?</p>
+                      <p className="text-xs text-gray-500 mt-1">10:24 AM ✓✓</p>
+                    </div>
+                  </div>
+
+                  {/* Sale confirmed */}
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg rounded-tl-none px-4 py-3 max-w-[80%] shadow-md">
+                      <p className="text-sm">Yes please! 🎉</p>
+                      <p className="text-xs text-gray-500 mt-1">10:25 AM</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-semibold text-green-800">✅ Sale Closed: $49</p>
+                  <p className="text-xs text-green-600 mt-1">Under 2 minutes</p>
+                </div>
+
+                {/* Sparkle effect */}
+                <div className="absolute -top-4 -right-4 text-4xl animate-bounce">✨</div>
+              </div>
+            </div>
+
+            {/* Stats comparison */}
+            <div className="mt-16 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="text-center border-2 border-green-200 bg-green-50">
+                  <CardContent className="pt-6">
+                    <div className="text-4xl font-bold text-green-600 mb-2">3x</div>
+                    <p className="text-sm font-semibold">More Conversions</p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center border-2 border-green-200 bg-green-50">
+                  <CardContent className="pt-6">
+                    <div className="text-4xl font-bold text-green-600 mb-2">24/7</div>
+                    <p className="text-sm font-semibold">Instant Responses</p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center border-2 border-green-200 bg-green-50">
+                  <CardContent className="pt-6">
+                    <div className="text-4xl font-bold text-green-600 mb-2">0</div>
+                    <p className="text-sm font-semibold">Lost Leads</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </section>
