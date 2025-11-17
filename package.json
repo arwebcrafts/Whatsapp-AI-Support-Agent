@@ -9,6 +9,9 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "prisma migrate deploy && next start",
+    "start:safe": "node fix-migration.js --deploy && next start",
+    "fix:migration": "node fix-migration.js",
+    "fix:migration:deploy": "node fix-migration.js --deploy",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
