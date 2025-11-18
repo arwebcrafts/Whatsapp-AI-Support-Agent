@@ -61,6 +61,34 @@ export async function POST(
       );
     }
 
+    // CRITICAL: AI suggestions only work in MANUAL mode
+    const aiMode = conversation.aiMode || 'auto';
+    if (aiMode !== 'manual') {
+      return NextResponse.json(
+        {
+          message: 'AI suggestions are only available in Manual mode. Please switch to Manual mode to use this feature.',
+          requiresModeChange: true,
+          currentMode: aiMode,
+        },
+        { status: 403 }
+      );
+    }
+
+    // CRITICAL: Check user limits (trial, subscription, message limits)
+    const { canUserSendMessage } = await import('@/lib/trial-checker');
+    const canSend = await canUserSendMessage(user.id);
+
+    if (!canSend.allowed) {
+      return NextResponse.json(
+        {
+          message: canSend.reason,
+          requiresUpgrade: true,
+          limitReached: true
+        },
+        { status: 403 }
+      );
+    }
+
     // Build context from knowledge base
     const knowledgeContext = conversation.agent?.agentKnowledge
       .map((ak) => ak.knowledge.content)

@@ -525,14 +525,14 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card>
                     <CardHeader>
-                      <Badge variant="secondary" className="w-fit mb-2">Save 32%</Badge>
+                      <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">Get 3 Months Free! 🎉</Badge>
                       <CardTitle>Starter</CardTitle>
                       <CardDescription>Perfect for small shops</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">$79</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$6.58/month</p>
+                      <p className="text-sm text-gray-500 mt-1">~$6.58/month (Save 32%)</p>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
@@ -566,14 +566,14 @@ export default function Home() {
                       Most Popular
                     </Badge>
                     <CardHeader>
-                      <Badge variant="secondary" className="w-fit mb-2">Save 31%</Badge>
+                      <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">Get 3 Months Free! 🎉</Badge>
                       <CardTitle>Professional</CardTitle>
                       <CardDescription>For e-commerce & agencies</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">$169</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$14/month</p>
+                      <p className="text-sm text-gray-500 mt-1">~$14/month (Save 31%)</p>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
@@ -600,14 +600,14 @@ export default function Home() {
 
                   <Card>
                     <CardHeader>
-                      <Badge variant="secondary" className="w-fit mb-2">Save 31%</Badge>
+                      <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">Get 3 Months Free! 🎉</Badge>
                       <CardTitle>Business</CardTitle>
                       <CardDescription>High-volume businesses</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">$349</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$29/month</p>
+                      <p className="text-sm text-gray-500 mt-1">~$29/month (Save 31%)</p>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">

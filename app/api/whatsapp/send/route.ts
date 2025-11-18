@@ -30,6 +30,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // CRITICAL: Check user limits before sending (trial, subscription, message limits)
+    const { canUserSendMessage } = await import('@/lib/trial-checker');
+    const canSend = await canUserSendMessage(user.id);
+
+    if (!canSend.allowed) {
+      return NextResponse.json(
+        {
+          message: canSend.reason,
+          requiresUpgrade: true,
+          limitReached: true
+        },
+        { status: 403 }
+      );
+    }
+
     // Get conversation
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -62,6 +77,34 @@ export async function POST(req: NextRequest) {
       where: { id: conversationId },
       data: { lastMessageAt: new Date() },
     });
+
+    // CRITICAL: Increment message counter for manual messages
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const usage = await prisma.messageUsage.findUnique({
+      where: {
+        userId_month: {
+          userId: user.id,
+          month: currentMonth,
+        },
+      },
+    });
+
+    if (usage) {
+      await prisma.messageUsage.update({
+        where: { id: usage.id },
+        data: { messagesUsed: { increment: 1 } },
+      });
+    } else {
+      // Create usage record if it doesn't exist
+      await prisma.messageUsage.create({
+        data: {
+          userId: user.id,
+          month: currentMonth,
+          messagesUsed: 1,
+          messageLimit: 2000, // Default limit
+        },
+      });
+    }
 
     return NextResponse.json({ message: 'Message sent successfully' });
   } catch (error) {
