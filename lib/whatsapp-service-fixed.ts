@@ -175,6 +175,7 @@ class WhatsAppServiceFixed {
 
           if (qr) {
             try {
+              console.log(`🎨 Generating QR code from raw string (length: ${qr.length})...`);
               // Generate QR code as data URL
               qrCode = await QRCode.toDataURL(qr);
               const session = this.sessions.get(agentId);
@@ -182,12 +183,14 @@ class WhatsAppServiceFixed {
                 session.qr = qrCode;
               }
               console.log(`✅ QR Code generated successfully for agent ${agentId}`);
-              console.log('📊 QR Code length:', qrCode?.length || 0);
+              console.log('📊 QR Code data URL length:', qrCode?.length || 0);
 
               clearTimeout(timeout);
               resolve(qrCode); // Resolve with QR code
             } catch (error) {
-              console.error('❌ Error generating QR code:', error);
+              console.error('❌ Error generating QR code from string:', error);
+              console.error('QR string that failed:', qr?.substring(0, 50) + '...');
+              // Don't resolve here - let timeout handle it or wait for another QR
             }
           }
 
@@ -440,8 +443,17 @@ class WhatsAppServiceFixed {
 
       if (qrCode) {
         console.log('🎉 QR Code ready! Returning to client...');
+        console.log('📏 Final QR code length:', qrCode.length);
       } else {
-        console.log('⚠️ No QR code generated (might already be connected)');
+        console.log('⚠️ No QR code generated after waiting');
+        console.log('Possible reasons: already connected, timeout, or connection error');
+
+        // Check if session exists and is connected
+        const session = this.sessions.get(agentId);
+        if (session?.isConnected) {
+          console.log('✅ Session is already connected');
+          return { qr: null, status: 'connected' };
+        }
       }
 
       return {
@@ -449,7 +461,8 @@ class WhatsAppServiceFixed {
         status: qrCode ? 'waiting_for_scan' : 'connecting',
       };
     } catch (error) {
-      console.error('WhatsApp connection error:', error);
+      console.error('❌ WhatsApp connection error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

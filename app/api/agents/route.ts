@@ -69,6 +69,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // CRITICAL: Check agent creation limit (1 agent per plan for all plans)
+    const existingAgents = await prisma.agent.count({
+      where: { userId: user.id },
+    });
+
+    // All plans (Starter, Professional, Business, Lifetime) get 1 agent
+    const maxAgents = 1;
+
+    if (existingAgents >= maxAgents) {
+      return NextResponse.json({
+        message: `You've reached your plan limit of ${maxAgents} agent. Please delete an existing agent before creating a new one.`,
+        requiresUpgrade: false,
+        currentCount: existingAgents,
+        maxCount: maxAgents,
+      }, { status: 403 });
+    }
+
     // Create agent
     const agent = await prisma.agent.create({
       data: {

@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      include: {
+        whatsappConnections: true,
+      },
     });
 
     if (!user) {
@@ -37,6 +40,17 @@ export async function POST(req: NextRequest) {
 
     if (!agentId) {
       return NextResponse.json({ message: 'Agent ID is required. Please provide an agentId in the request body.' }, { status: 400 });
+    }
+
+    // Check WhatsApp connection limit (1 connection for all plans)
+    const existingConnections = user.whatsappConnections.filter(c => c.isConnected && c.agentId !== agentId);
+    if (existingConnections.length >= 1) {
+      return NextResponse.json({
+        message: 'Connection limit reached. All plans (Starter, Professional, Enterprise, LTD) support 1 WhatsApp connection. Please disconnect your existing connection before connecting a new one.',
+        limit: 1,
+        current: existingConnections.length,
+        planType: user.planType
+      }, { status: 403 });
     }
 
     console.log(`📱 API: Connect request for agent ${agentId} from user ${user.email} (force: ${force})`);
