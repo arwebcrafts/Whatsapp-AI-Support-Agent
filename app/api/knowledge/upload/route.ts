@@ -31,6 +31,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        {
+          message: `File size exceeds 10MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`,
+        },
+        { status: 413 } // 413 Payload Too Large
+      );
+    }
+
+    // Validate file type
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/msword', // .doc
+      'text/plain',
+    ];
+
+    if (!allowedMimeTypes.includes(file.type)) {
+      return NextResponse.json(
+        {
+          message: `Invalid file type. Allowed types: PDF, Word documents (.doc, .docx), and text files (.txt). You uploaded: ${file.type}`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Process file
     const result = await documentProcessor.processFile(file);
 

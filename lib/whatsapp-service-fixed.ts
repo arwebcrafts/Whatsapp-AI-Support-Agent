@@ -175,6 +175,7 @@ class WhatsAppServiceFixed {
 
           if (qr) {
             try {
+              console.log(`🎨 Generating QR code from raw string (length: ${qr.length})...`);
               // Generate QR code as data URL
               qrCode = await QRCode.toDataURL(qr);
               const session = this.sessions.get(agentId);
@@ -182,12 +183,14 @@ class WhatsAppServiceFixed {
                 session.qr = qrCode;
               }
               console.log(`✅ QR Code generated successfully for agent ${agentId}`);
-              console.log('📊 QR Code length:', qrCode?.length || 0);
+              console.log('📊 QR Code data URL length:', qrCode?.length || 0);
 
               clearTimeout(timeout);
               resolve(qrCode); // Resolve with QR code
             } catch (error) {
-              console.error('❌ Error generating QR code:', error);
+              console.error('❌ Error generating QR code from string:', error);
+              console.error('QR string that failed:', qr?.substring(0, 50) + '...');
+              // Don't resolve here - let timeout handle it or wait for another QR
             }
           }
 
@@ -440,8 +443,17 @@ class WhatsAppServiceFixed {
 
       if (qrCode) {
         console.log('🎉 QR Code ready! Returning to client...');
+        console.log('📏 Final QR code length:', qrCode.length);
       } else {
-        console.log('⚠️ No QR code generated (might already be connected)');
+        console.log('⚠️ No QR code generated after waiting');
+        console.log('Possible reasons: already connected, timeout, or connection error');
+
+        // Check if session exists and is connected
+        const session = this.sessions.get(agentId);
+        if (session?.isConnected) {
+          console.log('✅ Session is already connected');
+          return { qr: null, status: 'connected' };
+        }
       }
 
       return {
@@ -449,7 +461,8 @@ class WhatsAppServiceFixed {
         status: qrCode ? 'waiting_for_scan' : 'connecting',
       };
     } catch (error) {
-      console.error('WhatsApp connection error:', error);
+      console.error('❌ WhatsApp connection error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -642,11 +655,10 @@ class WhatsAppServiceFixed {
       const businessType = conversation.agent?.businessType || '';
       const conversationGoal = conversation.conversationGoal || 'info';
 
-      // Generate AI response
-      const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+      // Generate AI response using singleton client
+      const { getOpenAIClient, estimateTokens } = await import('./openai-client');
+      const { TokenUsageService } = await import('./token-usage-service');
+      const openai = getOpenAIClient();
 
       const chatHistory = conversation.messages
         .reverse()
@@ -856,12 +868,8 @@ ${faqKnowledge ? `\n=== Frequently Asked Questions ===\n${faqKnowledge}\n` : ''}
 `
         : '\nNote: No specific business information or FAQs have been added yet. Answer based on general knowledge and ask clarifying questions.';
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `${systemPrompts[aiTone as keyof typeof systemPrompts]}
+      // Build the full system prompt
+      const systemPrompt = `${systemPrompts[aiTone as keyof typeof systemPrompts]}
 ${specializedPrompt ? `\n${specializedPrompt}\n` : ''}
 ${knowledgeSection}
 ${goalInstructions[conversationGoal] || ''}
@@ -910,7 +918,35 @@ ${goalInstructions[conversationGoal] || ''}
 - Progress: Are we moving towards the goal?
 - Conversion: Did we achieve the conversation goal?
 
-Remember: You're not just answering questions - you're building relationships and driving results. Be helpful, be human, be effective. Every conversation is an opportunity to make someone's day better AND achieve your goal.`,
+Remember: You're not just answering questions - you're building relationships and driving results. Be helpful, be human, be effective. Every conversation is an opportunity to make someone's day better AND achieve your goal.`;
+
+      // Estimate tokens for quota check
+      const estimatedInputTokens = estimateTokens(systemPrompt + chatHistory.map(m => m.content).join('\n'));
+      const estimatedOutputTokens = 300; // max_tokens setting
+      const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
+
+      // Check token quota before making API call
+      const quotaCheck = await TokenUsageService.checkQuota(conversation.userId, estimatedTotalTokens);
+      if (!quotaCheck.allowed) {
+        console.warn(`Token quota exceeded for user ${conversation.userId}:`, quotaCheck.reason);
+        // Don't generate AI response if quota exceeded
+        return;
+      }
+
+      // Check rate limit
+      const rateLimitCheck = await TokenUsageService.checkRateLimit(conversation.userId);
+      if (!rateLimitCheck.allowed) {
+        console.warn(`Rate limit exceeded for user ${conversation.userId}:`, rateLimitCheck.reason);
+        // Don't generate AI response if rate limited
+        return;
+      }
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
           },
           ...chatHistory,
         ],
@@ -919,6 +955,11 @@ Remember: You're not just answering questions - you're building relationships an
       });
 
       const aiReply = response.choices[0].message.content || '';
+
+      // Track actual token usage after API call
+      const actualInputTokens = response.usage?.prompt_tokens || estimatedInputTokens;
+      const actualOutputTokens = response.usage?.completion_tokens || estimateTokens(aiReply);
+      await TokenUsageService.trackUsage(conversation.userId, actualInputTokens, actualOutputTokens);
 
       // Calculate realistic typing delay based on message length
       // Simulate human typing behavior:
