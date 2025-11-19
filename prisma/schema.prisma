@@ -29,6 +29,7 @@ model User {
   conversations        Conversation[]
   knowledgeBase        KnowledgeBase[]
   messageUsage         MessageUsage[]
+  tokenUsage           TokenUsage[]
   messageTemplates     MessageTemplate[]
   faqs                 FAQ[]
 
@@ -167,6 +168,26 @@ model MessageUsage {
   @@unique([userId, month])
   @@index([userId])
   @@map("message_usage")
+}
+
+// Track OpenAI token usage and costs per user per month
+model TokenUsage {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month           String   // Format: '2025-12'
+  tokensUsed      Int      @default(0)      // Total tokens used this month
+  tokenLimit      Int      @default(500000) // Monthly token limit based on plan
+  estimatedCost   Float    @default(0)      // Estimated cost in USD
+  requestCount    Int      @default(0)      // Number of API requests
+  lastRequestAt   DateTime?                 // Last API request timestamp
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@index([month])
+  @@map("token_usage")
 }
 
 model MessageTemplate {

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/dashboard-layout";
+import { DashboardWelcome } from "@/components/dashboard-welcome";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -122,6 +123,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardLayout>
+      <DashboardWelcome />
       <div className="space-y-6">
         {/* Header with Greeting */}
         <div className="flex items-center justify-between">
