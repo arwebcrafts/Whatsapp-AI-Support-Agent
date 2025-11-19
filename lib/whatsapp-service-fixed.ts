@@ -916,15 +916,16 @@ Remember: You're not just answering questions - you're building relationships an
       const quotaCheck = await TokenUsageService.checkQuota(conversation.userId, estimatedTotalTokens);
       if (!quotaCheck.allowed) {
         console.warn(`Token quota exceeded for user ${conversation.userId}:`, quotaCheck.reason);
-        // Send a message informing user they've hit their limit
-        return "I've reached my monthly message limit. Please upgrade your plan to continue using AI responses.";
+        // Don't generate AI response if quota exceeded
+        return;
       }
 
       // Check rate limit
       const rateLimitCheck = await TokenUsageService.checkRateLimit(conversation.userId);
       if (!rateLimitCheck.allowed) {
         console.warn(`Rate limit exceeded for user ${conversation.userId}:`, rateLimitCheck.reason);
-        return "You're sending messages too quickly. Please wait a moment before trying again.";
+        // Don't generate AI response if rate limited
+        return;
       }
 
       const response = await openai.chat.completions.create({
