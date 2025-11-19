@@ -24,7 +24,7 @@ Turn WhatsApp chats into sales with AI-powered automation. No official WhatsApp 
 - **Frontend:** Next.js 14, TypeScript, Tailwind CSS
 - **UI Components:** Radix UI, shadcn/ui
 - **Backend:** Next.js API Routes
-- **Database:** PostgreSQL with Prisma ORM
+- **Database:** MySQL with Prisma ORM
 - **Authentication:** NextAuth.js
 - **WhatsApp:** Baileys library (no official API required)
 - **AI:** OpenAI GPT-4
@@ -35,7 +35,7 @@ Turn WhatsApp chats into sales with AI-powered automation. No official WhatsApp 
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database
+- MySQL database
 - OpenAI API key
 - Stripe account (for payments)
 
@@ -60,7 +60,7 @@ Turn WhatsApp chats into sales with AI-powered automation. No official WhatsApp 
    ```
 
    Required environment variables:
-   - `DATABASE_URL` - PostgreSQL connection string
+   - `DATABASE_URL` - MySQL connection string
    - `OPENAI_API_KEY` - Your OpenAI API key
    - `NEXTAUTH_SECRET` - Random secret for NextAuth
    - `NEXTAUTH_URL` - Your app URL (http://localhost:3000 for development)
@@ -123,7 +123,7 @@ Turn WhatsApp chats into sales with AI-powered automation. No official WhatsApp 
 
 ## Database Schema
 
-The application uses PostgreSQL with the following main tables:
+The application uses MySQL with the following main tables:
 
 - `users` - User accounts and subscription info
 - `whatsapp_connections` - WhatsApp connection data
@@ -159,7 +159,7 @@ vercel deploy
 ```
 
 ### Database
-- Use Supabase, Neon, or any PostgreSQL provider
+- Use Railway, PlanetScale, or any MySQL provider
 - Set `DATABASE_URL` in environment variables
 
 ### WhatsApp Service
@@ -173,7 +173,7 @@ Create a `.env.local` file with these variables:
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/whasales"
+DATABASE_URL="mysql://user:password@localhost:3306/whasales"
 
 # OpenAI
 OPENAI_API_KEY="sk-..."
@@ -224,7 +224,7 @@ npm start
 ✅ Landing page with Black Friday pricing (Monthly/Yearly/Lifetime)
 ✅ User authentication (signup/login with NextAuth.js)
 ✅ 3-step onboarding flow
-✅ Database schema with Prisma (PostgreSQL)
+✅ Database schema with Prisma (MySQL)
 ✅ Main dashboard with real-time stats
 ✅ Responsive dashboard layout with navigation
 

@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAIClient, estimateTokens } from '@/lib/openai-client';
+import { TokenUsageService } from '@/lib/token-usage-service';
 
 // POST /api/conversations/[id]/suggest - Get AI suggestion for response
 export async function POST(
@@ -130,6 +127,35 @@ ${conversationHistory}
 
 Generate a helpful, professional response to the customer's most recent message. Keep it concise and friendly.`;
 
+    // Estimate tokens for quota check
+    const estimatedInputTokens = estimateTokens(systemPrompt + 'Please suggest a response to the customer.');
+    const estimatedOutputTokens = 300; // max_tokens setting
+    const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
+
+    // Check token quota
+    const quotaCheck = await TokenUsageService.checkQuota(user.id, estimatedTotalTokens);
+    if (!quotaCheck.allowed) {
+      return NextResponse.json(
+        {
+          message: quotaCheck.reason,
+          usage: quotaCheck.usage,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Check rate limit
+    const rateLimitCheck = await TokenUsageService.checkRateLimit(user.id);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        { message: rateLimitCheck.reason },
+        { status: 429 }
+      );
+    }
+
+    // Get singleton OpenAI client
+    const openai = getOpenAIClient();
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -141,6 +167,11 @@ Generate a helpful, professional response to the customer's most recent message.
     });
 
     const suggestion = completion.choices[0]?.message?.content || '';
+
+    // Track actual token usage
+    const actualInputTokens = completion.usage?.prompt_tokens || estimatedInputTokens;
+    const actualOutputTokens = completion.usage?.completion_tokens || estimateTokens(suggestion);
+    await TokenUsageService.trackUsage(user.id, actualInputTokens, actualOutputTokens);
 
     return NextResponse.json({ suggestion });
   } catch (error) {

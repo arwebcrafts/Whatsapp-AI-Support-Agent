@@ -112,7 +112,7 @@ await whatsappService.sendMessageWithButtons(
 
 ## 💳 TRIAL STRATEGY RECOMMENDATION
 
-### **Use: 7-Day Free Trial WITHOUT Credit Card**
+### **Use: 3-Day Free Trial WITHOUT Credit Card**
 
 **Why this works for Pakistan/India market:**
 
@@ -129,10 +129,9 @@ await whatsappService.sendMessageWithButtons(
 **Trial Flow:**
 ```
 Day 1: Welcome email + setup guide
-Day 3: "You're doing great!" + tips
-Day 5: "2 days left" + upgrade prompt
-Day 7: Trial ends → show upgrade page
-Day 8: Disable features, keep data for 7 more days
+Day 2: "You're doing great!" + tips
+Day 3: Trial ends → show upgrade page
+Day 4: Disable features, keep data for 7 more days
 ```
 
 **Conversion tactics:**
@@ -271,7 +270,7 @@ If you want email verification to work:
 - [ ] Create at least 1 agent
 - [ ] Add knowledge base content
 - [ ] Set message limits
-- [ ] Configure trial period (currently 7 days)
+- [ ] Configure trial period (currently 3 days)
 
 ### 4. Marketing Materials
 - [ ] Screenshots of dashboard
