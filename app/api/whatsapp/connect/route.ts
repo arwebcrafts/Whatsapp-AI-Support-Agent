@@ -23,6 +23,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
+    // Check if trial has expired
+    if (user.subscriptionStatus === 'trial' && user.trialEndsAt) {
+      if (new Date() > user.trialEndsAt) {
+        return NextResponse.json(
+          {
+            message: 'Your trial has expired. Please upgrade your plan to connect WhatsApp.',
+            trialExpired: true
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check if subscription is active
+    if (user.subscriptionStatus === 'expired' || user.subscriptionStatus === 'cancelled') {
+      return NextResponse.json(
+        {
+          message: 'Your subscription is not active. Please upgrade to connect WhatsApp.',
+          subscriptionInactive: true
+        },
+        { status: 403 }
+      );
+    }
+
     // Parse JSON body with error handling
     let body;
     try {

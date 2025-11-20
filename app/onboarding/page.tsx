@@ -133,21 +133,29 @@ export default function OnboardingPage() {
       });
 
       if (!whatsappRes.ok) {
-        throw new Error("Failed to initialize WhatsApp connection");
+        const errorData = await whatsappRes.json();
+        console.error("WhatsApp connection error:", errorData);
+        throw new Error(errorData.message || "Failed to initialize WhatsApp connection");
       }
 
       const whatsappData = await whatsappRes.json();
+      console.log("WhatsApp connection response:", whatsappData);
 
       if (whatsappData.qr) {
         setQrCode(whatsappData.qr);
         setConnectionStatus("Scan QR code with WhatsApp");
-      } else if (whatsappData.isConnected) {
+      } else if (whatsappData.status === 'connected' || whatsappData.isConnected) {
         setIsConnected(true);
         setConnectionStatus("✅ Already connected!");
+      } else {
+        // QR might be generating
+        setConnectionStatus("Waiting for QR code...");
+        console.log("Waiting for QR, status:", whatsappData.status);
       }
     } catch (error) {
       console.error("Error initializing WhatsApp:", error);
-      setConnectionStatus("❌ Error generating QR code. Try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setConnectionStatus(`❌ ${errorMessage}`);
       setConnecting(false);
     }
   };

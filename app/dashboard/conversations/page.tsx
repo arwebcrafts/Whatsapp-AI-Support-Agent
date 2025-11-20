@@ -20,6 +20,18 @@ export default async function ConversationsPage() {
     redirect("/login");
   }
 
+  // Check if trial has expired
+  if (user.subscriptionStatus === 'trial' && user.trialEndsAt) {
+    if (new Date() > user.trialEndsAt) {
+      redirect("/dashboard/billing?trialExpired=true");
+    }
+  }
+
+  // Check if subscription is active
+  if (user.subscriptionStatus === 'expired' || user.subscriptionStatus === 'cancelled') {
+    redirect("/dashboard/billing?subscriptionInactive=true");
+  }
+
   // Fetch conversations with messages
   const conversations = await prisma.conversation.findMany({
     where: { userId: user.id },

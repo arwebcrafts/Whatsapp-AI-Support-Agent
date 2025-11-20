@@ -37,6 +37,8 @@ class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
   private authDir = path.join(process.cwd(), 'whatsapp_sessions');
   private initialized = false;
+  private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
+  private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
 
   constructor() {
     // Create auth directory if it doesn't exist
@@ -521,31 +523,6 @@ class WhatsAppServiceFixed {
         });
       }
 
-      // Check if we recently responded to avoid spam
-      const recentMessages = await prisma.message.findMany({
-        where: {
-          conversationId: conversation.id,
-          senderType: 'ai',
-          createdAt: {
-            gte: new Date(Date.now() - 5000), // Last 5 seconds
-          },
-        },
-      });
-
-      if (recentMessages.length > 0) {
-        console.log('⚠️ Recently responded, skipping to avoid spam');
-        // Still save customer message but don't respond
-        await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderType: 'customer',
-            messageText,
-            messageType: this.getMessageType(msg),
-          },
-        });
-        return;
-      }
-
       // Save customer message
       await prisma.message.create({
         data: {
@@ -567,16 +544,44 @@ class WhatsAppServiceFixed {
       const shouldAutoReply = conversation.aiEnabled && aiMode === 'auto';
 
       if (shouldAutoReply) {
-        console.log('🤖 AI is enabled in AUTO mode, checking limits...');
-        const { canUserSendMessage } = await import('./trial-checker');
-        const canSend = await canUserSendMessage(userId);
+        console.log('🤖 AI is enabled in AUTO mode, using debounced response...');
 
-        if (canSend.allowed) {
-          console.log('✅ User can send messages, generating AI response...');
-          await this.generateAIResponse(userId, agentId, conversation.id, sock, msg.key.remoteJid);
-        } else {
-          console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
+        // Clear existing debounce timer for this conversation
+        const existingTimer = this.messageDebounceTimers.get(conversation.id);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          console.log('⏱️ Cleared previous timer, customer is still typing...');
         }
+
+        // Increment pending message count
+        const currentCount = this.pendingMessages.get(conversation.id) || 0;
+        this.pendingMessages.set(conversation.id, currentCount + 1);
+        console.log(`📊 Pending messages for this conversation: ${currentCount + 1}`);
+
+        // Set new debounce timer - wait 3 seconds after last message
+        const timer = setTimeout(async () => {
+          const messageCount = this.pendingMessages.get(conversation.id) || 1;
+          console.log(`⏰ Timer expired! Processing ${messageCount} message(s) together...`);
+
+          // Clear the timer and counter
+          this.messageDebounceTimers.delete(conversation.id);
+          this.pendingMessages.delete(conversation.id);
+
+          // Check if user can send messages
+          const { canUserSendMessage } = await import('./trial-checker');
+          const canSend = await canUserSendMessage(userId);
+
+          if (canSend.allowed) {
+            console.log(`✅ User can send messages, generating AI response for ${messageCount} message(s)...`);
+            await this.generateAIResponse(userId, agentId, conversation.id, sock, msg.key.remoteJid);
+          } else {
+            console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
+          }
+        }, 3000); // Wait 3 seconds after last message
+
+        this.messageDebounceTimers.set(conversation.id, timer);
+        console.log('⏱️ Debounce timer set (3 seconds)');
+
       } else if (conversation.aiEnabled && aiMode === 'copilot') {
         console.log('✨ AI is in CO-PILOT mode - user will request suggestions manually');
       } else if (conversation.aiEnabled && aiMode === 'manual') {
