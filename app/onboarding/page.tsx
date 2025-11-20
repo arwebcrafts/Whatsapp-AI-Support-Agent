@@ -6,18 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { MessageSquare, ArrowRight, Store, Home, GraduationCap, Briefcase, UtensilsCrossed, MoreHorizontal, Loader2, CheckCircle } from "lucide-react";
-import Image from "next/image";
+import { MessageSquare, ArrowRight, Store, Home, GraduationCap, Briefcase, UtensilsCrossed, MoreHorizontal, Loader2 } from "lucide-react";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [agentId, setAgentId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("Waiting for QR code...");
   const [checkingAccess, setCheckingAccess] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -58,15 +52,25 @@ export default function OnboardingPage() {
     },
   ];
 
-  const progress = (step / 4) * 100;
+  const progress = (step / 3) * 100;
 
   // Check user's trial/subscription status on mount
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const res = await fetch('/api/user/status');
+        const res = await fetch('/api/user/status', {
+          credentials: 'include', // Ensure cookies/session are sent
+        });
+
+        // If unauthorized, redirect to login
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
+
         if (!res.ok) {
-          console.error('Failed to check user status');
+          console.error('Failed to check user status, status:', res.status);
+          // Allow proceeding if API error (don't block legitimate users)
           setCheckingAccess(false);
           return;
         }
@@ -88,9 +92,11 @@ export default function OnboardingPage() {
           return;
         }
 
+        // All checks passed, allow access
         setCheckingAccess(false);
       } catch (error) {
         console.error('Error checking access:', error);
+        // Allow proceeding if network error (don't block legitimate users)
         setCheckingAccess(false);
       }
     };
@@ -98,127 +104,13 @@ export default function OnboardingPage() {
     checkAccess();
   }, [router]);
 
-  // Handle WhatsApp connection when reaching step 4
-  useEffect(() => {
-    if (step === 4 && !agentId && !connecting) {
-      initializeWhatsAppConnection();
-    }
-  }, [step]);
-
-  // Poll for connection status
-  useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-
-    if (connecting && agentId && !isConnected) {
-      pollInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/whatsapp/status?agentId=${agentId}`);
-          const data = await res.json();
-
-          if (data.isConnected) {
-            setIsConnected(true);
-            setConnectionStatus("✅ Connected successfully!");
-            clearInterval(pollInterval);
-
-            // Auto-finish after 2 seconds
-            setTimeout(() => {
-              handleFinish();
-            }, 2000);
-          }
-        } catch (error) {
-          console.error("Error checking status:", error);
-        }
-      }, 3000); // Poll every 3 seconds
-    }
-
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-    };
-  }, [connecting, agentId, isConnected]);
-
-  const initializeWhatsAppConnection = async () => {
-    setConnecting(true);
-    setConnectionStatus("Creating your AI agent...");
-
-    try {
-      // Step 1: Check if user already has agents
-      const existingAgentsRes = await fetch("/api/agents");
-      const existingAgentsData = await existingAgentsRes.json();
-
-      let agentData;
-
-      if (existingAgentsData.agents && existingAgentsData.agents.length > 0) {
-        // Use existing agent
-        console.log("Using existing agent:", existingAgentsData.agents[0]);
-        agentData = { agent: existingAgentsData.agents[0] };
-        setConnectionStatus("Using existing agent...");
-      } else {
-        // Create new agent
-        const agentRes = await fetch("/api/agents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: "My First Agent",
-            description: "Default agent created during onboarding",
-            businessType: formData.businessType,
-            aiTone: formData.aiTone,
-            knowledgeContent: formData.knowledgeBase,
-          }),
-        });
-
-        if (!agentRes.ok) {
-          const errorData = await agentRes.json();
-          console.error("Agent creation failed:", errorData);
-          throw new Error(errorData.error || errorData.message || "Failed to create agent");
-        }
-
-        agentData = await agentRes.json();
-        console.log("Agent created successfully:", agentData);
-      }
-
-      setAgentId(agentData.agent.id);
-      setConnectionStatus("Generating WhatsApp QR code...");
-
-      // Step 2: Connect WhatsApp to the agent
-      const whatsappRes = await fetch("/api/whatsapp/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: agentData.agent.id }),
-      });
-
-      if (!whatsappRes.ok) {
-        const errorData = await whatsappRes.json();
-        console.error("WhatsApp connection error:", errorData);
-        throw new Error(errorData.message || "Failed to initialize WhatsApp connection");
-      }
-
-      const whatsappData = await whatsappRes.json();
-      console.log("WhatsApp connection response:", whatsappData);
-
-      if (whatsappData.qr) {
-        setQrCode(whatsappData.qr);
-        setConnectionStatus("Scan QR code with WhatsApp");
-      } else if (whatsappData.status === 'connected' || whatsappData.isConnected) {
-        setIsConnected(true);
-        setConnectionStatus("✅ Already connected!");
-      } else {
-        // QR might be generating
-        setConnectionStatus("Waiting for QR code...");
-        console.log("Waiting for QR, status:", whatsappData.status);
-      }
-    } catch (error) {
-      console.error("Error initializing WhatsApp:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      setConnectionStatus(`❌ ${errorMessage}`);
-      setConnecting(false);
-    }
-  };
 
   const handleNext = () => {
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
+    } else {
+      // On last step, finish onboarding
+      handleFinish();
     }
   };
 
@@ -237,12 +129,15 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        credentials: 'include',
       });
 
-      // Redirect to dashboard
-      router.push("/dashboard");
+      // Redirect to WhatsApp connection page
+      router.push("/dashboard/whatsapp");
     } catch (error) {
       console.error("Error saving onboarding data:", error);
+      // Still redirect even if save fails
+      router.push("/dashboard/whatsapp");
     } finally {
       setLoading(false);
     }
@@ -282,7 +177,7 @@ export default function OnboardingPage() {
         <div className="mb-8">
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between mt-2 text-sm text-gray-600">
-            <span>Step {step} of 4</span>
+            <span>Step {step} of 3</span>
             <span>{Math.round(progress)}% Complete</span>
           </div>
         </div>
@@ -418,11 +313,11 @@ export default function OnboardingPage() {
                     Back
                   </Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleNext}>
-                      Skip for Now
+                    <Button variant="outline" onClick={handleNext} disabled={loading}>
+                      Skip & Connect WhatsApp
                     </Button>
-                    <Button onClick={handleNext}>
-                      Next
+                    <Button onClick={handleNext} disabled={loading}>
+                      {loading ? "Saving..." : "Connect WhatsApp"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -432,110 +327,6 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* Step 4: Connect WhatsApp */}
-        {step === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Connect WhatsApp</CardTitle>
-              <CardDescription>
-                Almost there! Scan the QR code to connect your WhatsApp
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-8 flex flex-col items-center justify-center min-h-[400px]">
-                  {!qrCode && !isConnected ? (
-                    <div className="text-center">
-                      <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
-                      <p className="text-gray-600">{connectionStatus}</p>
-                    </div>
-                  ) : isConnected ? (
-                    <div className="text-center">
-                      <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
-                      <p className="text-lg font-semibold text-green-700 mb-2">
-                        WhatsApp Connected Successfully!
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Redirecting to dashboard...
-                      </p>
-                    </div>
-                  ) : qrCode ? (
-                    <div className="text-center">
-                      <div className="bg-white p-6 rounded-lg shadow-lg mb-4 inline-block">
-                        <Image
-                          src={qrCode}
-                          alt="WhatsApp QR Code"
-                          width={280}
-                          height={280}
-                          className="rounded-md"
-                        />
-                      </div>
-                      <div className="flex items-center justify-center gap-2 mt-4">
-                        <div className={`h-3 w-3 rounded-full ${
-                          connecting ? "bg-yellow-500 animate-pulse" : "bg-gray-300"
-                        }`}></div>
-                        <p className="text-sm font-medium text-gray-700">
-                          {connectionStatus}
-                        </p>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Waiting for you to scan the QR code...
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500">
-                      <p>Loading QR code...</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-sm mb-2">📱 How to connect:</h4>
-                  <ol className="text-sm text-gray-700 space-y-1">
-                    <li>1. Open WhatsApp on your phone</li>
-                    <li>2. Tap Menu (⋮) or Settings → Linked Devices</li>
-                    <li>3. Tap "Link a Device"</li>
-                    <li>4. Point your camera at the QR code above</li>
-                    <li>5. Wait for connection confirmation</li>
-                  </ol>
-                </div>
-
-                {qrCode && !isConnected && (
-                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                    <h4 className="font-semibold text-sm mb-2">⏱️ QR Code Timing</h4>
-                    <p className="text-sm text-gray-700">
-                      QR codes expire after 60 seconds. If the code expires, refresh the page to generate a new one.
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={handleBack} disabled={isConnected || connecting}>
-                    Back
-                  </Button>
-                  <div className="flex gap-2">
-                    {!isConnected && (
-                      <Button
-                        variant="outline"
-                        onClick={handleFinish}
-                        disabled={loading}
-                      >
-                        Skip & Go to Dashboard
-                      </Button>
-                    )}
-                    <Button
-                      onClick={handleFinish}
-                      disabled={loading || (connecting && !isConnected)}
-                    >
-                      {loading ? "Finishing..." : isConnected ? "Continue to Dashboard" : "Go to Dashboard"}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
