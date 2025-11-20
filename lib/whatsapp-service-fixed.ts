@@ -31,6 +31,7 @@ interface WhatsAppSession {
   userId: string;
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
   conflictRetries?: number; // Track conflict retry attempts
+  eventListeners?: Set<string>; // Track registered event listeners for cleanup
 }
 
 class WhatsAppServiceFixed {
@@ -71,8 +72,12 @@ class WhatsAppServiceFixed {
       }
 
       console.log(`📱 Found ${activeConnections.length} connection(s) to restore`);
+      console.log('⚡ Using connection manager to prevent overload...');
 
-      // Restore each connection
+      // Use connection manager for staggered reconnection
+      const { connectionManager } = await import('./connection-manager');
+
+      // Restore each connection via queue
       for (const connection of activeConnections) {
         if (!connection.agentId || !connection.userId) continue;
 
@@ -80,13 +85,10 @@ class WhatsAppServiceFixed {
 
         // Check if session files exist
         if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
-          console.log(`🔄 Restoring connection for agent ${connection.agent?.name || connection.agentId}...`);
+          console.log(`📋 Queuing connection for agent ${connection.agent?.name || connection.agentId}...`);
 
-          // Reconnect in background
-          setTimeout(() => {
-            this.connectWhatsApp(connection.userId, connection.agentId!)
-              .catch(err => console.error(`Failed to restore connection for agent ${connection.agentId}:`, err));
-          }, 1000); // Stagger connections by 1 second each
+          // Add to connection manager queue (priority 0 = normal)
+          connectionManager.enqueue(connection.userId, connection.agentId!, 0);
         } else {
           console.log(`⚠️ No session files found for agent ${connection.agentId}, marking as disconnected`);
           // Mark as disconnected since we can't restore it
@@ -96,6 +98,8 @@ class WhatsAppServiceFixed {
           });
         }
       }
+
+      console.log('✅ All connections queued for gradual reconnection');
     } catch (error) {
       console.error('Error initializing connections:', error);
     }
@@ -1244,10 +1248,39 @@ Remember: You're not just answering questions - you're building relationships an
     }
   }
 
+  /**
+   * Clean up event listeners for a session to prevent memory leaks
+   */
+  private cleanupEventListeners(agentId: string): void {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock) return;
+
+    try {
+      // Remove all event listeners
+      session.sock.ev.removeAllListeners('connection.update');
+      session.sock.ev.removeAllListeners('creds.update');
+      session.sock.ev.removeAllListeners('messages.upsert');
+      session.sock.ev.removeAllListeners('messages.update');
+
+      console.log(`🧹 Cleaned up event listeners for agent ${agentId}`);
+
+      // Clear tracked listeners
+      if (session.eventListeners) {
+        session.eventListeners.clear();
+      }
+    } catch (error) {
+      console.error(`Error cleaning up event listeners for ${agentId}:`, error);
+    }
+  }
+
   async disconnectWhatsApp(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId);
 
     if (session?.sock) {
+      // Clean up event listeners BEFORE logout to prevent memory leaks
+      this.cleanupEventListeners(agentId);
+
       try {
         await session.sock.logout();
       } catch (error) {
@@ -1263,6 +1296,8 @@ Remember: You're not just answering questions - you're building relationships an
     if (fs.existsSync(agentAuthDir)) {
       fs.rmSync(agentAuthDir, { recursive: true, force: true });
     }
+
+    console.log(`✅ Successfully disconnected and cleaned up agent ${agentId}`);
   }
 
   getSession(agentId: string): WhatsAppSession | undefined {

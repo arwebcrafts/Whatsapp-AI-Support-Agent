@@ -108,17 +108,43 @@ export async function GET(req: NextRequest) {
 
     console.log('🤖 Running automated learning cycle for all agents...');
 
-    // Get all active agents
+    // Pagination configuration
+    const BATCH_SIZE = 50; // Process 50 agents at a time
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '0');
+    const skip = page * BATCH_SIZE;
+
+    // Get total count first
+    const totalAgents = await prisma.agent.count({
+      where: { isActive: true }
+    });
+
+    // Get paginated batch of agents
     const agents = await prisma.agent.findMany({
       where: { isActive: true },
-      include: { user: true }
+      include: { user: true },
+      skip,
+      take: BATCH_SIZE,
+      orderBy: { updatedAt: 'desc' }, // Process most recently updated first
     });
+
+    if (agents.length === 0) {
+      return NextResponse.json({
+        message: page === 0 ? "No active agents found" : "No more agents to process",
+        page,
+        totalAgents,
+        processed: 0,
+        hasMore: false
+      }, { status: 200 });
+    }
+
+    console.log(`📊 Processing batch ${page + 1}: ${agents.length} agents (${skip + 1}-${skip + agents.length} of ${totalAgents})`);
 
     const results = [];
 
     for (const agent of agents) {
       try {
-        // Update analytics for recent conversations
+        // Update analytics for recent conversations (optimize with select)
         const recentConversations = await prisma.conversation.findMany({
           where: {
             agentId: agent.id,
@@ -126,12 +152,17 @@ export async function GET(req: NextRequest) {
               gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
             }
           },
-          select: { id: true }
+          select: { id: true },
+          take: 100, // Limit conversations per agent
         });
 
-        // Save analytics for each conversation
-        for (const conv of recentConversations) {
-          await saveConversationAnalytics(conv.id);
+        // Save analytics for each conversation (batch in chunks of 10)
+        const ANALYTICS_BATCH = 10;
+        for (let i = 0; i < recentConversations.length; i += ANALYTICS_BATCH) {
+          const batch = recentConversations.slice(i, i + ANALYTICS_BATCH);
+          await Promise.allSettled(
+            batch.map(conv => saveConversationAnalytics(conv.id))
+          );
         }
 
         // Run learning cycle
@@ -153,11 +184,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`✅ Automated learning cycle completed for ${agents.length} agents`);
+    const hasMore = skip + agents.length < totalAgents;
+    const nextPage = hasMore ? page + 1 : null;
+
+    console.log(`✅ Batch ${page + 1} completed: ${agents.length} agents processed`);
+
+    if (hasMore) {
+      console.log(`⏭️  Next batch: page ${nextPage} (${totalAgents - (skip + agents.length)} agents remaining)`);
+    } else {
+      console.log(`🎉 All ${totalAgents} agents processed!`);
+    }
 
     return NextResponse.json({
-      message: "Automated learning cycle completed",
-      agentsProcessed: agents.length,
+      message: "Automated learning cycle batch completed",
+      page,
+      batchSize: BATCH_SIZE,
+      totalAgents,
+      processed: agents.length,
+      hasMore,
+      nextPage,
+      nextPageUrl: hasMore ? `/api/conversation-analytics?page=${nextPage}` : null,
       results
     }, { status: 200 });
   } catch (error) {
