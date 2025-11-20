@@ -4,9 +4,16 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { validatePassword } from "@/lib/password-validator";
 import { sendVerificationEmail } from "@/lib/email-service";
+import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting - prevent signup abuse
+    const rateLimit = checkRateLimit(req, RateLimitPresets.SIGNUP);
+    if (!rateLimit.allowed) {
+      return rateLimit.response!;
+    }
+
     const body = await req.json();
     const { name, email, password } = body;
 

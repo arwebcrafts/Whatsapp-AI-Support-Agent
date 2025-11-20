@@ -80,16 +80,30 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET - Run learning cycle for all agents (admin/cron use)
+ * SECURITY: Use header-based authentication instead of query string
+ * Send secret in 'X-Cron-Secret' header, never in URL
  */
 export async function GET(req: NextRequest) {
   try {
-    // This endpoint should be protected by API key or cron secret
-    const { searchParams } = new URL(req.url);
-    const secret = searchParams.get('secret');
+    // Get secret from header (more secure than query string)
+    const secret = req.headers.get('x-cron-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
 
     // Check for cron secret (set in environment variables)
-    if (secret !== process.env.CRON_SECRET) {
+    if (!secret || secret !== process.env.CRON_SECRET) {
+      console.warn('🚨 SECURITY: Unauthorized cron access attempt');
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    // Additional validation: check if CRON_SECRET is still the default
+    if (process.env.CRON_SECRET === 'change-this-secret') {
+      console.error('🚨 SECURITY: CRON_SECRET is still using default value!');
+      return NextResponse.json(
+        {
+          message: "Server misconfiguration",
+          error: "CRON_SECRET must be changed from default value"
+        },
+        { status: 500 }
+      );
     }
 
     console.log('🤖 Running automated learning cycle for all agents...');

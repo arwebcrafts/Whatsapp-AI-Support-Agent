@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email-service";
+import { checkRateLimit, RateLimitPresets, getClientIdentifier } from "@/lib/rate-limiter";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting - prevent token enumeration attacks
+    const rateLimit = checkRateLimit(req, RateLimitPresets.EMAIL_VERIFY);
+    if (!rateLimit.allowed) {
+      return rateLimit.response!;
+    }
+
     const body = await req.json();
     const { token } = body;
 
@@ -82,6 +89,12 @@ export async function POST(req: NextRequest) {
 // Resend verification email
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting - prevent email spam
+    const rateLimit = checkRateLimit(req, RateLimitPresets.EMAIL_RESEND);
+    if (!rateLimit.allowed) {
+      return rateLimit.response!;
+    }
+
     const { searchParams } = new URL(req.url);
     const email = searchParams.get('email');
 
