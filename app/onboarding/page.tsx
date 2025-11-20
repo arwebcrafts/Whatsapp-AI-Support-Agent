@@ -18,6 +18,7 @@ export default function OnboardingPage() {
   const [connecting, setConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("Waiting for QR code...");
+  const [checkingAccess, setCheckingAccess] = useState(true);
 
   const [formData, setFormData] = useState({
     businessType: "",
@@ -58,6 +59,44 @@ export default function OnboardingPage() {
   ];
 
   const progress = (step / 4) * 100;
+
+  // Check user's trial/subscription status on mount
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const res = await fetch('/api/user/status');
+        if (!res.ok) {
+          console.error('Failed to check user status');
+          setCheckingAccess(false);
+          return;
+        }
+
+        const data = await res.json();
+
+        // Check if trial has expired
+        if (data.subscriptionStatus === 'trial' && data.trialEndsAt) {
+          const trialEnd = new Date(data.trialEndsAt);
+          if (new Date() > trialEnd) {
+            router.push('/dashboard/billing?trialExpired=true');
+            return;
+          }
+        }
+
+        // Check if subscription is inactive
+        if (data.subscriptionStatus === 'expired' || data.subscriptionStatus === 'cancelled') {
+          router.push('/dashboard/billing?subscriptionInactive=true');
+          return;
+        }
+
+        setCheckingAccess(false);
+      } catch (error) {
+        console.error('Error checking access:', error);
+        setCheckingAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [router]);
 
   // Handle WhatsApp connection when reaching step 4
   useEffect(() => {
@@ -215,6 +254,18 @@ export default function OnboardingPage() {
     if (step === 3) return true; // Knowledge base is optional
     return true;
   };
+
+  // Show loading screen while checking access
+  if (checkingAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+          <p className="text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
