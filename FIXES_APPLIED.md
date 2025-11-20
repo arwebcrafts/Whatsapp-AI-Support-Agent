@@ -70,15 +70,16 @@
 
 ---
 
-### 4. ✅ Onboarding Access Control - FIXED
+### 4. ✅ Onboarding Access Control & Flow Simplification - FIXED
 **Files:**
-- `app/onboarding/page.tsx`
+- `app/onboarding/page.tsx` - Completely refactored
 - `app/api/user/status/route.ts` (new)
 
 **What Was Broken:**
 - Expired trial users could still access the onboarding page
-- WhatsApp connection API blocked them, but they could see the UI
-- No server-side or client-side checks on page access
+- WhatsApp connection in onboarding caused "unauthorized" errors
+- Complex 4-step flow with QR code generation during onboarding
+- Session/authentication issues during WhatsApp setup
 
 **What's Fixed:**
 ```typescript
@@ -88,13 +89,26 @@
 ✅ Checks if subscription is cancelled/expired
 ✅ Redirects to billing page BEFORE showing UI
 ✅ Shows loading screen while checking access
+
+// SIMPLIFIED ONBOARDING FLOW:
+✅ Reduced from 4 steps to 3 steps
+✅ Removed WhatsApp connection from onboarding
+✅ Redirects to /dashboard/whatsapp after completion
+✅ Better session handling with credentials: 'include'
+✅ Removed 200+ lines of complex WhatsApp logic
 ```
 
 **User Experience:**
-- Expired trial user tries to access /onboarding
-- Sees "Checking access..." loading screen
-- Automatically redirected to /dashboard/billing?trialExpired=true
-- Never sees the onboarding form or WhatsApp QR code
+- **Step 1:** Choose business type
+- **Step 2:** Choose AI tone
+- **Step 3:** Add knowledge base (optional)
+- **Finish:** Redirected to dedicated WhatsApp connection page
+
+**Benefits:**
+- Cleaner separation of concerns
+- No more session/auth errors during onboarding
+- Users can skip WhatsApp setup if needed
+- Dedicated page for WhatsApp connection troubleshooting
 
 **New API Endpoint:**
 `GET /api/user/status` - Returns user's subscription status, trial expiration, and plan type.
