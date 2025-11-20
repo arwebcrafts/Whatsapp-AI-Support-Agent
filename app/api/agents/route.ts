@@ -121,8 +121,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ agent }, { status: 201 });
   } catch (error) {
     console.error("Create agent error:", error);
+
+    // Provide more detailed error information
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorDetails = {
+      message: "Failed to create agent",
+      error: errorMessage,
+      details: error instanceof Error ? error.stack : undefined
+    };
+
+    console.error("Detailed error:", errorDetails);
+
     return NextResponse.json(
-      { message: "Internal server error" },
+      {
+        message: "Failed to create agent",
+        error: errorMessage
+      },
       { status: 500 }
     );
   }

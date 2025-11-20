@@ -104,24 +104,41 @@ export default function OnboardingPage() {
     setConnectionStatus("Creating your AI agent...");
 
     try {
-      // Step 1: Create default agent during onboarding
-      const agentRes = await fetch("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "My First Agent",
-          description: "Default agent created during onboarding",
-          businessType: formData.businessType,
-          aiTone: formData.aiTone,
-          knowledgeContent: formData.knowledgeBase,
-        }),
-      });
+      // Step 1: Check if user already has agents
+      const existingAgentsRes = await fetch("/api/agents");
+      const existingAgentsData = await existingAgentsRes.json();
 
-      if (!agentRes.ok) {
-        throw new Error("Failed to create agent");
+      let agentData;
+
+      if (existingAgentsData.agents && existingAgentsData.agents.length > 0) {
+        // Use existing agent
+        console.log("Using existing agent:", existingAgentsData.agents[0]);
+        agentData = { agent: existingAgentsData.agents[0] };
+        setConnectionStatus("Using existing agent...");
+      } else {
+        // Create new agent
+        const agentRes = await fetch("/api/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "My First Agent",
+            description: "Default agent created during onboarding",
+            businessType: formData.businessType,
+            aiTone: formData.aiTone,
+            knowledgeContent: formData.knowledgeBase,
+          }),
+        });
+
+        if (!agentRes.ok) {
+          const errorData = await agentRes.json();
+          console.error("Agent creation failed:", errorData);
+          throw new Error(errorData.error || errorData.message || "Failed to create agent");
+        }
+
+        agentData = await agentRes.json();
+        console.log("Agent created successfully:", agentData);
       }
 
-      const agentData = await agentRes.json();
       setAgentId(agentData.agent.id);
       setConnectionStatus("Generating WhatsApp QR code...");
 
