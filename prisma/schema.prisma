@@ -32,6 +32,8 @@ model User {
   tokenUsage           TokenUsage[]
   messageTemplates     MessageTemplate[]
   faqs                 FAQ[]
+  supportTickets       SupportTicket[]
+  supportMessages      SupportMessage[]
 
   @@map("users")
 }
@@ -390,4 +392,56 @@ model AgentLearningLog {
   @@index([userId])
   @@index([eventType])
   @@map("agent_learning_log")
+}
+
+// Support Ticket System
+model SupportTicket {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject         String   @db.Text
+  description     String   @db.Text
+  category        String   @default("bug") // 'bug', 'feature_request', 'question', 'billing', 'other'
+  priority        String   @default("medium") // 'low', 'medium', 'high', 'urgent'
+  status          String   @default("open") // 'open', 'in_progress', 'waiting_response', 'resolved', 'closed'
+
+  // Assignment
+  assignedToId    String?  // Admin user ID
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  messages        SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([assignedToId])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id              String   @id @default(uuid())
+  ticketId        String
+  ticket          SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  message         String   @db.Text
+  isAdminResponse Boolean  @default(false)
+
+  // Attachments (optional)
+  attachmentUrl   String?  @db.Text
+  attachmentName  String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([isAdminResponse])
+  @@map("support_messages")
 }

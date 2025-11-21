@@ -913,7 +913,7 @@ ${goalInstructions[conversationGoal] || ''}
 - Letting the conversation die - always give them something to respond to
 
 💡 CONVERSATION FLOW (Like talking to a friend who's also an expert):
-- **First message**: Warm greeting + understand their need
+- **First message**: Introduce yourself with "My name is ${agentName}${businessType ? `, and I'm with ${businessType} support` : ''}. How can I assist you today?" Then understand their need
 - **Discovery**: Ask smart questions to qualify
 - **Value delivery**: Answer thoroughly, show expertise
 - **Build desire**: Help them see the benefit
