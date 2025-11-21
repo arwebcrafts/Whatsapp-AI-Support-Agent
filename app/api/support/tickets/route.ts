@@ -9,27 +9,35 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(req: NextRequest) {
   try {
+    console.log('[API] GET /api/support/tickets - Request received');
     const session = await getServerSession(authOptions);
+    console.log('[API] Session:', session ? 'exists' : 'null');
+    console.log('[API] User email:', session?.user?.email);
 
     if (!session?.user?.email) {
+      console.log('[API] No session or email, returning 401');
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
       );
     }
 
+    console.log('[API] Finding user in database...');
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: { id: true, role: true }
     });
+    console.log('[API] User found:', user ? `id=${user.id}, role=${user.role}` : 'null');
 
     if (!user) {
+      console.log('[API] User not found in database, returning 404');
       return NextResponse.json(
         { message: "User not found" },
         { status: 404 }
       );
     }
 
+    console.log('[API] Fetching tickets for user role:', user.role);
     // Admin can see all tickets, users only see their own
     const tickets = await prisma.supportTicket.findMany({
       where: user.role === 'admin' ? {} : { userId: user.id },
@@ -63,12 +71,14 @@ export async function GET(req: NextRequest) {
         { updatedAt: 'desc' }
       ]
     });
+    console.log('[API] Tickets fetched successfully, count:', tickets.length);
 
     return NextResponse.json({ tickets }, { status: 200 });
   } catch (error) {
-    console.error("Error fetching tickets:", error);
+    console.error("[API] Error fetching tickets:", error);
+    console.error("[API] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Internal server error", error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

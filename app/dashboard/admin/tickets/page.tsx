@@ -77,15 +77,22 @@ export default function AdminTicketsPage() {
   const sessionData = session?.data;
 
   useEffect(() => {
+    console.log('[Admin Tickets] useEffect triggered - status:', status);
+    console.log('[Admin Tickets] Session data:', sessionData);
+
     if (status === "unauthenticated") {
+      console.log('[Admin Tickets] User unauthenticated, redirecting to login');
       redirect("/login");
     }
 
     if (status === "authenticated") {
+      console.log('[Admin Tickets] User authenticated, role:', sessionData?.user?.role);
       // Check if user is admin
       if (sessionData?.user?.role !== "admin") {
+        console.log('[Admin Tickets] User is not admin, redirecting to dashboard');
         redirect("/dashboard");
       }
+      console.log('[Admin Tickets] User is admin, fetching tickets');
       fetchTickets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,16 +105,23 @@ export default function AdminTicketsPage() {
 
   const fetchTickets = async () => {
     try {
+      console.log('[Admin Tickets] Starting to fetch tickets...');
       setLoading(true);
       const res = await fetch("/api/support/tickets");
+      console.log('[Admin Tickets] API response status:', res.status);
       const data = await res.json();
+      console.log('[Admin Tickets] API response data:', data);
 
       if (res.ok) {
+        console.log('[Admin Tickets] Setting tickets, count:', data.tickets?.length);
         setTickets(data.tickets);
+      } else {
+        console.error('[Admin Tickets] API returned error:', data);
       }
     } catch (error) {
-      console.error("Error fetching tickets:", error);
+      console.error("[Admin Tickets] Error fetching tickets:", error);
     } finally {
+      console.log('[Admin Tickets] Setting loading to false');
       setLoading(false);
     }
   };
