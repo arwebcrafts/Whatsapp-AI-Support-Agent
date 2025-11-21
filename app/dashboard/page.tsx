@@ -257,7 +257,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Admin Metrics - Revenue Dashboard */}
-        {adminMetrics && (
+        {adminMetrics && user.role === 'admin' && (
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
