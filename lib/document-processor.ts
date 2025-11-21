@@ -31,81 +31,166 @@ export class DocumentProcessor {
   }
 
   /**
-   * Scrape text content from website URL
+   * Scrape text content from website URL (with multi-page crawling)
+   * @param url - Starting URL to scrape
+   * @param maxPages - Maximum number of pages to crawl (default: 10)
    */
-  async scrapeWebsite(url: string): Promise<{
+  async scrapeWebsite(url: string, maxPages: number = 10): Promise<{
     title: string;
     content: string;
     description?: string;
   }> {
     try {
       // Validate URL
-      new URL(url);
+      const baseUrl = new URL(url);
+      const visitedUrls = new Set<string>();
+      const toVisit: string[] = [url];
+      let allContent = '';
+      let mainTitle = '';
+      let mainDescription = '';
 
-      const response = await axios.get(url, {
-        timeout: 30000,
-        headers: {
-          'User-Agent': 'WhaSales-AI-Bot/1.0',
-        },
-      });
+      console.log(`🕷️ Starting website crawl from: ${url} (max ${maxPages} pages)`);
 
-      const html = response.data;
-      const $ = cheerio.load(html);
+      while (toVisit.length > 0 && visitedUrls.size < maxPages) {
+        const currentUrl = toVisit.shift()!;
 
-      // Remove script, style, and nav elements
-      $('script').remove();
-      $('style').remove();
-      $('nav').remove();
-      $('footer').remove();
-      $('header').remove();
+        // Skip if already visited
+        if (visitedUrls.has(currentUrl)) continue;
 
-      // Get title
-      const title = $('title').text() || $('h1').first().text() || 'Untitled';
+        try {
+          console.log(`📄 Crawling page ${visitedUrls.size + 1}/${maxPages}: ${currentUrl}`);
 
-      // Get meta description
-      const description = $('meta[name="description"]').attr('content') || '';
+          const response = await axios.get(currentUrl, {
+            timeout: 15000,
+            headers: {
+              'User-Agent': 'WhaSales-AI-Bot/1.0',
+            },
+            maxRedirects: 5,
+          });
 
-      // Extract main content
-      // Try to find main content area
-      let content = '';
-      const mainSelectors = [
-        'main',
-        'article',
-        '[role="main"]',
-        '.main-content',
-        '#main-content',
-        '.content',
-        '#content',
-      ];
+          visitedUrls.add(currentUrl);
 
-      for (const selector of mainSelectors) {
-        const element = $(selector);
-        if (element.length > 0) {
-          content = element.text();
-          break;
+          const html = response.data;
+          const $ = cheerio.load(html);
+
+          // Get title and description from first page
+          if (!mainTitle) {
+            mainTitle = $('title').text() || $('h1').first().text() || 'Untitled';
+            mainDescription = $('meta[name="description"]').attr('content') || '';
+          }
+
+          // Remove unwanted elements
+          $('script').remove();
+          $('style').remove();
+          $('nav').remove();
+          $('footer').remove();
+          $('header').remove();
+          $('iframe').remove();
+          $('noscript').remove();
+
+          // Extract main content
+          let pageContent = '';
+          const mainSelectors = [
+            'main',
+            'article',
+            '[role="main"]',
+            '.main-content',
+            '#main-content',
+            '.content',
+            '#content',
+          ];
+
+          for (const selector of mainSelectors) {
+            const element = $(selector);
+            if (element.length > 0) {
+              pageContent = element.text();
+              break;
+            }
+          }
+
+          // If no main content found, get body text
+          if (!pageContent) {
+            pageContent = $('body').text();
+          }
+
+          // Clean up whitespace
+          pageContent = pageContent
+            .replace(/\s+/g, ' ')
+            .replace(/\n+/g, '\n')
+            .trim();
+
+          // Add to combined content with separator
+          if (pageContent && pageContent.length > 50) {
+            allContent += `\n\n--- Page: ${currentUrl} ---\n${pageContent}`;
+          }
+
+          // Find more links on the same domain
+          if (visitedUrls.size < maxPages) {
+            $('a[href]').each((_, element) => {
+              const href = $(element).attr('href');
+              if (!href) return;
+
+              try {
+                // Resolve relative URLs
+                const absoluteUrl = new URL(href, currentUrl).href;
+                const linkUrl = new URL(absoluteUrl);
+
+                // Only crawl same domain
+                if (
+                  linkUrl.hostname === baseUrl.hostname &&
+                  !visitedUrls.has(absoluteUrl) &&
+                  !toVisit.includes(absoluteUrl) &&
+                  toVisit.length + visitedUrls.size < maxPages
+                ) {
+                  // Skip common non-content URLs
+                  const skipPatterns = [
+                    '/wp-admin',
+                    '/wp-login',
+                    '/login',
+                    '/register',
+                    '/cart',
+                    '/checkout',
+                    '/account',
+                    '.pdf',
+                    '.jpg',
+                    '.png',
+                    '.gif',
+                    '.zip',
+                    '#',
+                  ];
+
+                  if (!skipPatterns.some(pattern => absoluteUrl.includes(pattern))) {
+                    toVisit.push(absoluteUrl);
+                  }
+                }
+              } catch {
+                // Invalid URL, skip
+              }
+            });
+          }
+        } catch (error) {
+          console.error(`Error crawling ${currentUrl}:`, error);
+          // Continue with next URL
         }
+
+        // Small delay between requests to be respectful
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // If no main content found, get body text
-      if (!content) {
-        content = $('body').text();
-      }
+      console.log(`✅ Crawled ${visitedUrls.size} pages from ${baseUrl.hostname}`);
 
-      // Clean up whitespace
-      content = content
-        .replace(/\s+/g, ' ')
-        .replace(/\n+/g, '\n')
-        .trim();
+      // Clean up combined content
+      allContent = allContent.trim();
 
-      // Limit content length (max 50,000 characters)
-      if (content.length > 50000) {
-        content = content.substring(0, 50000) + '...';
+      // Limit total content length (max 100,000 characters for crawled content)
+      if (allContent.length > 100000) {
+        allContent = allContent.substring(0, 100000) + '\n\n... (Content truncated due to length)';
       }
 
       return {
-        title,
-        content,
-        description,
+        title: mainTitle,
+        content: allContent,
+        description: mainDescription,
       };
     } catch (error) {
       console.error('Error scraping website:', error);

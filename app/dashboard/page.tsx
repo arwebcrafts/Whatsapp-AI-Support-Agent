@@ -54,7 +54,7 @@ export default async function DashboardPage() {
 
   // Get message usage for current month
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const usage = await prisma.messageUsage.findUnique({
+  let usage = await prisma.messageUsage.findUnique({
     where: {
       userId_month: {
         userId: user.id,
@@ -62,6 +62,40 @@ export default async function DashboardPage() {
       },
     },
   });
+
+  // Determine correct message limit based on plan type
+  const planLimits: Record<string, number> = {
+    starter: 2000,
+    professional: 5000,
+    business: 12000,
+  };
+
+  const correctLimit = planLimits[user.planType as string] || 2000;
+
+  // If usage doesn't exist or has wrong limit, create/update it
+  if (!usage) {
+    usage = await prisma.messageUsage.create({
+      data: {
+        userId: user.id,
+        month: currentMonth,
+        messagesUsed: 0,
+        messageLimit: correctLimit,
+      },
+    });
+  } else if (usage.messageLimit !== correctLimit) {
+    // Update limit if plan changed
+    usage = await prisma.messageUsage.update({
+      where: {
+        userId_month: {
+          userId: user.id,
+          month: currentMonth,
+        },
+      },
+      data: {
+        messageLimit: correctLimit,
+      },
+    });
+  }
 
   // Get total conversations count
   const totalConversations = await prisma.conversation.count({
@@ -110,8 +144,8 @@ export default async function DashboardPage() {
     },
   });
 
-  const messagesUsed = usage?.messagesUsed || 0;
-  const messageLimit = usage?.messageLimit || 2000;
+  const messagesUsed = usage.messagesUsed;
+  const messageLimit = usage.messageLimit;
   const usagePercentage = (messagesUsed / messageLimit) * 100;
 
   const whatsappConnected = user.whatsappConnections.some(c => c.isConnected);
