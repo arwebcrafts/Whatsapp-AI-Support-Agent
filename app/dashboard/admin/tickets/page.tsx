@@ -63,7 +63,7 @@ interface SupportTicket {
 }
 
 export default function AdminTicketsPage() {
-  const { data: session, status } = useSession();
+  const session = useSession();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +73,9 @@ export default function AdminTicketsPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
 
+  const status = session?.status || "loading";
+  const sessionData = session?.data;
+
   useEffect(() => {
     if (status === "unauthenticated") {
       redirect("/login");
@@ -80,12 +83,12 @@ export default function AdminTicketsPage() {
 
     if (status === "authenticated") {
       // Check if user is admin
-      if (session?.user?.role !== "admin") {
+      if (sessionData?.user?.role !== "admin") {
         redirect("/dashboard");
       }
       fetchTickets();
     }
-  }, [status, session]);
+  }, [status, sessionData]);
 
   useEffect(() => {
     applyFilters();

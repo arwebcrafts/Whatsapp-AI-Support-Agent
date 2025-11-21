@@ -59,7 +59,7 @@ interface SupportTicket {
 }
 
 export default function SupportPage() {
-  const { data: session, status } = useSession();
+  const session = useSession();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -74,6 +74,9 @@ export default function SupportPage() {
     category: "bug",
     priority: "medium",
   });
+
+  const status = session?.status || "loading";
+  const sessionData = session?.data;
 
   useEffect(() => {
     if (status === "unauthenticated") {
