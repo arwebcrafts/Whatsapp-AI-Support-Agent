@@ -19,7 +19,9 @@ import {
   Bell,
   CheckCircle2,
   AlertCircle,
-  Clock
+  Clock,
+  DollarSign,
+  Award
 } from "lucide-react";
 import Link from "next/link";
 
@@ -54,7 +56,7 @@ export default async function DashboardPage() {
 
   // Get message usage for current month
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const usage = await prisma.messageUsage.findUnique({
+  let usage = await prisma.messageUsage.findUnique({
     where: {
       userId_month: {
         userId: user.id,
@@ -62,6 +64,40 @@ export default async function DashboardPage() {
       },
     },
   });
+
+  // Determine correct message limit based on plan type
+  const planLimits: Record<string, number> = {
+    starter: 2000,
+    professional: 5000,
+    business: 12000,
+  };
+
+  const correctLimit = planLimits[user.planType as string] || 2000;
+
+  // If usage doesn't exist or has wrong limit, create/update it
+  if (!usage) {
+    usage = await prisma.messageUsage.create({
+      data: {
+        userId: user.id,
+        month: currentMonth,
+        messagesUsed: 0,
+        messageLimit: correctLimit,
+      },
+    });
+  } else if (usage.messageLimit !== correctLimit) {
+    // Update limit if plan changed
+    usage = await prisma.messageUsage.update({
+      where: {
+        userId_month: {
+          userId: user.id,
+          month: currentMonth,
+        },
+      },
+      data: {
+        messageLimit: correctLimit,
+      },
+    });
+  }
 
   // Get total conversations count
   const totalConversations = await prisma.conversation.count({
@@ -110,8 +146,8 @@ export default async function DashboardPage() {
     },
   });
 
-  const messagesUsed = usage?.messagesUsed || 0;
-  const messageLimit = usage?.messageLimit || 2000;
+  const messagesUsed = usage.messagesUsed;
+  const messageLimit = usage.messageLimit;
   const usagePercentage = (messagesUsed / messageLimit) * 100;
 
   const whatsappConnected = user.whatsappConnections.some(c => c.isConnected);
@@ -120,6 +156,62 @@ export default async function DashboardPage() {
   const daysUntilTrialEnds = user.trialEndsAt
     ? Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
+
+  // Admin metrics - Only fetch if user is admin
+  let adminMetrics = null;
+  if (user.role === 'admin') {
+    // Count lifetime licenses
+    const ltdLicenses = await prisma.user.count({
+      where: { subscriptionStatus: 'lifetime' }
+    });
+
+    // Count active subscriptions (excluding lifetime and trials)
+    const activeSubscriptions = await prisma.user.count({
+      where: { subscriptionStatus: 'active' }
+    });
+
+    // Get all active users with their plan types for MRR calculation
+    const activeUsers = await prisma.user.findMany({
+      where: { subscriptionStatus: 'active' },
+      select: { planType: true }
+    });
+
+    // Estimated MRR based on plan types (assuming monthly billing)
+    // Prices: Starter=$29, Professional=$79, Business=$199
+    const planPrices: Record<string, number> = {
+      starter: 29,
+      professional: 79,
+      business: 199,
+    };
+
+    const estimatedMRR = activeUsers.reduce((total, user) => {
+      return total + (planPrices[user.planType as string] || 0);
+    }, 0);
+
+    // Count LTD revenue (one-time)
+    // LTD Prices: Starter=$149, Professional=$349, Business=$199
+    const ltdUsers = await prisma.user.findMany({
+      where: { subscriptionStatus: 'lifetime' },
+      select: { planType: true }
+    });
+
+    const ltdPrices: Record<string, number> = {
+      starter: 149,
+      professional: 349,
+      business: 199,
+    };
+
+    const totalLTDRevenue = ltdUsers.reduce((total, user) => {
+      return total + (ltdPrices[user.planType as string] || 0);
+    }, 0);
+
+    adminMetrics = {
+      ltdLicenses,
+      totalLTDRevenue,
+      activeSubscriptions,
+      estimatedMRR,
+    };
+  }
 
   return (
     <DashboardLayout>
@@ -159,6 +251,82 @@ export default async function DashboardPage() {
                     Upgrade Now
                   </Button>
                 </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Admin Metrics - Revenue Dashboard */}
+        {adminMetrics && user.role === 'admin' && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-600" />
+                Revenue Dashboard (Admin Only)
+              </CardTitle>
+              <CardDescription>
+                Overview of lifetime licenses and monthly recurring revenue
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* LTD Licenses */}
+                <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">Lifetime Licenses</span>
+                    <Award className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-amber-600">{adminMetrics.ltdLicenses}</div>
+                  <p className="text-xs text-gray-500 mt-1">Total sold</p>
+                </div>
+
+                {/* LTD Revenue */}
+                <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">LTD Revenue</span>
+                    <DollarSign className="h-4 w-4 text-green-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">
+                    ${adminMetrics.totalLTDRevenue.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">One-time revenue</p>
+                </div>
+
+                {/* Active Subscriptions */}
+                <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">Active Subscriptions</span>
+                    <Users className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">{adminMetrics.activeSubscriptions}</div>
+                  <p className="text-xs text-gray-500 mt-1">Paying monthly/yearly</p>
+                </div>
+
+                {/* Monthly Recurring Revenue */}
+                <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">Est. MRR</span>
+                    <TrendingUp className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    ${adminMetrics.estimatedMRR.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Monthly recurring</p>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="mt-4 pt-4 border-t border-blue-100">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Total Revenue (LTD + Annual MRR)</span>
+                  <span className="font-bold text-lg text-blue-600">
+                    ${(adminMetrics.totalLTDRevenue + (adminMetrics.estimatedMRR * 12)).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  LTD: ${adminMetrics.totalLTDRevenue.toLocaleString()} •
+                  Projected Annual Recurring: ${(adminMetrics.estimatedMRR * 12).toLocaleString()}
+                </p>
               </div>
             </CardContent>
           </Card>

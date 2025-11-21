@@ -19,6 +19,8 @@ import {
   Menu,
   Shield,
   Bot,
+  LifeBuoy,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -59,11 +61,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Agent Learning", href: "/dashboard/agent-learning", icon: Bot },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+    { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
   ];
 
-  // Add Admin Panel link if user is admin
+  // Add Admin links if user is admin
   const navigation = isAdmin
-    ? [{ name: "Admin Panel", href: "/admin", icon: Shield }, ...baseNavigation]
+    ? [
+        { name: "Admin Panel", href: "/admin", icon: Shield },
+        { name: "Admin Tickets", href: "/dashboard/admin/tickets", icon: Ticket },
+        ...baseNavigation
+      ]
     : baseNavigation;
 
   return (

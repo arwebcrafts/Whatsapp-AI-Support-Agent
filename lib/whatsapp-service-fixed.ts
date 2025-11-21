@@ -31,12 +31,15 @@ interface WhatsAppSession {
   userId: string;
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
   conflictRetries?: number; // Track conflict retry attempts
+  eventListeners?: Set<string>; // Track registered event listeners for cleanup
 }
 
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
   private authDir = path.join(process.cwd(), 'whatsapp_sessions');
   private initialized = false;
+  private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
+  private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
 
   constructor() {
     // Create auth directory if it doesn't exist
@@ -69,8 +72,12 @@ class WhatsAppServiceFixed {
       }
 
       console.log(`📱 Found ${activeConnections.length} connection(s) to restore`);
+      console.log('⚡ Using connection manager to prevent overload...');
 
-      // Restore each connection
+      // Use connection manager for staggered reconnection
+      const { connectionManager } = await import('./connection-manager');
+
+      // Restore each connection via queue
       for (const connection of activeConnections) {
         if (!connection.agentId || !connection.userId) continue;
 
@@ -78,13 +85,10 @@ class WhatsAppServiceFixed {
 
         // Check if session files exist
         if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
-          console.log(`🔄 Restoring connection for agent ${connection.agent?.name || connection.agentId}...`);
+          console.log(`📋 Queuing connection for agent ${connection.agent?.name || connection.agentId}...`);
 
-          // Reconnect in background
-          setTimeout(() => {
-            this.connectWhatsApp(connection.userId, connection.agentId!)
-              .catch(err => console.error(`Failed to restore connection for agent ${connection.agentId}:`, err));
-          }, 1000); // Stagger connections by 1 second each
+          // Add to connection manager queue (priority 0 = normal)
+          connectionManager.enqueue(connection.userId, connection.agentId!, 0);
         } else {
           console.log(`⚠️ No session files found for agent ${connection.agentId}, marking as disconnected`);
           // Mark as disconnected since we can't restore it
@@ -94,6 +98,8 @@ class WhatsAppServiceFixed {
           });
         }
       }
+
+      console.log('✅ All connections queued for gradual reconnection');
     } catch (error) {
       console.error('Error initializing connections:', error);
     }
@@ -521,31 +527,6 @@ class WhatsAppServiceFixed {
         });
       }
 
-      // Check if we recently responded to avoid spam
-      const recentMessages = await prisma.message.findMany({
-        where: {
-          conversationId: conversation.id,
-          senderType: 'ai',
-          createdAt: {
-            gte: new Date(Date.now() - 5000), // Last 5 seconds
-          },
-        },
-      });
-
-      if (recentMessages.length > 0) {
-        console.log('⚠️ Recently responded, skipping to avoid spam');
-        // Still save customer message but don't respond
-        await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderType: 'customer',
-            messageText,
-            messageType: this.getMessageType(msg),
-          },
-        });
-        return;
-      }
-
       // Save customer message
       await prisma.message.create({
         data: {
@@ -567,16 +548,44 @@ class WhatsAppServiceFixed {
       const shouldAutoReply = conversation.aiEnabled && aiMode === 'auto';
 
       if (shouldAutoReply) {
-        console.log('🤖 AI is enabled in AUTO mode, checking limits...');
-        const { canUserSendMessage } = await import('./trial-checker');
-        const canSend = await canUserSendMessage(userId);
+        console.log('🤖 AI is enabled in AUTO mode, using debounced response...');
 
-        if (canSend.allowed) {
-          console.log('✅ User can send messages, generating AI response...');
-          await this.generateAIResponse(userId, agentId, conversation.id, sock, msg.key.remoteJid);
-        } else {
-          console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
+        // Clear existing debounce timer for this conversation
+        const existingTimer = this.messageDebounceTimers.get(conversation.id);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          console.log('⏱️ Cleared previous timer, customer is still typing...');
         }
+
+        // Increment pending message count
+        const currentCount = this.pendingMessages.get(conversation.id) || 0;
+        this.pendingMessages.set(conversation.id, currentCount + 1);
+        console.log(`📊 Pending messages for this conversation: ${currentCount + 1}`);
+
+        // Set new debounce timer - wait 3 seconds after last message
+        const timer = setTimeout(async () => {
+          const messageCount = this.pendingMessages.get(conversation.id) || 1;
+          console.log(`⏰ Timer expired! Processing ${messageCount} message(s) together...`);
+
+          // Clear the timer and counter
+          this.messageDebounceTimers.delete(conversation.id);
+          this.pendingMessages.delete(conversation.id);
+
+          // Check if user can send messages
+          const { canUserSendMessage } = await import('./trial-checker');
+          const canSend = await canUserSendMessage(userId);
+
+          if (canSend.allowed) {
+            console.log(`✅ User can send messages, generating AI response for ${messageCount} message(s)...`);
+            await this.generateAIResponse(userId, agentId, conversation.id, sock, msg.key.remoteJid);
+          } else {
+            console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
+          }
+        }, 3000); // Wait 3 seconds after last message
+
+        this.messageDebounceTimers.set(conversation.id, timer);
+        console.log('⏱️ Debounce timer set (3 seconds)');
+
       } else if (conversation.aiEnabled && aiMode === 'copilot') {
         console.log('✨ AI is in CO-PILOT mode - user will request suggestions manually');
       } else if (conversation.aiEnabled && aiMode === 'manual') {
@@ -888,23 +897,26 @@ ${goalInstructions[conversationGoal] || ''}
 - If they write in Spanish, respond in Spanish, etc.
 
 ✅ RESPONSE GUIDELINES:
+- **CRITICAL: ALWAYS check your knowledge base FIRST before answering ANY question**
+- **Use ONLY information from your knowledge base when answering about the business, products, or services**
+- If the answer is in your knowledge base, reference it directly and naturally
 - Keep responses under 100 words (be concise and punchy)
 - Use emojis naturally but sparingly (1-2 per message max)
-- If you don't know something, be honest and offer to check
-- When referencing your knowledge base, do so naturally
 - For complex questions, break down your answer into clear points
 - **Always end with a relevant question or call-to-action** - keep the conversation moving
 
 🚫 AVOID:
-- Making up information not in your knowledge base
+- **NEVER make up information about the business, products, or services - ONLY use what's in your knowledge base**
+- **NEVER give generic responses when the knowledge base has specific information**
 - Being overly salesy or pushy (build trust first!)
 - Using too many emojis or excessive punctuation (!!!)
-- Generic responses - be specific and personal
 - Giving legal, medical, or financial advice unless in your knowledge base
 - Letting the conversation die - always give them something to respond to
 
+⚠️ **IMPORTANT**: Your knowledge base contains all the information you need. When a customer asks about products, services, pricing, or company information, search your knowledge base thoroughly and provide specific, accurate details from it. Do NOT give vague or generic answers when specific information is available in your knowledge base.
+
 💡 CONVERSATION FLOW (Like talking to a friend who's also an expert):
-- **First message**: Warm greeting + understand their need
+- **First message**: Introduce yourself with "My name is ${agentName}${businessType ? `, and I'm with ${businessType} support` : ''}. How can I assist you today?" Then understand their need
 - **Discovery**: Ask smart questions to qualify
 - **Value delivery**: Answer thoroughly, show expertise
 - **Build desire**: Help them see the benefit
@@ -1239,10 +1251,39 @@ Remember: You're not just answering questions - you're building relationships an
     }
   }
 
+  /**
+   * Clean up event listeners for a session to prevent memory leaks
+   */
+  private cleanupEventListeners(agentId: string): void {
+    const session = this.sessions.get(agentId);
+
+    if (!session?.sock) return;
+
+    try {
+      // Remove all event listeners
+      session.sock.ev.removeAllListeners('connection.update');
+      session.sock.ev.removeAllListeners('creds.update');
+      session.sock.ev.removeAllListeners('messages.upsert');
+      session.sock.ev.removeAllListeners('messages.update');
+
+      console.log(`🧹 Cleaned up event listeners for agent ${agentId}`);
+
+      // Clear tracked listeners
+      if (session.eventListeners) {
+        session.eventListeners.clear();
+      }
+    } catch (error) {
+      console.error(`Error cleaning up event listeners for ${agentId}:`, error);
+    }
+  }
+
   async disconnectWhatsApp(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId);
 
     if (session?.sock) {
+      // Clean up event listeners BEFORE logout to prevent memory leaks
+      this.cleanupEventListeners(agentId);
+
       try {
         await session.sock.logout();
       } catch (error) {
@@ -1258,6 +1299,8 @@ Remember: You're not just answering questions - you're building relationships an
     if (fs.existsSync(agentAuthDir)) {
       fs.rmSync(agentAuthDir, { recursive: true, force: true });
     }
+
+    console.log(`✅ Successfully disconnected and cleaned up agent ${agentId}`);
   }
 
   getSession(agentId: string): WhatsAppSession | undefined {

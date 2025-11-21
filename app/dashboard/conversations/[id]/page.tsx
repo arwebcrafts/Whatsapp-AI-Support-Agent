@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send, Bot, User, Phone, Video, MoreVertical, Check, CheckCheck, Smile, Paperclip, Mic, Sparkles, ThumbsUp, X } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, Phone, Video, MoreVertical, Check, CheckCheck, Smile, Paperclip, Mic, Sparkles, ThumbsUp, X, Tag, Plus, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function ConversationPage() {
@@ -22,6 +22,10 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [showTagInput, setShowTagInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,6 +38,13 @@ export default function ConversationPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Clear message input and errors when conversation changes
+  useEffect(() => {
+    setNewMessage("");
+    setSendError(null);
+    setAiSuggestion(null);
+  }, [conversationId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -44,6 +55,18 @@ export default function ConversationPage() {
       const data = await res.json();
       setConversation(data.conversation);
       setMessages(data.messages);
+
+      // Parse tags from JSON string
+      if (data.conversation?.tags) {
+        try {
+          const parsedTags = JSON.parse(data.conversation.tags);
+          setTags(Array.isArray(parsedTags) ? parsedTags : []);
+        } catch {
+          setTags([]);
+        }
+      } else {
+        setTags([]);
+      }
     } catch (error) {
       console.error("Error loading conversation:", error);
     }
@@ -53,8 +76,9 @@ export default function ConversationPage() {
     if (!newMessage.trim()) return;
 
     setLoading(true);
+    setSendError(null);
     try {
-      await fetch("/api/whatsapp/send", {
+      const res = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,10 +87,21 @@ export default function ConversationPage() {
         }),
       });
 
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Show error to user
+        setSendError(data.message || "Failed to send message");
+        console.error("Send message failed:", data);
+        return;
+      }
+
       setNewMessage("");
+      setSendError(null);
       await loadConversation();
     } catch (error) {
       console.error("Error sending message:", error);
+      setSendError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -136,6 +171,47 @@ export default function ConversationPage() {
 
   function dismissSuggestion() {
     setAiSuggestion(null);
+  }
+
+  async function addTag() {
+    if (!newTag.trim() || tags.includes(newTag.trim())) {
+      setNewTag("");
+      return;
+    }
+
+    const updatedTags = [...tags, newTag.trim()];
+    setTags(updatedTags);
+    setNewTag("");
+    setShowTagInput(false);
+
+    try {
+      await fetch(`/api/conversations/${conversationId}/update-tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+    } catch (error) {
+      console.error("Error adding tag:", error);
+      // Revert on error
+      setTags(tags);
+    }
+  }
+
+  async function removeTag(tagToRemove: string) {
+    const updatedTags = tags.filter(tag => tag !== tagToRemove);
+    setTags(updatedTags);
+
+    try {
+      await fetch(`/api/conversations/${conversationId}/update-tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+    } catch (error) {
+      console.error("Error removing tag:", error);
+      // Revert on error
+      setTags(tags);
+    }
   }
 
   const formatTime = (date: string) => {
@@ -264,6 +340,87 @@ export default function ConversationPage() {
             </div>
           </div>
 
+          {/* Tags Section */}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Label className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-1">
+              <Tag className="h-3 w-3 md:h-4 md:w-4" />
+              Tags:
+            </Label>
+
+            {/* Lead Score Tag */}
+            <Badge
+              className={`${
+                conversation.leadScore === "hot"
+                  ? "bg-red-100 text-red-800"
+                  : conversation.leadScore === "warm"
+                  ? "bg-orange-100 text-orange-800"
+                  : "bg-blue-100 text-blue-800"
+              } px-2 py-0.5 text-xs`}
+            >
+              {conversation.leadScore.toUpperCase()}
+            </Badge>
+
+            {/* AI Mode Tag */}
+            <Badge className="bg-green-100 text-green-800 px-2 py-0.5 text-xs">
+              {conversation.aiMode === 'auto' && '⚡ Auto'}
+              {conversation.aiMode === 'copilot' && '✨ Co-Pilot'}
+              {conversation.aiMode === 'manual' && '👤 Manual'}
+            </Badge>
+
+            {/* Custom Tags */}
+            {tags.map((tag) => (
+              <Badge
+                key={tag}
+                className="bg-purple-100 text-purple-800 hover:bg-purple-200 px-2 py-0.5 text-xs flex items-center gap-1 cursor-pointer"
+                onClick={() => removeTag(tag)}
+              >
+                {tag}
+                <X className="h-3 w-3" />
+              </Badge>
+            ))}
+
+            {showTagInput ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && addTag()}
+                  placeholder="Tag name..."
+                  className="h-6 w-24 md:w-32 text-xs px-2"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  onClick={addTag}
+                  className="h-6 px-2 text-xs"
+                >
+                  Add
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowTagInput(false);
+                    setNewTag("");
+                  }}
+                  className="h-6 px-2 text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowTagInput(true)}
+                className="h-6 px-2 text-xs flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                Add Tag
+              </Button>
+            )}
+          </div>
+
           {/* Co-Pilot Info Banner */}
           {conversation.aiEnabled && conversation.aiMode === 'copilot' && (
             <div className="bg-blue-50 border border-blue-200 rounded-md px-2 md:px-3 py-1.5 md:py-2">
@@ -356,6 +513,22 @@ export default function ConversationPage() {
 
         {/* Input Area - WhatsApp Style */}
         <div className="bg-[#F0F2F5] px-2 md:px-4 py-2 md:py-3 border-t border-gray-300">
+          {/* Error Message */}
+          {sendError && (
+            <div className="mb-2 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">{sendError}</p>
+                <button
+                  onClick={() => setSendError(null)}
+                  className="text-xs text-red-600 hover:text-red-800 underline mt-1"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Co-Pilot Suggestion Button */}
           {conversation.aiMode === 'copilot' && !aiSuggestion && (
             <div className="mb-2">

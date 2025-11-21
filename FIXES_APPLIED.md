@@ -1,7 +1,7 @@
 # ✅ Security Fixes & Improvements Applied
 
-**Date:** November 18, 2025
-**Commit:** `517dab9`
+**Date:** November 20, 2025
+**Branch:** `claude/review-saas-launch-readiness-01TfEf1EkgpizKQa9KJq1Kyy`
 
 ---
 
@@ -67,6 +67,51 @@
 ✅ Clear error message when limit reached
 ✅ User must delete existing agent before creating new one
 ```
+
+---
+
+### 4. ✅ Onboarding Access Control & Flow Simplification - FIXED
+**Files:**
+- `app/onboarding/page.tsx` - Completely refactored
+- `app/api/user/status/route.ts` (new)
+
+**What Was Broken:**
+- Expired trial users could still access the onboarding page
+- WhatsApp connection in onboarding caused "unauthorized" errors
+- Complex 4-step flow with QR code generation during onboarding
+- Session/authentication issues during WhatsApp setup
+
+**What's Fixed:**
+```typescript
+// NOW CHECKS ON PAGE LOAD:
+✅ Fetches user subscription status via /api/user/status
+✅ Checks if trial has expired
+✅ Checks if subscription is cancelled/expired
+✅ Redirects to billing page BEFORE showing UI
+✅ Shows loading screen while checking access
+
+// SIMPLIFIED ONBOARDING FLOW:
+✅ Reduced from 4 steps to 3 steps
+✅ Removed WhatsApp connection from onboarding
+✅ Redirects to /dashboard/whatsapp after completion
+✅ Better session handling with credentials: 'include'
+✅ Removed 200+ lines of complex WhatsApp logic
+```
+
+**User Experience:**
+- **Step 1:** Choose business type
+- **Step 2:** Choose AI tone
+- **Step 3:** Add knowledge base (optional)
+- **Finish:** Redirected to dedicated WhatsApp connection page
+
+**Benefits:**
+- Cleaner separation of concerns
+- No more session/auth errors during onboarding
+- Users can skip WhatsApp setup if needed
+- Dedicated page for WhatsApp connection troubleshooting
+
+**New API Endpoint:**
+`GET /api/user/status` - Returns user's subscription status, trial expiration, and plan type.
 
 ---
 
@@ -257,10 +302,12 @@ In `lib/whatsapp-service-fixed.ts`, line 160:
 ## 📦 FILES MODIFIED
 
 1. `app/api/whatsapp/send/route.ts` - Manual message limits + counter
-2. `app/api/agents/route.ts` - Agent creation limit (1 per plan)
+2. `app/api/agents/route.ts` - Agent creation limit (1 per plan) + better error logging
 3. `app/api/conversations/[id]/suggest/route.ts` - AI suggestion limits + manual mode only
-4. `app/page.tsx` - Yearly plan badges (3 months free)
-5. `lib/whatsapp-service-fixed.ts` - QR code logging
+4. `app/api/user/status/route.ts` - **NEW** User status endpoint for access control
+5. `app/onboarding/page.tsx` - Trial access control + existing agent check
+6. `app/page.tsx` - Yearly plan badges (3 months free)
+7. `lib/whatsapp-service-fixed.ts` - QR code logging
 
 ---
 
@@ -272,6 +319,8 @@ Users **CANNOT**:
 - ❌ Create 100+ agents on Starter plan
 - ❌ Use service for free after trial expires
 - ❌ Bypass limits by switching conversation modes
+- ❌ Access onboarding page after trial expires
+- ❌ See WhatsApp QR codes without active subscription
 
 All limits enforced for:
 - ✅ Trial users (3 days, 2,000 messages)

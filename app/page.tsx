@@ -752,7 +752,7 @@ export default function Home() {
                       <CardTitle>Lifetime Business</CardTitle>
                       <CardDescription>One-time payment</CardDescription>
                       <div className="mt-4">
-                        <span className="text-4xl font-bold">$249</span>
+                        <span className="text-4xl font-bold">$199</span>
                         <span className="text-gray-600"> once</span>
                       </div>
                       <p className="text-sm text-green-600 font-semibold mt-1">Save $5,400+ vs monthly</p>

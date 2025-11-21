@@ -58,12 +58,12 @@ export async function POST(
       );
     }
 
-    // CRITICAL: AI suggestions only work in MANUAL mode
+    // CRITICAL: AI suggestions only work in COPILOT mode
     const aiMode = conversation.aiMode || 'auto';
-    if (aiMode !== 'manual') {
+    if (aiMode !== 'copilot') {
       return NextResponse.json(
         {
-          message: 'AI suggestions are only available in Manual mode. Please switch to Manual mode to use this feature.',
+          message: 'AI suggestions are only available in Copilot mode. Please switch to Copilot mode to use this feature.',
           requiresModeChange: true,
           currentMode: aiMode,
         },
@@ -113,8 +113,23 @@ export async function POST(
       })
       .join('\n');
 
+    // Get the last customer message
+    const lastCustomerMessage = conversation.messages
+      .filter(msg => msg.senderType === 'customer')
+      .slice(-1)[0]?.messageText || 'No messages yet';
+
+    // Get agent information
+    const agentName = conversation.agent?.name || 'Support Agent';
+    const businessType = conversation.agent?.businessType || 'customer service';
+    const aiTone = conversation.agent?.aiTone || 'friendly';
+
     // Generate AI suggestion
-    const systemPrompt = `You are a helpful customer service AI assistant.
+    const systemPrompt = `You are ${agentName}, a ${aiTone} ${businessType} representative helping customers.
+
+YOUR ROLE:
+- Agent Name: ${agentName}
+- Business Type: ${businessType}
+- Communication Tone: ${aiTone}
 
 KNOWLEDGE BASE:
 ${knowledgeContext || 'No specific knowledge provided.'}
@@ -125,7 +140,11 @@ ${faqContext || 'No FAQs available.'}
 CONVERSATION HISTORY:
 ${conversationHistory}
 
-Generate a helpful, professional response to the customer's most recent message. Keep it concise and friendly.`;
+CURRENT TASK:
+The customer just said: "${lastCustomerMessage}"
+
+Generate a helpful, professional response that DIRECTLY addresses what the customer just said. Use the knowledge base and FAQs when relevant. Be specific and personalized - avoid generic responses. Keep it concise and ${aiTone}.`;
+
 
     // Estimate tokens for quota check
     const estimatedInputTokens = estimateTokens(systemPrompt + 'Please suggest a response to the customer.');
