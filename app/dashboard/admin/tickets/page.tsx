@@ -88,10 +88,12 @@ export default function AdminTicketsPage() {
       }
       fetchTickets();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, filterStatus, filterPriority]);
 
   const fetchTickets = async () => {
