@@ -66,6 +66,7 @@ export default function SupportPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // New ticket form
   const [newTicket, setNewTicket] = useState({
@@ -91,14 +92,19 @@ export default function SupportPage() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch("/api/support/tickets");
       const data = await res.json();
 
       if (res.ok) {
-        setTickets(data.tickets);
+        setTickets(data.tickets || []);
+        setError(null);
+      } else {
+        setError(data.message || "Failed to load tickets. Please ensure the database migration has been run.");
       }
     } catch (error) {
       console.error("Error fetching tickets:", error);
+      setError("Failed to load tickets. The support ticket tables may not exist yet. Please run the database migration first.");
     } finally {
       setLoading(false);
     }
@@ -226,6 +232,24 @@ export default function SupportPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Error Message */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-red-800">Error Loading Support Tickets</h3>
+                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <p className="text-xs text-red-600 mt-2">
+                    Run the SQL migration from MIGRATION_NOTES.md to create the support_tickets tables.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

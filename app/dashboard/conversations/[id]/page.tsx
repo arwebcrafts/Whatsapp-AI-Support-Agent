@@ -347,6 +347,27 @@ export default function ConversationPage() {
               Tags:
             </Label>
 
+            {/* Lead Score Tag */}
+            <Badge
+              className={`${
+                conversation.leadScore === "hot"
+                  ? "bg-red-100 text-red-800"
+                  : conversation.leadScore === "warm"
+                  ? "bg-orange-100 text-orange-800"
+                  : "bg-blue-100 text-blue-800"
+              } px-2 py-0.5 text-xs`}
+            >
+              {conversation.leadScore.toUpperCase()}
+            </Badge>
+
+            {/* AI Mode Tag */}
+            <Badge className="bg-green-100 text-green-800 px-2 py-0.5 text-xs">
+              {conversation.aiMode === 'auto' && '⚡ Auto'}
+              {conversation.aiMode === 'copilot' && '✨ Co-Pilot'}
+              {conversation.aiMode === 'manual' && '👤 Manual'}
+            </Badge>
+
+            {/* Custom Tags */}
             {tags.map((tag) => (
               <Badge
                 key={tag}
