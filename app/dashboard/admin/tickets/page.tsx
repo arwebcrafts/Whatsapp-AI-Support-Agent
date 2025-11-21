@@ -88,7 +88,7 @@ export default function AdminTicketsPage() {
       }
       fetchTickets();
     }
-  }, [status, sessionData]);
+  }, [status]);
 
   useEffect(() => {
     applyFilters();
@@ -151,11 +151,9 @@ export default function AdminTicketsPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Refresh ticket details
+        // Refresh only the ticket details
         await fetchTicketDetails(selectedTicket.id);
         setReplyMessage("");
-        // Refresh tickets list
-        await fetchTickets();
       } else {
         alert(data.message || "Failed to send message");
       }
@@ -178,9 +176,12 @@ export default function AdminTicketsPage() {
       });
 
       if (res.ok) {
-        // Refresh ticket details
+        // Refresh only the ticket details
         await fetchTicketDetails(selectedTicket.id);
-        await fetchTickets();
+        // Update the tickets list locally
+        setTickets(tickets.map(t =>
+          t.id === selectedTicket.id ? { ...t, status } : t
+        ));
       } else {
         alert("Failed to update ticket status");
       }
@@ -201,8 +202,12 @@ export default function AdminTicketsPage() {
       });
 
       if (res.ok) {
+        // Refresh only the ticket details
         await fetchTicketDetails(selectedTicket.id);
-        await fetchTickets();
+        // Update the tickets list locally
+        setTickets(tickets.map(t =>
+          t.id === selectedTicket.id ? { ...t, priority } : t
+        ));
       } else {
         alert("Failed to update ticket priority");
       }
