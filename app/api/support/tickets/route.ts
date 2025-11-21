@@ -161,7 +161,20 @@ export async function POST(req: NextRequest) {
             email: true,
           }
         },
-        messages: true,
+        messages: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+              }
+            }
+          }
+        },
+        _count: {
+          select: { messages: true }
+        }
       }
     });
 
