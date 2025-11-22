@@ -16,24 +16,16 @@ import {
   Send
 } from "lucide-react";
 import AnimatedChatPreview from "@/components/animated-chat-preview";
+import BlackFridayBanner from "@/components/black-friday-banner";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Black Friday Banner */}
-      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white py-3 sticky top-0 z-50 animate-pulse">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2 text-sm md:text-base font-bold">
-            <Flame className="h-5 w-5" />
-            <span>BLACK FRIDAY EXCLUSIVE: Lifetime Access $79 - Only 247/500 Spots Left!</span>
-            <span className="hidden md:inline">⏰ Ends December 31st</span>
-            <Flame className="h-5 w-5" />
-          </div>
-        </div>
-      </div>
+      {/* Black Friday Banner with Countdown */}
+      <BlackFridayBanner />
 
       {/* Navigation */}
-      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-12 z-40">
+      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -913,7 +905,7 @@ export default function Home() {
               <h4 className="font-semibold text-white mb-4">Support</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link href="#faq">FAQ</Link></li>
-                <li><Link href="/contact">Contact</Link></li>
+                <li><Link href="/dashboard/support">Support Tickets</Link></li>
                 <li><Link href="/docs">Documentation</Link></li>
               </ul>
             </div>
