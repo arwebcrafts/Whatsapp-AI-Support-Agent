@@ -332,52 +332,6 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Link href="/dashboard/conversations">
-                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  <span className="text-sm">View Chats</span>
-                  {unreadConversations > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {unreadConversations}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-
-              <Link href="/dashboard/agents/new">
-                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  <span className="text-sm">New Agent</span>
-                </Button>
-              </Link>
-
-              <Link href="/dashboard/knowledge">
-                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  <span className="text-sm">Add Knowledge</span>
-                </Button>
-              </Link>
-
-              <Link href="/dashboard/analytics">
-                <Button variant="outline" className="w-full h-auto py-4 flex flex-col items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  <span className="text-sm">View Analytics</span>
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="hover:shadow-lg transition-shadow">
@@ -637,23 +591,25 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {user.agents.map((agent) => (
-                  <div key={agent.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-medium">{agent.name}</h3>
-                        <p className="text-xs text-gray-500">{agent.businessType || 'General'}</p>
+                  <Link key={agent.id} href={`/dashboard/agents/${agent.id}`}>
+                    <div className="p-4 border rounded-lg hover:shadow-md hover:border-blue-500 transition-all cursor-pointer">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium">{agent.name}</h3>
+                          <p className="text-xs text-gray-500">{agent.businessType || 'General'}</p>
+                        </div>
+                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       </div>
-                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {agent.description || 'No description'}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          {agent.aiTone}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {agent.description || 'No description'}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                        {agent.aiTone}
-                      </span>
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </CardContent>
