@@ -8,9 +8,13 @@ import Link from "next/link";
 export default function BlackFridayBanner() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isVisible, setIsVisible] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Check if banner was dismissed
+    // Mark component as mounted
+    setIsMounted(true);
+
+    // Check if banner was dismissed (only on client)
     const dismissed = localStorage.getItem("bf-banner-dismissed");
     if (dismissed) {
       setIsVisible(false);
@@ -48,7 +52,8 @@ export default function BlackFridayBanner() {
     setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted || !isVisible) return null;
 
   return (
     <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white py-3 md:py-4 sticky top-0 z-50 shadow-lg">
