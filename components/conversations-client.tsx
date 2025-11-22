@@ -58,6 +58,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
   const [rating, setRating] = useState<number>(0);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
 
   // Load notes when conversation changes
   useEffect(() => {
@@ -186,13 +187,42 @@ export default function ConversationsClient({ initialConversations }: { initialC
 
   // Get AI suggestion for co-pilot mode
   useEffect(() => {
-    if (selectedConv?.aiMode === 'copilot') {
-      // Simulate AI suggestion - in real app, call API
-      setAiSuggestion("Try saying: 'Great! I can help you complete your order. Would you like to proceed with the purchase?'");
-    } else {
-      setAiSuggestion("");
-    }
-  }, [selectedConv]);
+    const fetchSuggestion = async () => {
+      if (!selectedConv || selectedConv.aiMode !== 'copilot') {
+        setAiSuggestion("");
+        return;
+      }
+
+      setLoadingSuggestion(true);
+      try {
+        const res = await fetch(`/api/conversations/${selectedConv.id}/suggest`, {
+          method: "POST",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAiSuggestion(data.suggestion || "");
+        } else if (res.status === 403) {
+          const data = await res.json();
+          // Handle limit reached or mode requirement
+          if (data.limitReached) {
+            setAiSuggestion("⚠️ " + data.message);
+          } else if (data.requiresModeChange) {
+            setAiSuggestion("");
+          }
+        } else {
+          setAiSuggestion("Unable to generate suggestion. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error fetching suggestion:", error);
+        setAiSuggestion("Unable to generate suggestion. Please try again.");
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    };
+
+    fetchSuggestion();
+  }, [selectedConv?.id, selectedConv?.aiMode]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
@@ -460,24 +490,41 @@ export default function ConversationsClient({ initialConversations }: { initialC
             </div>
 
             {/* Co-Pilot Suggestions */}
-            {selectedConv.aiMode === "copilot" && aiSuggestion && (
+            {selectedConv.aiMode === "copilot" && (
               <div>
                 <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-purple-500" />
                   AI Suggestion
                 </h3>
-                <Card className="p-2.5 bg-purple-50 border-purple-200">
-                  <p className="text-xs text-purple-900 leading-relaxed">
-                    {aiSuggestion}
-                  </p>
-                  <Button
-                    size="sm"
-                    className="w-full mt-2 h-7 text-xs bg-purple-600 hover:bg-purple-700"
-                    onClick={() => setNewMessage(aiSuggestion.replace("Try saying: ", "").replace(/^'|'$/g, ""))}
-                  >
-                    Use This
-                  </Button>
-                </Card>
+                {loadingSuggestion ? (
+                  <Card className="p-2.5 bg-purple-50 border-purple-200">
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                      <span className="ml-2 text-xs text-purple-700">Analyzing conversation...</span>
+                    </div>
+                  </Card>
+                ) : aiSuggestion ? (
+                  <Card className="p-2.5 bg-purple-50 border-purple-200">
+                    <p className="text-xs text-purple-900 leading-relaxed whitespace-pre-wrap">
+                      {aiSuggestion}
+                    </p>
+                    {!aiSuggestion.startsWith("⚠️") && (
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                        onClick={() => setNewMessage(aiSuggestion)}
+                      >
+                        Use This Response
+                      </Button>
+                    )}
+                  </Card>
+                ) : (
+                  <Card className="p-2.5 bg-gray-50 border-gray-200">
+                    <p className="text-xs text-gray-600 text-center py-2">
+                      No suggestion available yet. Wait for a customer message.
+                    </p>
+                  </Card>
+                )}
               </div>
             )}
 
