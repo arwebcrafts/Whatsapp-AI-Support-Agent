@@ -36,7 +36,15 @@ export default async function DashboardPage() {
     where: { email: session.user.email },
     include: {
       whatsappConnections: true,
-      agents: { where: { isActive: true } },
+      agents: {
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: {
+            select: { agentKnowledge: true }
+          }
+        }
+      },
       conversations: {
         take: 5,
         orderBy: { lastMessageAt: "desc" },
@@ -581,12 +589,7 @@ export default async function DashboardPage() {
         {user.agents.length > 0 && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Active AI Agents</CardTitle>
-                <Link href="/dashboard/agents">
-                  <Button variant="outline" size="sm">Manage Agents</Button>
-                </Link>
-              </div>
+              <CardTitle>Active AI Agents</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -606,6 +609,10 @@ export default async function DashboardPage() {
                       <div className="mt-3 flex items-center gap-2">
                         <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
                           {agent.aiTone}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {agent._count.agentKnowledge} knowledge items
                         </span>
                       </div>
                     </div>

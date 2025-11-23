@@ -21,8 +21,8 @@ export default function BlackFridayBanner() {
       return;
     }
 
-    // Countdown to December 1st, 2024
-    const targetDate = new Date("2024-12-01T00:00:00").getTime();
+    // Countdown to November 30th, 2025 (Black Friday ends)
+    const targetDate = new Date("2025-11-30T23:59:59").getTime();
 
     const updateCountdown = () => {
       const now = new Date().getTime();
