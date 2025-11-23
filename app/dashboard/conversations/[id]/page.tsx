@@ -45,6 +45,18 @@ export default function ConversationPage() {
     setAiSuggestion(null);
   }, [conversationId]);
 
+  // Auto-fetch AI suggestion when in copilot mode
+  useEffect(() => {
+    if (conversation?.aiMode === 'copilot' && conversation?.aiEnabled && messages.length > 0) {
+      // Check if last message is from customer
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.senderType === 'customer') {
+        // Auto-fetch suggestion after a customer message
+        getAiSuggestion();
+      }
+    }
+  }, [conversation?.aiMode, messages.length]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -262,6 +274,29 @@ export default function ConversationPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            {/* AI Mode Badge */}
+            {conversation.aiEnabled && (
+              <Badge
+                className={`${
+                  conversation.aiMode === "auto"
+                    ? "bg-green-600"
+                    : conversation.aiMode === "copilot"
+                    ? "bg-purple-600"
+                    : "bg-gray-600"
+                } text-white text-xs px-1.5 md:px-2 flex items-center gap-1`}
+              >
+                {conversation.aiMode === "auto" && "🤖"}
+                {conversation.aiMode === "copilot" && "✨"}
+                {conversation.aiMode === "manual" && "👤"}
+                <span className="hidden sm:inline">
+                  {conversation.aiMode === "auto" && "AUTO"}
+                  {conversation.aiMode === "copilot" && "COPILOT"}
+                  {conversation.aiMode === "manual" && "MANUAL"}
+                </span>
+              </Badge>
+            )}
+
+            {/* Lead Score Badge */}
             <Badge
               className={`${
                 conversation.leadScore === "hot"
