@@ -494,6 +494,44 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
+        {/* Active Agents */}
+        {user.agents.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Active AI Agents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {user.agents.map((agent) => (
+                  <Link key={agent.id} href={`/dashboard/agents/${agent.id}`}>
+                    <div className="p-4 border rounded-lg hover:shadow-md hover:border-blue-500 transition-all cursor-pointer">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium">{agent.name}</h3>
+                          <p className="text-xs text-gray-500">{agent.businessType || 'General'}</p>
+                        </div>
+                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {agent.description || 'No description'}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          {agent.aiTone}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {agent._count.agentKnowledge} knowledge items
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recent Activity */}
         <Card>
           <CardHeader>
@@ -584,44 +622,6 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Active Agents */}
-        {user.agents.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Active AI Agents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {user.agents.map((agent) => (
-                  <Link key={agent.id} href={`/dashboard/agents/${agent.id}`}>
-                    <div className="p-4 border rounded-lg hover:shadow-md hover:border-blue-500 transition-all cursor-pointer">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium">{agent.name}</h3>
-                          <p className="text-xs text-gray-500">{agent.businessType || 'General'}</p>
-                        </div>
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {agent.description || 'No description'}
-                      </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                          {agent.aiTone}
-                        </span>
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
-                          <BookOpen className="h-3 w-3" />
-                          {agent._count.agentKnowledge} knowledge items
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </DashboardLayout>
   );
