@@ -50,15 +50,20 @@ export async function POST(
       );
     }
 
-    // Update AI mode
+    // Update AI mode and ensure AI is enabled
+    // When user selects a mode, they want AI to be active
     await prisma.conversation.update({
       where: { id: conversationId },
-      data: { aiMode },
+      data: {
+        aiMode,
+        aiEnabled: true  // Always enable AI when changing mode
+      },
     });
 
     return NextResponse.json({
       message: 'AI mode updated successfully',
-      aiMode
+      aiMode,
+      aiEnabled: true
     });
   } catch (error) {
     console.error('Error updating AI mode:', error);

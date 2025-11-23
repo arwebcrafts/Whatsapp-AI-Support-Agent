@@ -126,11 +126,11 @@ export default function ConversationsClient({ initialConversations }: { initialC
       });
 
       if (res.ok) {
-        // Update local state
+        // Update local state - mode change also enables AI
         setConversations(conversations.map(c =>
-          c.id === selectedConv.id ? { ...c, aiMode: mode } : c
+          c.id === selectedConv.id ? { ...c, aiMode: mode, aiEnabled: true } : c
         ));
-        setSelectedConv({ ...selectedConv, aiMode: mode });
+        setSelectedConv({ ...selectedConv, aiMode: mode, aiEnabled: true });
       }
     } catch (error) {
       console.error("Error updating AI mode:", error);

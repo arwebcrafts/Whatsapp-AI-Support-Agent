@@ -121,14 +121,23 @@ export default function ConversationPage() {
 
   async function toggleAI(enabled: boolean) {
     try {
+      // Immediately update local state for instant feedback
+      setConversation({
+        ...conversation,
+        aiEnabled: enabled
+      });
+
       await fetch(`/api/conversations/${conversationId}/toggle-ai`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aiEnabled: enabled }),
       });
+
       await loadConversation();
     } catch (error) {
       console.error("Error toggling AI:", error);
+      // Revert on error
+      await loadConversation();
     }
   }
 
@@ -147,11 +156,21 @@ export default function ConversationPage() {
 
   async function updateAiMode(mode: string) {
     try {
-      await fetch(`/api/conversations/${conversationId}/update-ai-mode`, {
+      const res = await fetch(`/api/conversations/${conversationId}/update-ai-mode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aiMode: mode }),
       });
+
+      if (res.ok) {
+        // Immediately update local state for instant feedback
+        setConversation({
+          ...conversation,
+          aiMode: mode,
+          aiEnabled: true  // Mode change enables AI
+        });
+      }
+
       await loadConversation();
     } catch (error) {
       console.error("Error updating AI mode:", error);
@@ -324,32 +343,29 @@ export default function ConversationPage() {
         <div className="bg-[#F0F2F5] px-3 md:px-4 py-2 md:py-3 border-b border-gray-300">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-2 md:mb-3">
             <div className="flex flex-wrap items-center gap-2 md:gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="ai-toggle" className="text-xs md:text-sm font-medium text-gray-700 whitespace-nowrap">
-                  🤖 AI
-                </Label>
-                <Switch
-                  id="ai-toggle"
-                  checked={conversation.aiEnabled}
-                  onCheckedChange={toggleAI}
-                />
+              {/* AI Mode Selection - Always visible */}
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Label className="text-xs md:text-sm font-medium text-gray-700">AI Mode:</Label>
+                <select
+                  value={conversation.aiMode || 'auto'}
+                  onChange={(e) => updateAiMode(e.target.value)}
+                  className={`text-xs px-1.5 md:px-2 py-0.5 md:py-1 border rounded-md ${
+                    conversation.aiEnabled
+                      ? 'bg-white border-gray-300'
+                      : 'bg-gray-100 border-gray-300 opacity-75'
+                  }`}
+                  title={!conversation.aiEnabled ? 'Changing mode will enable AI' : ''}
+                >
+                  <option value="auto">⚡ Auto Reply</option>
+                  <option value="copilot">✨ Co-Pilot</option>
+                  <option value="manual">👤 Manual</option>
+                </select>
+                {!conversation.aiEnabled && (
+                  <span className="text-xs text-orange-600 font-medium">
+                    (AI Off - Select mode to enable)
+                  </span>
+                )}
               </div>
-
-              {/* AI Mode Selection */}
-              {conversation.aiEnabled && (
-                <div className="flex items-center gap-1.5 md:gap-2">
-                  <Label className="text-xs md:text-sm font-medium text-gray-700 hidden md:inline">Mode:</Label>
-                  <select
-                    value={conversation.aiMode || 'auto'}
-                    onChange={(e) => updateAiMode(e.target.value)}
-                    className="text-xs px-1.5 md:px-2 py-0.5 md:py-1 border rounded-md bg-white"
-                  >
-                    <option value="auto">⚡ Auto</option>
-                    <option value="copilot">✨ Co-Pilot</option>
-                    <option value="manual">👤 Manual</option>
-                  </select>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-1.5 md:gap-2">
