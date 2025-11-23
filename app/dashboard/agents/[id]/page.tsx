@@ -279,7 +279,17 @@ export default function AgentDetailPage() {
   }
 
   if (!agent) {
-    return null;
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-96 gap-4">
+          <Bot className="h-12 w-12 text-gray-400" />
+          <p className="text-gray-600">Agent not found</p>
+          <Link href="/dashboard/agents">
+            <Button>Back to Agents</Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
