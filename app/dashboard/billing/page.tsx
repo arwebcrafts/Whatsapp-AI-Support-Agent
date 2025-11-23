@@ -100,7 +100,7 @@ export default function BillingPage() {
       type: "business",
       monthlyPrice: 39,
       yearlyPrice: 349,
-      lifetimePrice: 249,
+      lifetimePrice: 199,
       messages: "12,000",
       features: ["12,000 messages/month", "1 WhatsApp Connection", "1 Agent", "All features", "Analytics", "VIP support"],
     },
