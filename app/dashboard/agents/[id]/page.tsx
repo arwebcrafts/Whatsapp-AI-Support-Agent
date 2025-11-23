@@ -284,8 +284,8 @@ export default function AgentDetailPage() {
         <div className="flex flex-col items-center justify-center h-96 gap-4">
           <Bot className="h-12 w-12 text-gray-400" />
           <p className="text-gray-600">Agent not found</p>
-          <Link href="/dashboard/agents">
-            <Button>Back to Agents</Button>
+          <Link href="/dashboard">
+            <Button>Back to Dashboard</Button>
           </Link>
         </div>
       </DashboardLayout>
@@ -298,7 +298,7 @@ export default function AgentDetailPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/agents">
+            <Link href="/dashboard">
               <Button variant="outline" size="icon">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
