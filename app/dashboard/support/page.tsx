@@ -80,32 +80,43 @@ export default function SupportPage() {
   const sessionData = session?.data;
 
   useEffect(() => {
+    console.log('[User Support] useEffect triggered - status:', status);
+    console.log('[User Support] Session data:', sessionData);
+
     if (status === "unauthenticated") {
+      console.log('[User Support] User unauthenticated, redirecting to login');
       redirect("/login");
     }
 
     if (status === "authenticated") {
+      console.log('[User Support] User authenticated, fetching tickets');
       fetchTickets();
     }
   }, [status]);
 
   const fetchTickets = async () => {
     try {
+      console.log('[User Support] Starting to fetch tickets...');
       setLoading(true);
       setError(null);
       const res = await fetch("/api/support/tickets");
+      console.log('[User Support] API response status:', res.status);
       const data = await res.json();
+      console.log('[User Support] API response data:', data);
 
       if (res.ok) {
+        console.log('[User Support] Setting tickets, count:', data.tickets?.length);
         setTickets(data.tickets || []);
         setError(null);
       } else {
+        console.error('[User Support] API returned error:', data);
         setError(data.message || "Failed to load tickets. Please ensure the database migration has been run.");
       }
     } catch (error) {
-      console.error("Error fetching tickets:", error);
+      console.error("[User Support] Error fetching tickets:", error);
       setError("Failed to load tickets. The support ticket tables may not exist yet. Please run the database migration first.");
     } finally {
+      console.log('[User Support] Setting loading to false');
       setLoading(false);
     }
   };

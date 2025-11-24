@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,8 @@ import {
   Save,
   ThumbsUp,
   ThumbsDown,
-  Star
+  Star,
+  ExternalLink
 } from "lucide-react";
 
 interface Conversation {
@@ -44,6 +46,7 @@ interface Message {
 }
 
 export default function ConversationsClient({ initialConversations }: { initialConversations: Conversation[] }) {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,6 +57,8 @@ export default function ConversationsClient({ initialConversations }: { initialC
   const [updatingMode, setUpdatingMode] = useState(false);
   const [rating, setRating] = useState<number>(0);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
 
   // Load notes when conversation changes
   useEffect(() => {
@@ -121,11 +126,11 @@ export default function ConversationsClient({ initialConversations }: { initialC
       });
 
       if (res.ok) {
-        // Update local state
+        // Update local state - mode change also enables AI
         setConversations(conversations.map(c =>
-          c.id === selectedConv.id ? { ...c, aiMode: mode } : c
+          c.id === selectedConv.id ? { ...c, aiMode: mode, aiEnabled: true } : c
         ));
-        setSelectedConv({ ...selectedConv, aiMode: mode });
+        setSelectedConv({ ...selectedConv, aiMode: mode, aiEnabled: true });
       }
     } catch (error) {
       console.error("Error updating AI mode:", error);
@@ -182,13 +187,42 @@ export default function ConversationsClient({ initialConversations }: { initialC
 
   // Get AI suggestion for co-pilot mode
   useEffect(() => {
-    if (selectedConv?.aiMode === 'copilot') {
-      // Simulate AI suggestion - in real app, call API
-      setAiSuggestion("Try saying: 'Great! I can help you complete your order. Would you like to proceed with the purchase?'");
-    } else {
-      setAiSuggestion("");
-    }
-  }, [selectedConv]);
+    const fetchSuggestion = async () => {
+      if (!selectedConv || selectedConv.aiMode !== 'copilot') {
+        setAiSuggestion("");
+        return;
+      }
+
+      setLoadingSuggestion(true);
+      try {
+        const res = await fetch(`/api/conversations/${selectedConv.id}/suggest`, {
+          method: "POST",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAiSuggestion(data.suggestion || "");
+        } else if (res.status === 403) {
+          const data = await res.json();
+          // Handle limit reached or mode requirement
+          if (data.limitReached) {
+            setAiSuggestion("⚠️ " + data.message);
+          } else if (data.requiresModeChange) {
+            setAiSuggestion("");
+          }
+        } else {
+          setAiSuggestion("Unable to generate suggestion. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error fetching suggestion:", error);
+        setAiSuggestion("Unable to generate suggestion. Please try again.");
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    };
+
+    fetchSuggestion();
+  }, [selectedConv?.id, selectedConv?.aiMode]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
@@ -220,22 +254,57 @@ export default function ConversationsClient({ initialConversations }: { initialC
                 <button
                   key={conv.id}
                   onClick={() => setSelectedConv(conv)}
-                  className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
-                    selectedConv?.id === conv.id ? "bg-gray-100" : ""
+                  className={`w-full p-4 text-left hover:bg-blue-50 transition-all duration-200 border-l-4 ${
+                    selectedConv?.id === conv.id
+                      ? "bg-blue-50 border-l-blue-600 shadow-sm"
+                      : "border-l-transparent hover:border-l-blue-300"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-sm text-gray-900 truncate">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className={`font-semibold text-sm truncate ${
+                          selectedConv?.id === conv.id ? "text-blue-900" : "text-gray-900"
+                        }`}>
                           {conv.customerName || conv.customerPhone}
                         </h3>
+
+                        {/* Lead Temperature Icon */}
                         {conv.leadScore === "hot" && (
-                          <Flame className="h-3 w-3 text-red-500 flex-shrink-0" />
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 rounded" title="Hot Lead">
+                            <Flame className="h-3 w-3 text-red-600 flex-shrink-0" />
+                          </div>
+                        )}
+                        {conv.leadScore === "warm" && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 rounded" title="Warm Lead">
+                            <TrendingUp className="h-3 w-3 text-orange-600 flex-shrink-0" />
+                          </div>
+                        )}
+                        {conv.leadScore === "cold" && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 rounded" title="Cold Lead">
+                            <Star className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                          </div>
+                        )}
+
+                        {/* AI Mode Icon */}
+                        {conv.aiEnabled && conv.aiMode === "auto" && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-100 rounded" title="AI Auto Mode">
+                            <Bot className="h-3 w-3 text-green-700 flex-shrink-0" />
+                          </div>
+                        )}
+                        {conv.aiEnabled && conv.aiMode === "copilot" && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-100 rounded" title="Co-Pilot Mode">
+                            <Sparkles className="h-3 w-3 text-purple-700 flex-shrink-0" />
+                          </div>
+                        )}
+                        {(!conv.aiEnabled || conv.aiMode === "manual") && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 rounded" title="Manual Mode">
+                            <span className="text-[10px] font-medium text-gray-700">✋</span>
+                          </div>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 line-clamp-2">
-                        {conv.messages[0]?.messageText || "No messages"}
+                        {conv.messages[conv.messages.length - 1]?.messageText || "No messages"}
                       </p>
                     </div>
                   </div>
@@ -243,11 +312,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
                     <span className="text-xs text-gray-400">
                       {formatTime(conv.lastMessageAt)}
                     </span>
-                    {conv.aiEnabled && (
-                      <Badge variant="secondary" className="text-xs">
-                        🤖
-                      </Badge>
-                    )}
                   </div>
                 </button>
               ))}
@@ -327,16 +391,20 @@ export default function ConversationsClient({ initialConversations }: { initialC
 
             {/* Input Area */}
             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 bg-white"
-                />
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <Send className="h-4 w-4" />
-                </Button>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  For full messaging features, open conversation in detail view
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => router.push(`/dashboard/conversations/${selectedConv.id}`)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Full Chat
+                  </Button>
+                </div>
               </div>
             </div>
           </>
@@ -422,24 +490,41 @@ export default function ConversationsClient({ initialConversations }: { initialC
             </div>
 
             {/* Co-Pilot Suggestions */}
-            {selectedConv.aiMode === "copilot" && aiSuggestion && (
+            {selectedConv.aiMode === "copilot" && (
               <div>
                 <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-purple-500" />
                   AI Suggestion
                 </h3>
-                <Card className="p-2.5 bg-purple-50 border-purple-200">
-                  <p className="text-xs text-purple-900 leading-relaxed">
-                    {aiSuggestion}
-                  </p>
-                  <Button
-                    size="sm"
-                    className="w-full mt-2 h-7 text-xs bg-purple-600 hover:bg-purple-700"
-                    onClick={() => setNewMessage(aiSuggestion.replace("Try saying: ", "").replace(/^'|'$/g, ""))}
-                  >
-                    Use This
-                  </Button>
-                </Card>
+                {loadingSuggestion ? (
+                  <Card className="p-2.5 bg-purple-50 border-purple-200">
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                      <span className="ml-2 text-xs text-purple-700">Analyzing conversation...</span>
+                    </div>
+                  </Card>
+                ) : aiSuggestion ? (
+                  <Card className="p-2.5 bg-purple-50 border-purple-200">
+                    <p className="text-xs text-purple-900 leading-relaxed whitespace-pre-wrap">
+                      {aiSuggestion}
+                    </p>
+                    {!aiSuggestion.startsWith("⚠️") && (
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 h-7 text-xs bg-purple-600 hover:bg-purple-700"
+                        onClick={() => setNewMessage(aiSuggestion)}
+                      >
+                        Use This Response
+                      </Button>
+                    )}
+                  </Card>
+                ) : (
+                  <Card className="p-2.5 bg-gray-50 border-gray-200">
+                    <p className="text-xs text-gray-600 text-center py-2">
+                      No suggestion available yet. Wait for a customer message.
+                    </p>
+                  </Card>
+                )}
               </div>
             )}
 
