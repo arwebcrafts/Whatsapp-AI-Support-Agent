@@ -22,6 +22,7 @@ model User {
   trialEndsAt          DateTime?
   subscriptionStatus   String   @default("trial") // 'trial', 'active', 'cancelled', 'lifetime', 'expired'
   planType             String   @default("starter") // 'starter', 'professional', 'business'
+  billingInterval      String?  @default("monthly") // 'monthly', 'yearly', null for lifetime
   stripeCustomerId     String?  @unique
 
   agents               Agent[]
