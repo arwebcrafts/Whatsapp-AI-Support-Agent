@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { checkRateLimit, RateLimitPresets } from '@/lib/rate-limiter';
+// PRODUCTION: Use Redis rate limiter for scalability
+import { checkRateLimit, RateLimitPresets } from '@/lib/rate-limiter-redis';
 
 // TEMPORARY ENDPOINT - DELETE AFTER CREATING ADMIN
 // Only works if no admin exists yet (security measure)
@@ -10,7 +11,7 @@ import { checkRateLimit, RateLimitPresets } from '@/lib/rate-limiter';
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting - prevent brute force
-    const rateLimit = checkRateLimit(req, RateLimitPresets.ADMIN);
+    const rateLimit = await checkRateLimit(req, RateLimitPresets.ADMIN);
     if (!rateLimit.allowed) {
       return rateLimit.response!;
     }
