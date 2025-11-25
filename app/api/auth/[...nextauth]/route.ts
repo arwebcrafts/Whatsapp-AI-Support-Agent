@@ -1,7 +1,8 @@
 import NextAuth from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { NextRequest } from "next/server"
-import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter"
+// PRODUCTION: Use Redis rate limiter for scalability
+import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter-redis"
 
 const handler = NextAuth(authOptions)
 
@@ -9,7 +10,7 @@ const handler = NextAuth(authOptions)
 async function rateLimitedHandler(req: NextRequest, context: any) {
   // Only rate limit login attempts (POST to /api/auth/callback/credentials)
   if (req.method === 'POST' && req.url.includes('/callback/credentials')) {
-    const rateLimit = checkRateLimit(req, RateLimitPresets.AUTH);
+    const rateLimit = await checkRateLimit(req, RateLimitPresets.AUTH);
     if (!rateLimit.allowed) {
       return rateLimit.response!;
     }

@@ -1,50 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Redis-based rate limiter using Upstash Redis
+ * Production-ready rate limiter with Redis support
  *
- * SETUP:
- * 1. Create free Upstash Redis account: https://upstash.com
- * 2. Create a database and get credentials
- * 3. Add to .env.local:
- *    UPSTASH_REDIS_REST_URL="https://your-redis-url.upstash.io"
- *    UPSTASH_REDIS_REST_TOKEN="your-token"
- * 4. Install package: npm install @upstash/redis
+ * SUPPORTS TWO REDIS OPTIONS:
+ *
+ * 1. Railway Redis (Recommended for Railway deployment):
+ *    - Add Redis plugin in Railway dashboard
+ *    - Railway auto-provides: REDIS_URL
+ *    - No additional setup needed!
+ *
+ * 2. Upstash Redis (Alternative - free tier):
+ *    - Go to https://upstash.com
+ *    - Create database
+ *    - Add: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+ *
+ * Priority: Checks Railway REDIS_URL first, then falls back to Upstash
  */
 
-// Lazy load Redis to avoid errors if not configured
-let redis: any = null;
+// Lazy load Redis clients to avoid errors if not configured
+let redisClient: any = null;
 let isRedisAvailable = false;
+let redisType: 'railway' | 'upstash' | 'memory' = 'memory';
 
 async function getRedisClient() {
-  if (redis) return redis;
+  if (redisClient) return { client: redisClient, type: redisType };
 
-  // Check if Redis credentials are configured
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Option 1: Railway Redis (native Redis URL)
+  const redisUrl = process.env.REDIS_URL;
 
-  if (!redisUrl || !redisToken) {
-    console.warn('⚠️ Redis not configured, falling back to in-memory rate limiter');
-    console.warn('💡 For production, set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN');
-    isRedisAvailable = false;
-    return null;
+  if (redisUrl) {
+    try {
+      const Redis = (await import('ioredis')).default;
+      redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 3,
+        enableReadyCheck: false,
+        enableOfflineQueue: true,
+      });
+
+      isRedisAvailable = true;
+      redisType = 'railway';
+      console.log('✅ Railway Redis rate limiter connected successfully');
+      return { client: redisClient, type: redisType };
+    } catch (error) {
+      console.error('❌ Failed to connect to Railway Redis:', error);
+      redisClient = null;
+    }
   }
 
-  try {
-    const { Redis } = await import('@upstash/redis');
-    redis = new Redis({
-      url: redisUrl,
-      token: redisToken,
-    });
-    isRedisAvailable = true;
-    console.log('✅ Redis rate limiter connected successfully');
-    return redis;
-  } catch (error) {
-    console.error('❌ Failed to initialize Redis:', error);
-    console.warn('⚠️ Falling back to in-memory rate limiter');
-    isRedisAvailable = false;
-    return null;
+  // Option 2: Upstash Redis REST (fallback)
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (upstashUrl && upstashToken) {
+    try {
+      const { Redis } = await import('@upstash/redis');
+      redisClient = new Redis({
+        url: upstashUrl,
+        token: upstashToken,
+      });
+      isRedisAvailable = true;
+      redisType = 'upstash';
+      console.log('✅ Upstash Redis rate limiter connected successfully');
+      return { client: redisClient, type: redisType };
+    } catch (error) {
+      console.error('❌ Failed to initialize Upstash Redis:', error);
+      redisClient = null;
+    }
   }
+
+  // No Redis configured
+  console.warn('⚠️ Redis not configured, falling back to in-memory rate limiter');
+  console.warn('💡 For production, add Railway Redis plugin or set up Upstash Redis');
+  isRedisAvailable = false;
+  redisType = 'memory';
+  return { client: null, type: redisType };
 }
 
 /**
@@ -102,10 +132,10 @@ export async function checkRateLimitRedis(
   maxRequests: number,
   windowMs: number
 ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
-  const redisClient = await getRedisClient();
+  const { client: redisInstance, type } = await getRedisClient();
 
   // Fallback to in-memory if Redis not available
-  if (!redisClient) {
+  if (!redisInstance) {
     return inMemoryLimiter.check(identifier, maxRequests, windowMs);
   }
 
@@ -114,18 +144,37 @@ export async function checkRateLimitRedis(
     const windowSeconds = Math.ceil(windowMs / 1000);
     const key = `ratelimit:${identifier}`;
 
-    // Use Redis pipeline for atomic operations
-    const pipeline = redisClient.pipeline();
-    pipeline.incr(key);
-    pipeline.ttl(key);
+    let count: number;
+    let ttl: number;
 
-    const results = await pipeline.exec();
-    const count = results[0] as number;
-    const ttl = results[1] as number;
+    if (type === 'railway') {
+      // ioredis pipeline returns [[null, result], [null, result]]
+      const pipeline = redisInstance.pipeline();
+      pipeline.incr(key);
+      pipeline.ttl(key);
+      const results = await pipeline.exec();
 
-    // Set expiry on first request
-    if (count === 1) {
-      await redisClient.expire(key, windowSeconds);
+      count = results[0][1] as number;
+      ttl = results[1][1] as number;
+
+      // Set expiry on first request
+      if (count === 1) {
+        await redisInstance.expire(key, windowSeconds);
+      }
+    } else {
+      // Upstash Redis REST API returns results directly
+      const pipeline = redisInstance.pipeline();
+      pipeline.incr(key);
+      pipeline.ttl(key);
+      const results = await pipeline.exec();
+
+      count = results[0] as number;
+      ttl = results[1] as number;
+
+      // Set expiry on first request
+      if (count === 1) {
+        await redisInstance.expire(key, windowSeconds);
+      }
     }
 
     const resetTime = now + (ttl > 0 ? ttl * 1000 : windowMs);
