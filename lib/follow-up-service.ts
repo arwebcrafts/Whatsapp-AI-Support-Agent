@@ -61,18 +61,39 @@ export class FollowUpService {
           // SCENARIO 1: Customer stopped responding (3-4 hours)
           // Only if last message was from AI and customer hasn't responded
           if (!lastMessageFromCustomer && hoursSinceLastMessage >= 3 && hoursSinceLastMessage <= 4.5) {
-            // Check if we already sent a follow-up in the last 3 hours
-            const recentFollowUp = conversation.messages.find(
-              m => m.senderType === 'ai' &&
-              m.messageText?.includes('still interested') ||
-              m.messageText?.includes('Still thinking') ||
-              m.messageText?.includes('checking in')
-            );
+            // ✅ IMPROVEMENT #1: Max 2 follow-ups total (prevent spam)
+            const followUpCount = conversation.messages.filter(
+              m => m.senderType === 'ai' && (
+                m.messageText?.toLowerCase().includes('still interested') ||
+                m.messageText?.toLowerCase().includes('still thinking') ||
+                m.messageText?.toLowerCase().includes('checking in') ||
+                m.messageText?.toLowerCase().includes('following up') ||
+                m.messageText?.toLowerCase().includes('wanted to check')
+              )
+            ).length;
+
+            // Stop after 2 follow-up attempts
+            if (followUpCount >= 2) {
+              console.log(`⚠️ Max follow-ups reached (${followUpCount}) for conversation ${conversation.id}, skipping...`);
+
+              // ✅ IMPROVEMENT #2: Auto-archive cold leads after 2 failed follow-ups
+              if (conversation.status === 'active') {
+                await prisma.conversation.update({
+                  where: { id: conversation.id },
+                  data: {
+                    status: 'archived',
+                    leadScore: 'cold',
+                  },
+                });
+                console.log(`📦 Auto-archived cold lead: ${conversation.customerPhone}`);
+              }
+              continue;
+            }
 
             const hoursSinceLastAIMessage = lastMessage ?
               (now.getTime() - new Date(lastMessage.createdAt).getTime()) / (1000 * 60 * 60) : 999;
 
-            if (!recentFollowUp && hoursSinceLastAIMessage >= 3) {
+            if (hoursSinceLastAIMessage >= 3) {
               await this.sendEngagementFollowUp(conversation, 'no_response_3hr');
               followUpsSent++;
             }
@@ -84,17 +105,37 @@ export class FollowUpService {
 
             // Only if conversation is less than 3 days old (still warm)
             if (daysSinceCreation <= 3) {
-              const recentFollowUp = conversation.messages.find(
-                m => m.senderType === 'ai' &&
-                (m.messageText?.includes('special offer') ||
-                 m.messageText?.includes('still available') ||
-                 m.messageText?.includes('limited time'))
-              );
+              // ✅ IMPROVEMENT #1: Max 2 follow-ups total (prevent spam)
+              const followUpCount = conversation.messages.filter(
+                m => m.senderType === 'ai' && (
+                  m.messageText?.toLowerCase().includes('special offer') ||
+                  m.messageText?.toLowerCase().includes('still available') ||
+                  m.messageText?.toLowerCase().includes('limited time') ||
+                  m.messageText?.toLowerCase().includes('still interested') ||
+                  m.messageText?.toLowerCase().includes('checking in')
+                )
+              ).length;
 
-              if (!recentFollowUp) {
-                await this.sendEngagementFollowUp(conversation, 'no_purchase_24hr');
-                followUpsSent++;
+              // Stop after 2 follow-up attempts
+              if (followUpCount >= 2) {
+                console.log(`⚠️ Max follow-ups reached (${followUpCount}) for conversation ${conversation.id}, skipping 24hr follow-up...`);
+
+                // ✅ IMPROVEMENT #2: Auto-archive cold leads
+                if (conversation.status === 'active') {
+                  await prisma.conversation.update({
+                    where: { id: conversation.id },
+                    data: {
+                      status: 'archived',
+                      leadScore: 'cold',
+                    },
+                  });
+                  console.log(`📦 Auto-archived cold lead (24hr): ${conversation.customerPhone}`);
+                }
+                continue;
               }
+
+              await this.sendEngagementFollowUp(conversation, 'no_purchase_24hr');
+              followUpsSent++;
             }
           }
 
