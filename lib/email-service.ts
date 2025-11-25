@@ -10,19 +10,47 @@ import nodemailer from 'nodemailer';
  * - Subscription updates
  */
 
-// Email configuration
+// Email configuration with Railway-compatible settings
 const EMAIL_CONFIG = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
+  // Railway compatibility: Extended timeouts for cloud environments
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000, // 30 seconds
+  socketTimeout: 30000, // 30 seconds
+  // TLS options for better compatibility
+  tls: {
+    rejectUnauthorized: true,
+    minVersion: 'TLSv1.2',
+  },
+  // Connection pooling for better performance
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  // Enable debug logging in development
+  logger: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development',
 };
 
 // Create reusable transporter
 const transporter = nodemailer.createTransport(EMAIL_CONFIG);
+
+// Verify connection on startup (non-blocking)
+if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ SMTP connection failed:', error.message);
+      console.log('💡 Tip: If using port 465, try port 587 instead');
+    } else {
+      console.log('✅ SMTP server is ready to send emails');
+    }
+  });
+}
 
 // Email template types
 export type EmailTemplate =
