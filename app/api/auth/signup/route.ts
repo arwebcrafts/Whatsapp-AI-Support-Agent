@@ -4,7 +4,8 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { validatePassword } from "@/lib/password-validator";
 import { sendVerificationEmail } from "@/lib/email-service";
-import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter";
+// PRODUCTION: Use Redis rate limiter for scalability
+import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter-redis";
 
 export async function POST(req: NextRequest) {
   try {
