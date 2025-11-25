@@ -10,7 +10,7 @@ import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter-redis";
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting - prevent signup abuse
-    const rateLimit = checkRateLimit(req, RateLimitPresets.SIGNUP);
+    const rateLimit = await checkRateLimit(req, RateLimitPresets.SIGNUP);
     if (!rateLimit.allowed) {
       return rateLimit.response!;
     }

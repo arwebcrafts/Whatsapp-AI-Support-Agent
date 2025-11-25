@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email-service";
-import { checkRateLimit, RateLimitPresets, getClientIdentifier } from "@/lib/rate-limiter";
+// PRODUCTION: Use Redis rate limiter for scalability
+import { checkRateLimit, RateLimitPresets, getClientIdentifier } from "@/lib/rate-limiter-redis";
 
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting - prevent token enumeration attacks
-    const rateLimit = checkRateLimit(req, RateLimitPresets.EMAIL_VERIFY);
+    const rateLimit = await checkRateLimit(req, RateLimitPresets.EMAIL_VERIFY);
     if (!rateLimit.allowed) {
       return rateLimit.response!;
     }
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     // Rate limiting - prevent email spam
-    const rateLimit = checkRateLimit(req, RateLimitPresets.EMAIL_RESEND);
+    const rateLimit = await checkRateLimit(req, RateLimitPresets.EMAIL_RESEND);
     if (!rateLimit.allowed) {
       return rateLimit.response!;
     }

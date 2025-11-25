@@ -40,9 +40,27 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials")
         }
 
-        // SECURITY FIX: Enforce email verification
-        if (!user.emailVerified) {
+        // SECURITY FIX: Enforce email verification for regular users
+        // Admin users get verification code on every login
+        if (!user.emailVerified && user.role !== 'admin') {
           throw new Error("Please verify your email before logging in. Check your inbox.")
+        }
+
+        // ADMIN SECURITY: Send verification code on every admin login
+        if (user.role === 'admin') {
+          const {
+            generateVerificationCode,
+            storeAdminVerificationCode
+          } = await import('./admin-verification');
+          const { sendAdminVerificationCode } = await import('./email-service');
+
+          const code = generateVerificationCode();
+          storeAdminVerificationCode(user.email, code);
+
+          // Send verification code via email
+          await sendAdminVerificationCode(user.email, user.name || 'Admin', code);
+
+          throw new Error("ADMIN_VERIFICATION_REQUIRED");
         }
 
         return {
