@@ -20,14 +20,16 @@ const EMAIL_CONFIG: any = {
     pass: process.env.SMTP_PASSWORD,
   },
   // Railway compatibility: Extended timeouts for cloud environments
-  connectionTimeout: 30000, // 30 seconds
-  greetingTimeout: 30000, // 30 seconds
-  socketTimeout: 30000, // 30 seconds
+  connectionTimeout: 60000, // 60 seconds (increased for troubleshooting)
+  greetingTimeout: 60000, // 60 seconds
+  socketTimeout: 60000, // 60 seconds
   // TLS options for better compatibility
   tls: {
-    rejectUnauthorized: true,
-    minVersion: 'TLSv1.2',
+    rejectUnauthorized: false, // Disable cert validation for troubleshooting
+    minVersion: 'TLSv1',
+    ciphers: 'SSLv3',
   },
+  requireTLS: false, // Try without forcing TLS
   // Connection pooling for better performance
   pool: true,
   maxConnections: 5,
