@@ -88,26 +88,77 @@ export default async function AdminDashboard() {
     },
   });
 
-  // Get revenue estimate (based on subscriptions)
-  const planRevenue = {
-    starter: 29,
-    professional: 99,
-    business: 299,
+  // ✅ FIXED: Correct revenue calculation with proper pricing
+  const monthlyPrices = {
+    starter: 9,
+    professional: 19,
+    business: 39,
   };
 
-  const subscriptionBreakdown = await prisma.user.groupBy({
-    by: ['planType'],
+  const yearlyPrices = {
+    starter: 79,
+    professional: 169,
+    business: 349,
+  };
+
+  const lifetimePrices = {
+    starter: 79,
+    professional: 149,
+    business: 199,
+  };
+
+  // Get subscription breakdown by plan type
+  // NOTE: For now, we'll treat all 'active' subscriptions as monthly until billingInterval is fully implemented
+  const allSubscriptions = await prisma.user.findMany({
     where: {
       subscriptionStatus: { in: ['active', 'lifetime'] },
     },
-    _count: true,
+    select: {
+      planType: true,
+      subscriptionStatus: true,
+    },
   });
 
-  let estimatedMRR = 0;
-  subscriptionBreakdown.forEach((sub) => {
-    const plan = sub.planType as keyof typeof planRevenue;
-    estimatedMRR += (planRevenue[plan] || 0) * sub._count;
+  // Calculate revenue by subscription type
+  let monthlyMRR = 0;
+  let yearlyARR = 0;
+  let lifetimeRevenue = 0;
+  let monthlyCount = 0;
+  let yearlyCount = 0;
+  let lifetimeCount = 0;
+
+  const subscriptionBreakdown: any[] = [];
+  const planCounts: Record<string, number> = {};
+
+  allSubscriptions.forEach((sub) => {
+    const plan = sub.planType as keyof typeof monthlyPrices;
+
+    // Count by plan type
+    planCounts[plan] = (planCounts[plan] || 0) + 1;
+
+    if (sub.subscriptionStatus === 'lifetime') {
+      // Lifetime deal - one-time payment
+      lifetimeRevenue += lifetimePrices[plan] || 0;
+      lifetimeCount++;
+    } else {
+      // For now, treat all 'active' subscriptions as monthly
+      // TODO: Once billingInterval field is added and populated, use it to differentiate
+      monthlyMRR += monthlyPrices[plan] || 0;
+      monthlyCount++;
+    }
   });
+
+  // Convert plan counts to breakdown format for backward compatibility
+  Object.entries(planCounts).forEach(([planType, count]) => {
+    subscriptionBreakdown.push({
+      planType,
+      _count: count,
+    });
+  });
+
+  // Calculate total MRR (monthly + yearly as monthly equivalent)
+  const yearlyAsMRR = yearlyARR / 12;
+  const totalMRR = monthlyMRR + yearlyAsMRR;
 
   const stats = {
     totalUsers,
@@ -118,7 +169,15 @@ export default async function AdminDashboard() {
     totalMessages,
     activeConnections,
     monthlyMessages: monthlyUsage._sum.messagesUsed || 0,
-    estimatedMRR,
+    // Revenue metrics
+    estimatedMRR: totalMRR, // Total MRR (monthly + yearly/12)
+    monthlyMRR, // Pure monthly subscriptions
+    yearlyARR, // Annual recurring revenue
+    lifetimeRevenue, // One-time lifetime payments
+    // Subscription counts
+    monthlyCount,
+    yearlyCount,
+    lifetimeCount,
     subscriptionBreakdown,
   };
 
@@ -175,13 +234,13 @@ export default async function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Total MRR</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.estimatedMRR}</div>
+              <div className="text-2xl font-bold">${stats.estimatedMRR.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">
-                Estimated MRR
+                Monthly recurring revenue
               </p>
             </CardContent>
           </Card>
@@ -201,7 +260,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Additional Stats */}
-        <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card>
             <CardHeader>
               <CardTitle>Platform Activity</CardTitle>
@@ -234,18 +293,86 @@ export default async function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Subscription Breakdown</CardTitle>
+              <CardTitle>Revenue Breakdown</CardTitle>
+              <CardDescription>By subscription type</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                {/* Monthly Subscriptions */}
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-blue-900">Monthly Subscriptions</div>
+                    <div className="text-xs text-blue-600">{stats.monthlyCount} users</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-blue-900">${stats.monthlyMRR}</div>
+                    <div className="text-xs text-blue-600">MRR</div>
+                  </div>
+                </div>
+
+                {/* Yearly Subscriptions */}
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-green-900">Yearly Subscriptions</div>
+                    <div className="text-xs text-green-600">{stats.yearlyCount} users</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-green-900">${stats.yearlyARR}</div>
+                    <div className="text-xs text-green-600">ARR (${(stats.yearlyARR / 12).toFixed(2)}/mo)</div>
+                  </div>
+                </div>
+
+                {/* Lifetime Deals */}
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-orange-900">Lifetime Deals</div>
+                    <div className="text-xs text-orange-600">{stats.lifetimeCount} users</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-orange-900">${stats.lifetimeRevenue}</div>
+                    <div className="text-xs text-orange-600">One-time</div>
+                  </div>
+                </div>
+
+                {/* Total Summary */}
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg border-2 border-gray-300">
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Total MRR</div>
+                    <div className="text-xs text-gray-600">
+                      {stats.monthlyCount + stats.yearlyCount + stats.lifetimeCount} paid users
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-gray-900">${stats.estimatedMRR.toFixed(2)}</div>
+                    <div className="text-xs text-gray-600">Per month</div>
+                  </div>
+                </div>
+              </div>
+
+              {stats.monthlyCount + stats.yearlyCount + stats.lifetimeCount === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No active subscriptions yet
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Plan Breakdown</CardTitle>
               <CardDescription>Active subscriptions by plan</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {stats.subscriptionBreakdown.map((sub: any) => (
                 <div key={sub.planType} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{sub.planType}</span>
-                  <span className="font-bold">{sub._count} users</span>
+                  <span className="text-sm capitalize font-medium">{sub.planType}</span>
+                  <span className="font-bold text-lg">{sub._count} users</span>
                 </div>
               ))}
               {stats.subscriptionBreakdown.length === 0 && (
-                <p className="text-sm text-muted-foreground">No active subscriptions yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No active subscriptions yet
+                </p>
               )}
             </CardContent>
           </Card>

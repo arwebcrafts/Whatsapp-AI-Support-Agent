@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="whatsappGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#25D366;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#128C7E;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Chat bubble background -->
+  <rect x="15" y="20" width="70" height="55" rx="12" fill="url(#whatsappGreen)" filter="url(#shadow)"/>
+
+  <!-- Chat bubble tail -->
+  <path d="M 15 65 L 10 75 L 15 72 Z" fill="url(#whatsappGreen)"/>
+
+  <!-- Message lines (white) -->
+  <line x1="25" y1="35" x2="65" y2="35" stroke="white" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="25" y1="47" x2="55" y2="47" stroke="white" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+  <line x1="25" y1="59" x2="70" y2="59" stroke="white" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Checkmark (double check) -->
+  <path d="M 68 64 L 70 66 L 74 61" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+  <path d="M 72 64 L 74 66 L 78 61" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+</svg>

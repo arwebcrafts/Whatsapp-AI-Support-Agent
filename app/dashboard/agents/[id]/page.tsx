@@ -162,7 +162,7 @@ export default function AgentDetailPage() {
     if (!newKnowledge.trim()) return;
 
     try {
-      await fetch("/api/knowledge", {
+      const res = await fetch("/api/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -171,10 +171,19 @@ export default function AgentDetailPage() {
           agentId,
         }),
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to add knowledge: ${data.message || 'Unknown error'}`);
+        return;
+      }
+
       setNewKnowledge("");
       await loadAgent();
+      alert("Knowledge added successfully!");
     } catch (error) {
       console.error("Error adding knowledge:", error);
+      alert("Network error. Please check your connection.");
     }
   }
 
@@ -188,14 +197,22 @@ export default function AgentDetailPage() {
       formData.append("file", file);
       formData.append("agentId", agentId);
 
-      await fetch("/api/knowledge/upload", {
+      const res = await fetch("/api/knowledge/upload", {
         method: "POST",
         body: formData,
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to upload file: ${data.message || 'Unknown error'}`);
+        return;
+      }
+
       await loadAgent();
+      alert(`File "${file.name}" uploaded successfully!`);
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload file");
+      alert("Network error while uploading file. Please check your connection.");
     } finally {
       setUploadingFile(false);
     }
@@ -204,18 +221,35 @@ export default function AgentDetailPage() {
   async function scrapeWebsite() {
     if (!websiteUrl.trim()) return;
 
+    // Validate URL format
+    try {
+      new URL(websiteUrl);
+    } catch {
+      alert("Please enter a valid URL (e.g., https://example.com)");
+      return;
+    }
+
     setScrapingWebsite(true);
     try {
-      await fetch("/api/knowledge/scrape", {
+      const res = await fetch("/api/knowledge/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: websiteUrl, agentId }),
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to scrape website: ${data.message || 'Unknown error'}\n\nPlease make sure the website is accessible and not blocking scrapers.`);
+        return;
+      }
+
+      const data = await res.json();
       setWebsiteUrl("");
       await loadAgent();
+      alert(`Website scraped successfully!\nTitle: ${data.knowledge?.title || 'Unknown'}`);
     } catch (error) {
       console.error("Error scraping website:", error);
-      alert("Failed to scrape website");
+      alert("Network error while scraping website. Please check your connection and try again.");
     } finally {
       setScrapingWebsite(false);
     }
@@ -245,7 +279,17 @@ export default function AgentDetailPage() {
   }
 
   if (!agent) {
-    return null;
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-96 gap-4">
+          <Bot className="h-12 w-12 text-gray-400" />
+          <p className="text-gray-600">Agent not found</p>
+          <Link href="/dashboard">
+            <Button>Back to Dashboard</Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -254,7 +298,7 @@ export default function AgentDetailPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/agents">
+            <Link href="/dashboard">
               <Button variant="outline" size="icon">
                 <ArrowLeft className="h-4 w-4" />
               </Button>

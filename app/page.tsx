@@ -16,24 +16,16 @@ import {
   Send
 } from "lucide-react";
 import AnimatedChatPreview from "@/components/animated-chat-preview";
+import BlackFridayBanner from "@/components/black-friday-banner";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Black Friday Banner */}
-      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white py-3 sticky top-0 z-50 animate-pulse">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2 text-sm md:text-base font-bold">
-            <Flame className="h-5 w-5" />
-            <span>BLACK FRIDAY EXCLUSIVE: Lifetime Access $79 - Only 247/500 Spots Left!</span>
-            <span className="hidden md:inline">⏰ Ends December 31st</span>
-            <Flame className="h-5 w-5" />
-          </div>
-        </div>
-      </div>
+      {/* Black Friday Banner with Countdown */}
+      <BlackFridayBanner />
 
       {/* Navigation */}
-      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-12 z-40">
+      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -889,7 +881,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <MessageSquare className="h-6 w-6 text-primary" />
@@ -913,8 +905,13 @@ export default function Home() {
               <h4 className="font-semibold text-white mb-4">Support</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link href="#faq">FAQ</Link></li>
-                <li><Link href="/contact">Contact</Link></li>
+                <li><Link href="/dashboard/support">Support Tickets</Link></li>
                 <li><Link href="/docs">Documentation</Link></li>
+                <li>
+                  <a href="mailto:support@whasalessai.com" className="hover:text-primary">
+                    support@whasalessai.com
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -923,6 +920,38 @@ export default function Home() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/privacy">Privacy Policy</Link></li>
                 <li><Link href="/terms">Terms of Service</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-4">Connect</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a
+                    href="https://www.linkedin.com/company/whasales-ai/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary flex items-center gap-2"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                    </svg>
+                    LinkedIn
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/WhaSalesAI"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary flex items-center gap-2"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

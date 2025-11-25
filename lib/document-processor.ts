@@ -142,7 +142,7 @@ export class DocumentProcessor {
                   !toVisit.includes(absoluteUrl) &&
                   toVisit.length + visitedUrls.size < maxPages
                 ) {
-                  // Skip common non-content URLs
+                  // Skip common non-content URLs and blogs (saves AI tokens)
                   const skipPatterns = [
                     '/wp-admin',
                     '/wp-login',
@@ -151,6 +151,15 @@ export class DocumentProcessor {
                     '/cart',
                     '/checkout',
                     '/account',
+                    '/blog/',
+                    '/blogs/',
+                    '/post/',
+                    '/posts/',
+                    '/news/',
+                    '/article/',
+                    '/articles/',
+                    '-blog/',
+                    '-post/',
                     '.pdf',
                     '.jpg',
                     '.png',
