@@ -11,7 +11,7 @@ import nodemailer from 'nodemailer';
  */
 
 // Email configuration with Railway-compatible settings
-const EMAIL_CONFIG = {
+const EMAIL_CONFIG: any = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -38,7 +38,7 @@ const EMAIL_CONFIG = {
 };
 
 // Create reusable transporter
-const transporter = nodemailer.createTransport(EMAIL_CONFIG);
+const transporter = nodemailer.createTransport(EMAIL_CONFIG as any);
 
 // Verify connection on startup (non-blocking)
 if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
