@@ -388,3 +388,20 @@ export async function sendPaymentSuccessEmail(
     html: generatePaymentSuccessEmail(name, planName, amount, nextBillingDate),
   });
 }
+
+/**
+ * Send admin login verification code
+ */
+export async function sendAdminVerificationCode(
+  email: string,
+  name: string,
+  code: string
+): Promise<boolean> {
+  const { generateAdminLoginVerificationEmail } = await import('./admin-verification');
+
+  return await sendEmail({
+    to: email,
+    subject: '🔐 Admin Login Verification Code',
+    html: generateAdminLoginVerificationEmail(name, code),
+  });
+}
