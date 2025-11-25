@@ -8,6 +8,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Enable instrumentation hook for database initialization on startup
+    instrumentationHook: true,
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
