@@ -16,7 +16,14 @@ import crypto from 'crypto';
 
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
-const CSRF_SECRET = process.env.CSRF_SECRET || 'csrf-secret-change-me';
+
+// SECURITY: CSRF_SECRET must be set in environment variables
+const CSRF_SECRET = process.env.CSRF_SECRET;
+if (!CSRF_SECRET) {
+  console.error('❌ CRITICAL: CSRF_SECRET environment variable is not set!');
+  console.error('Generate one with: openssl rand -base64 32');
+  throw new Error('CSRF_SECRET is required for security');
+}
 
 /**
  * Generate a new CSRF token

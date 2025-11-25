@@ -122,6 +122,9 @@ model Conversation {
   @@index([userId])
   @@index([agentId])
   @@index([whatsappConnectionId])
+  @@index([customerPhone]) // PERFORMANCE FIX: Fast lookup by phone number
+  @@index([lastMessageAt]) // PERFORMANCE FIX: Sort by recent activity
+  @@index([userId, lastMessageAt]) // PERFORMANCE FIX: User's recent conversations
   @@map("conversations")
 }
 
@@ -137,6 +140,8 @@ model Message {
   createdAt       DateTime @default(now())
 
   @@index([conversationId])
+  @@index([createdAt]) // PERFORMANCE FIX: Time-based queries
+  @@index([conversationId, createdAt]) // PERFORMANCE FIX: Conversation history sorted by time
   @@map("messages")
 }
 

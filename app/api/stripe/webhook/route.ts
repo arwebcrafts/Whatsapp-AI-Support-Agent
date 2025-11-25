@@ -85,12 +85,16 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const messageLimit = messageLimits[planType] || 2000;
   const isLifetime = planInterval === "lifetime";
 
+  // CRITICAL FIX: Store Stripe customer ID for subscription management
+  const stripeCustomerId = session.customer as string;
+
   // Update user subscription
   await prisma.user.update({
     where: { id: userId },
     data: {
       subscriptionStatus: isLifetime ? "lifetime" : "active",
       planType,
+      stripeCustomerId, // ← Fix: Now storing customer ID
     },
   });
 

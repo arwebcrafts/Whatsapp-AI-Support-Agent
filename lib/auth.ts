@@ -40,6 +40,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials")
         }
 
+        // SECURITY FIX: Enforce email verification
+        if (!user.emailVerified) {
+          throw new Error("Please verify your email before logging in. Check your inbox.")
+        }
+
         return {
           id: user.id,
           email: user.email,

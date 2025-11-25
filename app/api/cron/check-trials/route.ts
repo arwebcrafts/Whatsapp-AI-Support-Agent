@@ -15,7 +15,16 @@ export async function GET(req: NextRequest) {
   try {
     // Verify cron secret for security
     const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET || "change-this-secret";
+    const cronSecret = process.env.CRON_SECRET;
+
+    // CRITICAL: CRON_SECRET must be set - no default fallback for security
+    if (!cronSecret) {
+      console.error("❌ CRON_SECRET environment variable is not set!");
+      return NextResponse.json(
+        { message: "Server configuration error" },
+        { status: 500 }
+      );
+    }
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
