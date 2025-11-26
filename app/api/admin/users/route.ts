@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
             month: 'desc',
           },
           take: 1,
+          select: {
+            messagesUsed: true,
+          },
         },
       },
       orderBy: {
@@ -52,7 +55,14 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ users });
+    // Serialize dates to strings for JSON response
+    const serializedUsers = users.map(user => ({
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+    }));
+
+    return NextResponse.json({ users: serializedUsers });
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json(
