@@ -1,16 +1,14 @@
 import makeWASocket, {
   DisconnectReason,
-  useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   downloadMediaMessage,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
-import path from 'path';
-import fs from 'fs';
 import { prisma } from './prisma';
 import { getPlanLimits } from './plan-limits';
+import { useDatabaseAuthState, clearDatabaseAuthState } from './database-auth-state';
 
 // Simple logger for Baileys
 const logger = {
@@ -37,17 +35,11 @@ interface WhatsAppSession {
 
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
-  private authDir = path.join(process.cwd(), 'whatsapp_sessions');
   private initialized = false;
   private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
   private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
 
   constructor() {
-    // Create auth directory if it doesn't exist
-    if (!fs.existsSync(this.authDir)) {
-      fs.mkdirSync(this.authDir, { recursive: true });
-    }
-
     // Auto-restore sessions on server start (run async in background)
     this.initializeConnections().catch(err =>
       console.error('Error initializing WhatsApp connections:', err)
@@ -102,16 +94,14 @@ class WhatsAppServiceFixed {
       for (const connection of activeConnections) {
         if (!connection.agentId || !connection.userId) continue;
 
-        const agentAuthDir = path.join(this.authDir, connection.agentId);
-
-        // Check if session files exist
-        if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
+        // Check if session data exists in database
+        if (connection.sessionData) {
           console.log(`📋 Queuing connection for agent ${connection.agent?.name || connection.agentId}...`);
 
           // Add to connection manager queue (priority 0 = normal)
           connectionManager.enqueue(connection.userId, connection.agentId!, 0);
         } else {
-          console.log(`⚠️ No session files found for agent ${connection.agentId}, marking as disconnected`);
+          console.log(`⚠️ No session data found in database for agent ${connection.agentId}, marking as disconnected`);
           // Mark as disconnected since we can't restore it
           await prisma.whatsAppConnection.update({
             where: { id: connection.id },
@@ -155,13 +145,8 @@ class WhatsAppServiceFixed {
         this.sessions.delete(agentId);
       }
 
-      const agentAuthDir = path.join(this.authDir, agentId);
-
-      if (!fs.existsSync(agentAuthDir)) {
-        fs.mkdirSync(agentAuthDir, { recursive: true });
-      }
-
-      const { state, saveCreds } = await useMultiFileAuthState(agentAuthDir);
+      // Use database-backed auth state instead of file-based
+      const { state, saveCreds } = await useDatabaseAuthState(agentId);
       const { version } = await fetchLatestBaileysVersion();
 
       console.log('📡 Creating WebSocket connection...');
@@ -294,35 +279,28 @@ class WhatsAppServiceFixed {
               lastDisconnect?.error?.message?.includes('Stream Errored');
 
             // Stream error 515 is normal after QR scan pairing - it means "restart connection"
-            // Only clear credentials if pairing never completed (no creds.json exists)
+            // Only clear credentials if pairing never completed (no session data exists)
             if (isStreamError) {
-              const credsPath = path.join(agentAuthDir, 'creds.json');
-              const hasCredentials = fs.existsSync(credsPath);
+              // Check if credentials exist in database
+              const connection = await prisma.whatsAppConnection.findFirst({
+                where: { agentId },
+              });
+              const hasCredentials = connection?.sessionData != null;
 
               if (hasCredentials) {
                 // Credentials exist - this is normal post-pairing restart
                 console.log('⚠️ Stream error after pairing - reconnecting with saved credentials...');
 
-                // Clear from memory but keep session files
+                // Clear from memory but keep session data in database
                 this.sessions.delete(agentId);
 
-                // Reconnect with existing credentials (don't clear session files)
+                // Reconnect with existing credentials
                 setTimeout(() => {
                   this.connectWhatsApp(userId, agentId);
                 }, 2000);
               } else {
                 // No credentials - pairing never completed, clear everything
                 console.log('⚠️ Stream error without credentials - clearing and retrying...');
-
-                // Clear the session directory
-                try {
-                  if (fs.existsSync(agentAuthDir)) {
-                    fs.rmSync(agentAuthDir, { recursive: true, force: true });
-                    console.log('✅ Cleared old session files');
-                  }
-                } catch (error) {
-                  console.error('❌ Error clearing session files:', error);
-                }
 
                 // Clear from memory
                 this.sessions.delete(agentId);
@@ -345,15 +323,8 @@ class WhatsAppServiceFixed {
             ) {
               console.log('🗑️ Detected expired/invalid credentials, clearing session...');
 
-              // Clear the session directory to force fresh QR generation
-              try {
-                if (fs.existsSync(agentAuthDir)) {
-                  fs.rmSync(agentAuthDir, { recursive: true, force: true });
-                  console.log('✅ Cleared old session files');
-                }
-              } catch (error) {
-                console.error('❌ Error clearing session files:', error);
-              }
+              // Clear session data from database to force fresh QR generation
+              await clearDatabaseAuthState(agentId);
 
               // Clear from memory
               this.sessions.delete(agentId);
@@ -1550,11 +1521,8 @@ Let's make this conversation count!`;
     this.sessions.delete(agentId);
     await this.updateConnectionStatus(agentId, false, null);
 
-    // Remove auth files
-    const agentAuthDir = path.join(this.authDir, agentId);
-    if (fs.existsSync(agentAuthDir)) {
-      fs.rmSync(agentAuthDir, { recursive: true, force: true });
-    }
+    // Clear auth data from database
+    await clearDatabaseAuthState(agentId);
 
     console.log(`✅ Successfully disconnected and cleaned up agent ${agentId}`);
   }
@@ -1686,20 +1654,9 @@ Let's make this conversation count!`;
       this.sessions.delete(agentId);
     }
 
-    // Delete session files from disk
-    const agentAuthDir = path.join(this.authDir, agentId);
-    try {
-      if (fs.existsSync(agentAuthDir)) {
-        fs.rmSync(agentAuthDir, { recursive: true, force: true });
-        console.log('✅ Cleared session files from disk');
-      }
-    } catch (error) {
-      console.error('❌ Error clearing session files:', error);
-      throw error;
-    }
-
-    // Update database
-    await this.updateConnectionStatus(agentId, false, null);
+    // Clear session data from database
+    await clearDatabaseAuthState(agentId);
+    console.log('✅ Cleared session data from database');
 
     console.log('✅ Session cleared successfully');
   }
