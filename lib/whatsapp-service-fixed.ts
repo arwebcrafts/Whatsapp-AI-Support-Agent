@@ -230,7 +230,6 @@ class WhatsAppServiceFixed {
 
             // CRITICAL: Check if we're in the pairing window (QR was recently generated)
             // During pairing, Baileys closes connection briefly - this is NORMAL
-            // DO NOT auto-reconnect during pairing window - let it complete naturally
             const session = this.sessions.get(agentId);
             const qrGeneratedAt = session?.qrGeneratedAt;
             const timeSinceQR = qrGeneratedAt ? Date.now() - qrGeneratedAt : Infinity;
@@ -239,14 +238,52 @@ class WhatsAppServiceFixed {
             if (isInPairingWindow) {
               console.log('⏸️ Connection closed during pairing window (QR scanned recently)');
               console.log(`⏱️ Time since QR generated: ${Math.round(timeSinceQR / 1000)}s`);
-              console.log('🔄 This is NORMAL during WhatsApp pairing - letting it reconnect naturally');
-              console.log('🚫 NOT creating new connection - waiting for pairing to complete');
 
-              // DO NOT auto-reconnect, DO NOT delete session
-              // Let Baileys handle the reconnection as part of pairing process
-              clearTimeout(timeout);
-              resolve(null);
-              return;
+              // Check if this is stream error 515 after successful pairing
+              const isStreamError = statusCode === 515 || lastDisconnect?.error?.message?.includes('Stream Errored');
+
+              if (isStreamError) {
+                console.log('🔄 Stream error 515 detected - checking if pairing completed...');
+
+                // Check if credentials were saved (pairing successful)
+                const connection = await prisma.whatsAppConnection.findFirst({
+                  where: { agentId },
+                });
+                const hasCredentials = connection?.sessionData != null;
+
+                if (hasCredentials) {
+                  console.log('✅ Pairing completed! Credentials saved to database');
+                  console.log('🔄 Reconnecting with saved credentials...');
+
+                  // Clear from memory but keep session data in database
+                  this.sessions.delete(agentId);
+
+                  // Reconnect with existing credentials
+                  setTimeout(() => {
+                    console.log('🔌 Initiating reconnection with saved credentials...');
+                    this.connectWhatsApp(userId, agentId);
+                  }, 2000);
+
+                  clearTimeout(timeout);
+                  resolve(null);
+                  return;
+                } else {
+                  console.log('⚠️ No credentials saved yet - pairing still in progress');
+                  console.log('🚫 NOT creating new connection - waiting for pairing to complete');
+                  clearTimeout(timeout);
+                  resolve(null);
+                  return;
+                }
+              } else {
+                console.log('🔄 This is NORMAL during WhatsApp pairing - letting it reconnect naturally');
+                console.log('🚫 NOT creating new connection - waiting for pairing to complete');
+
+                // DO NOT auto-reconnect, DO NOT delete session
+                // Let Baileys handle the reconnection as part of pairing process
+                clearTimeout(timeout);
+                resolve(null);
+                return;
+              }
             }
 
             // Check for conflict error (multiple sessions on same WhatsApp number)
