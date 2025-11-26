@@ -44,6 +44,9 @@ export default async function AdminUsersPage() {
           month: 'desc',
         },
         take: 1,
+        select: {
+          messagesUsed: true,
+        },
       },
     },
     orderBy: {
@@ -51,5 +54,12 @@ export default async function AdminUsersPage() {
     },
   });
 
-  return <AdminUsersClient users={users} />;
+  // Serialize dates to strings for client component (fixes Next.js serialization error)
+  const serializedUsers = users.map(user => ({
+    ...user,
+    createdAt: user.createdAt.toISOString(),
+    trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+  }));
+
+  return <AdminUsersClient users={serializedUsers} />;
 }
