@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
+import { getPlanLimits } from '@/lib/plan-limits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,13 +96,14 @@ export async function POST(req: NextRequest) {
         data: { messagesUsed: { increment: 1 } },
       });
     } else {
-      // Create usage record if it doesn't exist
+      // Create usage record if it doesn't exist - use user's current plan limits
+      const userPlanLimits = getPlanLimits(user.planType || 'starter');
       await prisma.messageUsage.create({
         data: {
           userId: user.id,
           month: currentMonth,
           messagesUsed: 1,
-          messageLimit: 2000, // Default limit
+          messageLimit: userPlanLimits.messageLimit,
         },
       });
     }

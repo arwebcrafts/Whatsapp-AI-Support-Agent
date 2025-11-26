@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2023-10-16",
@@ -75,14 +76,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   if (!userId || !planType) return;
 
-  // Determine message limit based on plan
-  const messageLimits: Record<string, number> = {
-    starter: 2000,
-    professional: 5000,
-    business: 12000,
-  };
-
-  const messageLimit = messageLimits[planType] || 2000;
+  // Get plan limits from centralized configuration
+  const planLimits = getPlanLimits(planType);
+  const messageLimit = planLimits.messageLimit;
   const isLifetime = planInterval === "lifetime";
 
   // CRITICAL FIX: Store Stripe customer ID for subscription management

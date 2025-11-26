@@ -28,6 +28,9 @@ import {
   Trash2,
   ArrowLeft,
   Crown,
+  UserCog,
+  Shield,
+  Infinity,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,6 +63,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPlan, setFilterPlan] = useState("all");
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [grantingAccess, setGrantingAccess] = useState<User | null>(null);
 
   async function loadUsers() {
     try {
@@ -100,6 +104,60 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     }
   }
 
+  async function grantAdminAccess(userId: string, userName: string) {
+    if (!confirm(`Grant admin portal access to ${userName}?\n\nThis will give them:\n• Unlimited message limits\n• Full admin portal access\n• Ability to view all users\n• No subscription restrictions`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/grant-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "admin",
+          planType: "admin_access",
+          subscriptionStatus: "lifetime",
+        }),
+      });
+
+      if (res.ok) {
+        alert("Admin access granted successfully!");
+        loadUsers();
+        setGrantingAccess(null);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to grant admin access");
+      }
+    } catch (error) {
+      console.error("Error granting admin access:", error);
+      alert("Failed to grant admin access");
+    }
+  }
+
+  async function revokeAdminAccess(userId: string, userName: string) {
+    if (!confirm(`Revoke admin access from ${userName}?\n\nThis will:\n• Remove admin portal access\n• Revert to starter plan\n• Apply trial limits`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/revoke-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        alert("Admin access revoked successfully!");
+        loadUsers();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to revoke admin access");
+      }
+    } catch (error) {
+      console.error("Error revoking admin access:", error);
+      alert("Failed to revoke admin access");
+    }
+  }
+
   async function deleteUser(userId: string, userEmail: string) {
     if (!confirm(`Are you sure you want to delete ${userEmail}? This action cannot be undone.`)) {
       return;
@@ -129,6 +187,16 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     const matchesPlan = filterPlan === "all" || user.planType === filterPlan;
     return matchesSearch && matchesPlan;
   });
+
+  function getPlanBadgeVariant(planType: string) {
+    if (planType === "admin_access") return "default";
+    return "outline";
+  }
+
+  function getPlanIcon(planType: string) {
+    if (planType === "admin_access") return <Infinity className="w-3 h-3 mr-1" />;
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -184,6 +252,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   <SelectItem value="starter">Starter</SelectItem>
                   <SelectItem value="professional">Professional</SelectItem>
                   <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="admin_access">Admin Access</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -223,8 +292,12 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {user.planType}
+                      <Badge
+                        variant={getPlanBadgeVariant(user.planType)}
+                        className={`capitalize ${user.planType === "admin_access" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
+                      >
+                        {getPlanIcon(user.planType)}
+                        {user.planType === "admin_access" ? "Admin Access (Unlimited)" : user.planType}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -249,11 +322,32 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
+                        {user.role !== "admin" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => grantAdminAccess(user.id, user.email)}
+                            title="Grant Admin Access"
+                          >
+                            <Shield className="w-4 h-4 text-purple-600" />
+                          </Button>
+                        )}
+                        {user.role === "admin" && user.planType === "admin_access" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => revokeAdminAccess(user.id, user.email)}
+                            title="Revoke Admin Access"
+                          >
+                            <UserCog className="w-4 h-4 text-orange-600" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingUser(user)}
+                          title="Edit User"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -262,6 +356,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                           size="sm"
                           onClick={() => deleteUser(user.id, user.email)}
                           disabled={user.role === "admin"}
+                          title="Delete User"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -305,8 +400,19 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       <SelectItem value="starter">Starter</SelectItem>
                       <SelectItem value="professional">Professional</SelectItem>
                       <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="admin_access">
+                        <div className="flex items-center">
+                          <Infinity className="w-3 h-3 mr-2" />
+                          Admin Access (Unlimited)
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {editingUser.planType === "admin_access" && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      ⚡ Unlimited messages, agents, and connections. Full admin portal access.
+                    </p>
+                  )}
                 </div>
 
                 <div>

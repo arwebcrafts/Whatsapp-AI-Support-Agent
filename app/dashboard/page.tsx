@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getPlanLimits } from "@/lib/plan-limits";
 import DashboardLayout from "@/components/dashboard-layout";
 import { DashboardWelcome } from "@/components/dashboard-welcome";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,14 +74,9 @@ export default async function DashboardPage() {
     },
   });
 
-  // Determine correct message limit based on plan type
-  const planLimits: Record<string, number> = {
-    starter: 2000,
-    professional: 5000,
-    business: 12000,
-  };
-
-  const correctLimit = planLimits[user.planType as string] || 2000;
+  // Get plan limits from centralized configuration
+  const userPlanLimits = getPlanLimits(user.planType || 'starter');
+  const correctLimit = userPlanLimits.messageLimit;
 
   // If usage doesn't exist or has wrong limit, create/update it
   if (!usage) {
@@ -157,6 +153,7 @@ export default async function DashboardPage() {
   const messagesUsed = usage.messagesUsed;
   const messageLimit = usage.messageLimit;
   const usagePercentage = (messagesUsed / messageLimit) * 100;
+  const isUnlimitedPlan = userPlanLimits.isUnlimited;
 
   const whatsappConnected = user.whatsappConnections.some(c => c.isConnected);
 
@@ -399,7 +396,10 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-3xl font-bold text-purple-600">{aiMessagesCount}</div>
               <p className="text-xs text-gray-600 mt-2">
-                {messagesUsed} / {messageLimit.toLocaleString()} this month
+                {isUnlimitedPlan
+                  ? `${messagesUsed} messages this month (Unlimited)`
+                  : `${messagesUsed} / ${messageLimit.toLocaleString()} this month`
+                }
               </p>
             </CardContent>
           </Card>
@@ -411,28 +411,47 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle>Message Usage This Month</CardTitle>
               <CardDescription>
-                You've used {messagesUsed} of {messageLimit.toLocaleString()} messages
+                {isUnlimitedPlan
+                  ? `You have unlimited messages - ${messagesUsed} sent this month`
+                  : `You've used ${messagesUsed} of ${messageLimit.toLocaleString()} messages`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Progress
-                value={usagePercentage}
-                className={`h-3 mb-2 ${usagePercentage > 80 ? 'bg-red-100' : ''}`}
-              />
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>{messagesUsed.toLocaleString()} used</span>
-                <span>{usagePercentage.toFixed(0)}%</span>
-              </div>
-              {usagePercentage > 80 && (
-                <div className="mt-4 bg-orange-50 border border-orange-200 p-3 rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-orange-800">Running low on messages</p>
-                    <p className="text-xs text-orange-700 mt-1">
-                      Consider upgrading your plan to avoid interruptions
-                    </p>
+              {isUnlimitedPlan ? (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 p-4 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-100 p-2 rounded-full">
+                      <Zap className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-purple-900">Unlimited Plan Active</p>
+                      <p className="text-sm text-purple-700">{messagesUsed.toLocaleString()} messages sent this month</p>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <Progress
+                    value={usagePercentage}
+                    className={`h-3 mb-2 ${usagePercentage > 80 ? 'bg-red-100' : ''}`}
+                  />
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>{messagesUsed.toLocaleString()} used</span>
+                    <span>{usagePercentage.toFixed(0)}%</span>
+                  </div>
+                  {usagePercentage > 80 && (
+                    <div className="mt-4 bg-orange-50 border border-orange-200 p-3 rounded-md flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-800">Running low on messages</p>
+                        <p className="text-xs text-orange-700 mt-1">
+                          Consider upgrading your plan to avoid interruptions
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

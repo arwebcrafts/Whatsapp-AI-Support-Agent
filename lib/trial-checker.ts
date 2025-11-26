@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { whatsappServiceFixed } from "./whatsapp-service-fixed";
+import { hasAdminAccess } from "./plan-limits";
 
 /**
  * Check and enforce trial expiration
@@ -80,6 +81,11 @@ export async function canUserSendMessage(userId: string): Promise<{
 
     if (!user) {
       return { allowed: false, reason: "User not found" };
+    }
+
+    // Admin access users have unlimited access - skip all checks
+    if (hasAdminAccess(user.planType || '')) {
+      return { allowed: true };
     }
 
     // Check trial expiration

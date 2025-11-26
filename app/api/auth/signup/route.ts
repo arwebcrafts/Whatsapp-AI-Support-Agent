@@ -6,6 +6,7 @@ import { validatePassword } from "@/lib/password-validator";
 import { sendVerificationEmail } from "@/lib/email-service";
 // PRODUCTION: Use Redis rate limiter for scalability
 import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limiter-redis";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 export async function POST(req: NextRequest) {
   try {
@@ -85,14 +86,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Create initial message usage record
+    // Create initial message usage record with starter plan limits
     const currentMonth = new Date().toISOString().slice(0, 7); // Format: 2025-11
+    const starterLimits = getPlanLimits('starter');
     await prisma.messageUsage.create({
       data: {
         userId: user.id,
         month: currentMonth,
         messagesUsed: 0,
-        messageLimit: 2000,
+        messageLimit: starterLimits.messageLimit,
       }
     });
 

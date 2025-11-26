@@ -10,6 +10,7 @@ import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from './prisma';
+import { getPlanLimits } from './plan-limits';
 
 // Simple logger for Baileys
 const logger = {
@@ -1292,12 +1293,19 @@ Let's make this conversation count!`;
           },
         });
       } else {
+        // Create usage record if it doesn't exist - fetch user's plan for correct limits
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { planType: true },
+        });
+        const userPlanLimits = getPlanLimits(user?.planType || 'starter');
+
         await prisma.messageUsage.create({
           data: {
             userId,
             month: currentMonth,
             messagesUsed: 1,
-            messageLimit: 2000,
+            messageLimit: userPlanLimits.messageLimit,
           },
         });
       }
