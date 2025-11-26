@@ -9,6 +9,7 @@
  */
 
 import { AuthenticationState, SignalDataTypeMap, initAuthCreds } from '@whiskeysockets/baileys';
+import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { proto } from '@whiskeysockets/baileys';
 
@@ -119,7 +120,7 @@ export async function clearDatabaseAuthState(agentId: string): Promise<void> {
     await prisma.whatsAppConnection.updateMany({
       where: { agentId },
       data: {
-        sessionData: null,
+        sessionData: null as any,
         isConnected: false,
       },
     });
