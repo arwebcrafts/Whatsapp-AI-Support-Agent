@@ -129,6 +129,56 @@ export function clearAdminVerificationCode(email: string): void {
   verificationCodes.delete(email.toLowerCase());
 }
 
+// Store for verified admin sessions (temporary, expires in 1 minute)
+const verifiedAdminSessions = new Map<string, { email: string; expiresAt: Date }>();
+
+// Clean up expired verified sessions every minute
+setInterval(() => {
+  const now = new Date();
+  for (const [token, value] of verifiedAdminSessions.entries()) {
+    if (now > value.expiresAt) {
+      verifiedAdminSessions.delete(token);
+    }
+  }
+}, 60 * 1000);
+
+/**
+ * Create a temporary verified session token
+ */
+export function createVerifiedAdminToken(email: string): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+
+  verifiedAdminSessions.set(token, {
+    email: email.toLowerCase(),
+    expiresAt,
+  });
+
+  console.log(`✅ Admin verified token created for ${email} (expires in 1 min)`);
+  return token;
+}
+
+/**
+ * Verify and consume admin verified token
+ */
+export function consumeVerifiedAdminToken(token: string): string | null {
+  const session = verifiedAdminSessions.get(token);
+
+  if (!session) {
+    return null;
+  }
+
+  // Check expiration
+  if (new Date() > session.expiresAt) {
+    verifiedAdminSessions.delete(token);
+    return null;
+  }
+
+  // Token is valid - consume it (one-time use)
+  verifiedAdminSessions.delete(token);
+  return session.email;
+}
+
 /**
  * Generate admin login verification email HTML
  */

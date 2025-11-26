@@ -14,10 +14,44 @@ export const authOptions: NextAuthOptions = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        verifiedToken: { label: "Verified Token", type: "text" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email) {
+          throw new Error("Invalid credentials")
+        }
+
+        // Check if this is an admin with a verified token (after code verification)
+        if (credentials.verifiedToken) {
+          const { consumeVerifiedAdminToken } = await import('./admin-verification');
+          const verifiedEmail = consumeVerifiedAdminToken(credentials.verifiedToken);
+
+          if (!verifiedEmail || verifiedEmail !== credentials.email.toLowerCase()) {
+            throw new Error("Invalid or expired verification token");
+          }
+
+          // Token is valid - fetch user and allow login
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() }
+          });
+
+          if (!user || user.role !== 'admin') {
+            throw new Error("Invalid admin account");
+          }
+
+          console.log(`✅ Admin ${user.email} logged in successfully with verified token`);
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        }
+
+        // Regular login flow (requires password)
+        if (!credentials?.password) {
           throw new Error("Invalid credentials")
         }
 

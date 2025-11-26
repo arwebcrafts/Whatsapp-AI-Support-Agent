@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdminCode } from '@/lib/admin-verification';
+import { verifyAdminCode, createVerifiedAdminToken } from '@/lib/admin-verification';
 
 /**
  * API endpoint to verify admin login code
@@ -52,11 +52,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Return success with user data (for session creation)
+    // Create a temporary verified token for completing the login
+    const verifiedToken = createVerifiedAdminToken(user.email);
+
+    // Return success with verified token
     return NextResponse.json(
       {
         success: true,
         message: result.message,
+        verifiedToken,
         user: {
           id: user.id,
           email: user.email,
