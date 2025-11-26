@@ -85,6 +85,8 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
   // Function to save credentials and keys to database
   const saveCreds = async () => {
     try {
+      console.log(`🔄 Attempting to save credentials for agent ${agentId}...`);
+
       // Prepare session data
       const sessionData = {
         creds: state.creds,
@@ -93,18 +95,20 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
 
       // Update or create connection with new session data
       if (connection) {
+        console.log(`📝 Updating connection ID: ${connection.id}`);
         await prisma.whatsAppConnection.update({
           where: { id: connection.id },
           data: { sessionData: sessionData as any },
         });
+        console.log(`✅ Successfully saved WhatsApp session to database for agent ${agentId}`);
       } else {
         // This shouldn't happen, but handle it gracefully
-        console.warn(`⚠️ No connection found for agent ${agentId}, skipping session save`);
+        console.error(`⚠️ No connection found for agent ${agentId}, cannot save session!`);
+        console.error(`⚠️ This means the WhatsAppConnection record doesn't exist in database`);
       }
-
-      console.log(`💾 Saved WhatsApp session to database for agent ${agentId}`);
     } catch (error) {
-      console.error(`❌ Error saving session to database:`, error);
+      console.error(`❌ Error saving session to database for agent ${agentId}:`, error);
+      console.error(`❌ Error details:`, error);
     }
   };
 

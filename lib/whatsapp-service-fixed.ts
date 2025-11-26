@@ -364,6 +364,11 @@ class WhatsAppServiceFixed {
             // Get phone number
             const phoneNumber = sock.user?.id?.split(':')[0] || sock.user?.id || '';
 
+            // CRITICAL: Save credentials to database after successful connection
+            console.log('💾 Saving credentials to database...');
+            await saveCreds();
+            console.log('✅ Credentials saved to database');
+
             // Update database
             await this.updateConnectionStatus(agentId, true, phoneNumber);
 
