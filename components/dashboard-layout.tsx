@@ -33,15 +33,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin
+    // Check if user is admin and has admin_access plan
     async function checkAdminStatus() {
       try {
         const res = await fetch("/api/user/me");
         if (res.ok) {
           const data = await res.json();
           setIsAdmin(data.user?.role === 'admin');
+          setHasAdminAccess(data.user?.planType === 'admin_access');
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
@@ -132,18 +134,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             })}
           </nav>
 
-          {/* Upgrade CTA */}
-          <div className="p-4 border-t">
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-4">
-              <h4 className="font-semibold mb-1">Upgrade to Pro</h4>
-              <p className="text-xs mb-3 opacity-90">Get 5,000 messages/month</p>
-              <Link href="/dashboard/billing">
-                <Button variant="secondary" size="sm" className="w-full">
-                  Upgrade Now
-                </Button>
-              </Link>
+          {/* Upgrade CTA - Hidden for admin_access users */}
+          {!hasAdminAccess && (
+            <div className="p-4 border-t">
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-4">
+                <h4 className="font-semibold mb-1">Upgrade to Pro</h4>
+                <p className="text-xs mb-3 opacity-90">Get 5,000 messages/month</p>
+                <Link href="/dashboard/billing">
+                  <Button variant="secondary" size="sm" className="w-full">
+                    Upgrade Now
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Sign Out */}
           <div className="p-4 border-t">

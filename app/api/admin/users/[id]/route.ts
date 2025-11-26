@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getPlanLimits } from '@/lib/plan-limits';
 
 // PATCH /api/admin/users/[id] - Update user details
 export async function PATCH(
@@ -26,20 +27,68 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { subscriptionStatus, planType, trialEndsAt, role } = body;
+    const { subscriptionStatus, planType, role } = body;
+
+    // Build update data
+    const updateData: any = {};
+
+    if (role) {
+      updateData.role = role;
+    }
+
+    if (planType) {
+      updateData.planType = planType;
+    }
+
+    if (subscriptionStatus) {
+      updateData.subscriptionStatus = subscriptionStatus;
+
+      // Auto-set trialEndsAt based on subscription status
+      if (subscriptionStatus === 'trial') {
+        const trialEndsAt = new Date();
+        trialEndsAt.setDate(trialEndsAt.getDate() + 3); // 3 days trial
+        updateData.trialEndsAt = trialEndsAt;
+      } else if (subscriptionStatus === 'lifetime' || subscriptionStatus === 'active') {
+        // Clear trial end date for lifetime/active subscriptions
+        updateData.trialEndsAt = null;
+      }
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
-      data: {
-        ...(subscriptionStatus && { subscriptionStatus }),
-        ...(planType && { planType }),
-        ...(trialEndsAt && { trialEndsAt: new Date(trialEndsAt) }),
-        ...(role && { role }),
-      },
+      data: updateData,
     });
 
-    return NextResponse.json({ user: updatedUser });
+    // If plan type changed, update message limits
+    if (planType) {
+      const planLimits = getPlanLimits(planType);
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      // Update or create message usage record with new limits
+      await prisma.messageUsage.upsert({
+        where: {
+          userId_month: {
+            userId: params.id,
+            month: currentMonth,
+          },
+        },
+        update: {
+          messageLimit: planLimits.messageLimit,
+        },
+        create: {
+          userId: params.id,
+          month: currentMonth,
+          messagesUsed: 0,
+          messageLimit: planLimits.messageLimit,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      user: updatedUser,
+      message: 'User updated successfully'
+    });
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json(
