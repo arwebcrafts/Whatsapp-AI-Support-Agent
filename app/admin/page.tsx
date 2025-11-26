@@ -107,7 +107,8 @@ export default async function AdminDashboard() {
     business: 199,
   };
 
-  // Get subscription breakdown by plan type AND billing interval
+  // Get subscription breakdown by plan type
+  // NOTE: For now, we'll treat all 'active' subscriptions as monthly until billingInterval is fully implemented
   const allSubscriptions = await prisma.user.findMany({
     where: {
       subscriptionStatus: { in: ['active', 'lifetime'] },
@@ -115,7 +116,6 @@ export default async function AdminDashboard() {
     select: {
       planType: true,
       subscriptionStatus: true,
-      billingInterval: true,
     },
   });
 
@@ -140,14 +140,11 @@ export default async function AdminDashboard() {
       // Lifetime deal - one-time payment
       lifetimeRevenue += lifetimePrices[plan] || 0;
       lifetimeCount++;
-    } else if (sub.billingInterval === 'monthly') {
-      // Monthly subscription
+    } else {
+      // For now, treat all 'active' subscriptions as monthly
+      // TODO: Once billingInterval field is added and populated, use it to differentiate
       monthlyMRR += monthlyPrices[plan] || 0;
       monthlyCount++;
-    } else if (sub.billingInterval === 'yearly') {
-      // Yearly subscription
-      yearlyARR += yearlyPrices[plan] || 0;
-      yearlyCount++;
     }
   });
 
@@ -159,7 +156,7 @@ export default async function AdminDashboard() {
     });
   });
 
-  // Calculate total MRR (including yearly converted to monthly)
+  // Calculate total MRR (monthly + yearly as monthly equivalent)
   const yearlyAsMRR = yearlyARR / 12;
   const totalMRR = monthlyMRR + yearlyAsMRR;
 

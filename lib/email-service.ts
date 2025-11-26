@@ -10,19 +10,67 @@ import nodemailer from 'nodemailer';
  * - Subscription updates
  */
 
-// Email configuration
-const EMAIL_CONFIG = {
+// Debug logging: Print all SMTP configuration values
+console.log('📧 ========== SMTP CONFIGURATION DEBUG ==========');
+console.log('SMTP_HOST:', process.env.SMTP_HOST || '(not set, using default)');
+console.log('SMTP_PORT:', process.env.SMTP_PORT || '(not set, using default 587)');
+console.log('SMTP_PORT (parsed as int):', parseInt(process.env.SMTP_PORT || '587'));
+console.log('SMTP_SECURE:', process.env.SMTP_SECURE || '(not set)');
+console.log('SMTP_SECURE (parsed as boolean):', process.env.SMTP_SECURE === 'true');
+console.log('SMTP_USER:', process.env.SMTP_USER || '(not set)');
+console.log('SMTP_PASSWORD:', process.env.SMTP_PASSWORD ? '***SET*** (length: ' + process.env.SMTP_PASSWORD.length + ')' : '(not set)');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('===============================================');
+
+// Email configuration with Railway-compatible settings
+const EMAIL_CONFIG: any = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
+  // Railway compatibility: Extended timeouts for cloud environments
+  connectionTimeout: 60000, // 60 seconds (increased for troubleshooting)
+  greetingTimeout: 60000, // 60 seconds
+  socketTimeout: 60000, // 60 seconds
+  // TLS options for better compatibility
+  tls: {
+    rejectUnauthorized: false, // Disable cert validation for troubleshooting
+    minVersion: 'TLSv1',
+    ciphers: 'SSLv3',
+  },
+  requireTLS: false, // Try without forcing TLS
+  // Connection pooling for better performance
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  // Enable debug logging in development
+  logger: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development',
 };
 
 // Create reusable transporter
-const transporter = nodemailer.createTransport(EMAIL_CONFIG);
+const transporter = nodemailer.createTransport(EMAIL_CONFIG as any);
+
+// Verify connection on startup (non-blocking)
+if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+  console.log('🔍 Testing SMTP connection...');
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ SMTP connection failed:', error.message);
+      console.error('Error details:', error);
+      console.log('💡 Tip: If using port 465, try port 587 instead');
+      console.log('💡 Railway may be blocking SMTP connections');
+    } else {
+      console.log('✅ SMTP server is ready to send emails');
+      console.log('Connection verified successfully!');
+    }
+  });
+} else {
+  console.warn('⚠️ Skipping SMTP verification - credentials not set');
+}
 
 // Email template types
 export type EmailTemplate =
@@ -52,6 +100,15 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       return false;
     }
 
+    console.log('📤 Attempting to send email...');
+    console.log('  To:', options.to);
+    console.log('  Subject:', options.subject);
+    console.log('  From:', `"WhaSales AI" <${process.env.SMTP_USER}>`);
+    console.log('  Using SMTP:', `${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+    console.log('  Secure:', process.env.SMTP_SECURE === 'true' ? 'Yes' : 'No');
+
+    const startTime = Date.now();
+
     await transporter.sendMail({
       from: `"WhaSales AI" <${process.env.SMTP_USER}>`,
       to: options.to,
@@ -60,10 +117,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
     });
 
-    console.log('✅ Email sent successfully to:', options.to);
+    const duration = Date.now() - startTime;
+    console.log(`✅ Email sent successfully to: ${options.to} (took ${duration}ms)`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error sending email:', error);
+    console.error('Error code:', error.code);
+    console.error('Error command:', error.command);
+    console.error('Full error:', JSON.stringify(error, null, 2));
     return false;
   }
 }
