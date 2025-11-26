@@ -19,6 +19,44 @@ export interface DatabaseAuthState {
 }
 
 /**
+ * Helper function to convert JSON-serialized Buffers back to actual Buffer objects
+ * When Buffers are saved to JSON, they become { type: 'Buffer', data: [1,2,3,...] }
+ * This function recursively walks the object and converts them back
+ */
+function deserializeBuffers(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Check if this is a serialized Buffer
+  if (
+    obj &&
+    typeof obj === 'object' &&
+    obj.type === 'Buffer' &&
+    Array.isArray(obj.data)
+  ) {
+    return Buffer.from(obj.data);
+  }
+
+  // If it's an array, recursively process each element
+  if (Array.isArray(obj)) {
+    return obj.map(item => deserializeBuffers(item));
+  }
+
+  // If it's an object, recursively process each property
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = deserializeBuffers(value);
+    }
+    return result;
+  }
+
+  // For primitives, return as-is
+  return obj;
+}
+
+/**
  * Create a database-backed auth state for WhatsApp
  * This persists authentication across deployments
  */
@@ -37,21 +75,30 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
     try {
       const sessionData = connection.sessionData as any;
 
-      // Parse stored credentials
+      console.log(`📥 Loading session from database for agent ${agentId}...`);
+
+      // Parse stored credentials and deserialize Buffers
       if (sessionData.creds) {
-        creds = sessionData.creds;
+        console.log('🔄 Deserializing credentials from database...');
+        creds = deserializeBuffers(sessionData.creds);
+        console.log('✅ Credentials deserialized successfully');
       } else {
+        console.log('⚠️ No credentials found in session data, initializing new');
         creds = initAuthCreds();
       }
 
-      // Parse stored keys
+      // Parse stored keys and deserialize Buffers
       if (sessionData.keys) {
-        keys = sessionData.keys;
+        console.log('🔄 Deserializing keys from database...');
+        keys = deserializeBuffers(sessionData.keys);
+        console.log(`✅ Keys deserialized successfully (${Object.keys(keys).length} keys)`);
       }
 
       console.log(`✅ Loaded existing WhatsApp session from database for agent ${agentId}`);
     } catch (error) {
       console.error(`Error loading session from database:`, error);
+      console.error(`Error details:`, error instanceof Error ? error.message : String(error));
+      console.log('⚠️ Falling back to new credentials');
       creds = initAuthCreds();
     }
   } else {
