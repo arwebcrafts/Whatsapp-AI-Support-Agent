@@ -159,7 +159,6 @@ class WhatsAppServiceFixed {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
-        printQRInTerminal: true, // Also print to terminal for debugging
         browser: ['WhaSales AI', 'Chrome', '1.0.0'],
         defaultQueryTimeoutMs: undefined,
       });
@@ -198,6 +197,8 @@ class WhatsAppServiceFixed {
               }
               console.log(`✅ QR Code generated successfully for agent ${agentId}`);
               console.log('📊 QR Code data URL length:', qrCode?.length || 0);
+              console.log('📱 Please scan this QR code with your WhatsApp mobile app');
+              console.log('⏳ Waiting for scan and pairing...');
 
               clearTimeout(timeout);
               resolve(qrCode); // Resolve with QR code
@@ -210,6 +211,7 @@ class WhatsAppServiceFixed {
 
           if (connection === 'connecting') {
             console.log('🔄 WhatsApp is connecting for agent:', agentId);
+            console.log('⏳ Connection state: CONNECTING - waiting for authentication...');
           }
 
           if (connection === 'close') {
@@ -360,14 +362,49 @@ class WhatsAppServiceFixed {
             resolve(null); // Connection closed without QR
           } else if (connection === 'open') {
             console.log('✅ WhatsApp connected successfully for agent:', agentId);
+            console.log('📱 Connection details:', {
+              userId: sock.user?.id,
+              name: sock.user?.name,
+              phoneNumber: sock.user?.id?.split(':')[0] || sock.user?.id || '',
+            });
 
             // Get phone number
             const phoneNumber = sock.user?.id?.split(':')[0] || sock.user?.id || '';
 
-            // CRITICAL: Save credentials to database after successful connection
-            console.log('💾 Saving credentials to database...');
-            await saveCreds();
-            console.log('✅ Credentials saved to database');
+            // CRITICAL: Verify WhatsAppConnection record exists before saving credentials
+            console.log('🔍 Checking if WhatsAppConnection record exists in database...');
+            const dbConnection = await prisma.whatsAppConnection.findFirst({
+              where: { agentId },
+            });
+
+            if (!dbConnection) {
+              console.error('❌ CRITICAL: No WhatsAppConnection record found for agent', agentId);
+              console.error('❌ Cannot save credentials without database record!');
+              console.error('❌ This means the record was not created during connectWhatsApp initialization');
+            } else {
+              console.log('✅ WhatsAppConnection record found:', {
+                id: dbConnection.id,
+                userId: dbConnection.userId,
+                agentId: dbConnection.agentId,
+                hasSessionData: !!dbConnection.sessionData,
+              });
+
+              // CRITICAL: Save credentials to database after successful connection
+              console.log('💾 Attempting to save credentials to database...');
+              try {
+                await saveCreds();
+                console.log('✅ Credentials successfully saved to database!');
+
+                // Verify credentials were actually saved
+                const verifyConnection = await prisma.whatsAppConnection.findFirst({
+                  where: { agentId },
+                });
+                console.log('🔍 Verification - sessionData now exists:', !!verifyConnection?.sessionData);
+              } catch (saveError) {
+                console.error('❌ CRITICAL ERROR saving credentials:', saveError);
+                console.error('❌ Error details:', saveError instanceof Error ? saveError.message : String(saveError));
+              }
+            }
 
             // Update database
             await this.updateConnectionStatus(agentId, true, phoneNumber);
