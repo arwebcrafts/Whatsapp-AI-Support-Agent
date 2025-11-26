@@ -316,7 +316,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     </TableCell>
                     <TableCell>{user._count.agents}</TableCell>
                     <TableCell>
-                      {user.messageUsage[0]?.messagesUsed || 0}
+                      {user.messageUsage?.[0]?.messagesUsed ?? 0}
                     </TableCell>
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString()}
