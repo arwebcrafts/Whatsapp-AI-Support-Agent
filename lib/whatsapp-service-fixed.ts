@@ -6,6 +6,8 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from './prisma';
 import { getPlanLimits } from './plan-limits';
 import { useDatabaseAuthState, clearDatabaseAuthState } from './database-auth-state';
