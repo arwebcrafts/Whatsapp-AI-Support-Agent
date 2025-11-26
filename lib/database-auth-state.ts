@@ -122,9 +122,16 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
         return data;
       },
       set: async (data: Record<string, SignalDataTypeMap[keyof SignalDataTypeMap]>) => {
+        const keysBefore = Object.keys(keys).length;
         for (const [key, value] of Object.entries(data)) {
           keys[key] = value;
         }
+        const keysAfter = Object.keys(keys).length;
+        console.log(`🔑 Keys updated for agent ${agentId}: ${keysBefore} → ${keysAfter} keys`);
+
+        // Auto-save keys whenever they're updated
+        console.log('💾 Auto-saving keys after update...');
+        await saveCreds();
       },
     },
   };
@@ -132,7 +139,9 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
   // Function to save credentials and keys to database
   const saveCreds = async () => {
     try {
+      const keyCount = Object.keys(keys).length;
       console.log(`🔄 Attempting to save credentials for agent ${agentId}...`);
+      console.log(`📊 Current state: ${keyCount} keys in memory`);
 
       // Prepare session data
       const sessionData = {
@@ -143,15 +152,33 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
       // Update or create connection with new session data
       if (connection) {
         console.log(`📝 Updating connection ID: ${connection.id}`);
+        console.log(`💾 Saving ${keyCount} keys to database...`);
         await prisma.whatsAppConnection.update({
           where: { id: connection.id },
           data: { sessionData: sessionData as any },
         });
         console.log(`✅ Successfully saved WhatsApp session to database for agent ${agentId}`);
+        console.log(`✅ Saved credentials with ${keyCount} keys`);
       } else {
-        // This shouldn't happen, but handle it gracefully
-        console.error(`⚠️ No connection found for agent ${agentId}, cannot save session!`);
-        console.error(`⚠️ This means the WhatsAppConnection record doesn't exist in database`);
+        // Re-fetch connection in case it was created after we started
+        console.log('⚠️ Connection reference is null, re-fetching from database...');
+        connection = await prisma.whatsAppConnection.findFirst({
+          where: { agentId },
+        });
+
+        if (connection) {
+          console.log(`📝 Found connection ID: ${connection.id}`);
+          console.log(`💾 Saving ${keyCount} keys to database...`);
+          await prisma.whatsAppConnection.update({
+            where: { id: connection.id },
+            data: { sessionData: sessionData as any },
+          });
+          console.log(`✅ Successfully saved WhatsApp session to database for agent ${agentId}`);
+          console.log(`✅ Saved credentials with ${keyCount} keys`);
+        } else {
+          console.error(`⚠️ No connection found for agent ${agentId}, cannot save session!`);
+          console.error(`⚠️ This means the WhatsAppConnection record doesn't exist in database`);
+        }
       }
     } catch (error) {
       console.error(`❌ Error saving session to database for agent ${agentId}:`, error);
