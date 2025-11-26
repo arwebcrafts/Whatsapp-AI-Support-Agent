@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Eye, EyeOff } from "lucide-react";
+import { MessageSquare, Eye, EyeOff, CheckCircle2, Mail } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -39,13 +41,87 @@ export default function SignupPage() {
         throw new Error(error.message || "Failed to sign up");
       }
 
-      // Redirect to onboarding after successful signup
-      router.push("/onboarding");
+      // Show success message instead of redirecting
+      setUserEmail(data.email);
+      setSignupSuccess(true);
     } catch (error: any) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Show success state after signup
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
+              <MessageSquare className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold">WhaSales AI</span>
+            </Link>
+          </div>
+
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-10 w-10 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl">Account Created!</CardTitle>
+              <CardDescription className="text-base mt-2">
+                Check your email to verify your account
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-blue-900 mb-1">
+                      📧 Verification Email Sent
+                    </p>
+                    <p className="text-sm text-blue-800">
+                      We've sent a verification link to <strong>{userEmail}</strong>
+                    </p>
+                    <p className="text-xs text-blue-700 mt-2">
+                      • Click the link in the email to activate your account<br />
+                      • Check your spam folder if you don't see it<br />
+                      • The link expires in 24 hours
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  ⚠️ <strong>Important:</strong> You must verify your email before you can log in. Please check your inbox and click the verification link.
+                </p>
+              </div>
+
+              <Link href="/login">
+                <Button className="w-full">
+                  Go to Login
+                </Button>
+              </Link>
+
+              <div className="text-center">
+                <p className="text-xs text-gray-600">
+                  Didn't receive the email?{" "}
+                  <button
+                    onClick={() => window.location.href = `/api/auth/verify-email?email=${encodeURIComponent(userEmail)}`}
+                    className="text-primary font-semibold hover:underline"
+                  >
+                    Resend verification
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (

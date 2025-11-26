@@ -71,13 +71,29 @@ export async function POST(req: NextRequest) {
         console.error(`❌ Error sending welcome email:`, error);
       });
 
-    return NextResponse.json(
+    // Return success with cache-busting headers
+    const response = NextResponse.json(
       {
         message: "Email verified successfully! Welcome to WhaSales AI.",
         success: true,
       },
       { status: 200 }
     );
+
+    // Add cache-control headers to prevent caching issues
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    // Clear any existing NextAuth session cookies to force fresh login
+    response.cookies.delete('next-auth.session-token');
+    response.cookies.delete('__Secure-next-auth.session-token');
+    response.cookies.delete('next-auth.csrf-token');
+    response.cookies.delete('__Secure-next-auth.csrf-token');
+    response.cookies.delete('next-auth.callback-url');
+    response.cookies.delete('__Secure-next-auth.callback-url');
+
+    return response;
   } catch (error) {
     console.error("Email verification error:", error);
     return NextResponse.json(

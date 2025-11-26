@@ -29,7 +29,12 @@ export default function VerifyEmailPage() {
     try {
       const res = await fetch('/api/auth/verify-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+        cache: 'no-store',
         body: JSON.stringify({ token }),
       });
 
@@ -39,9 +44,25 @@ export default function VerifyEmailPage() {
         setStatus('success');
         setMessage(data.message);
 
-        // Redirect to login after 3 seconds
+        // Clear any cached session data
+        if (typeof window !== 'undefined') {
+          // Clear session storage
+          sessionStorage.clear();
+
+          // Clear local storage items related to auth
+          try {
+            const authKeys = Object.keys(localStorage).filter(key =>
+              key.includes('auth') || key.includes('session') || key.includes('nextauth')
+            );
+            authKeys.forEach(key => localStorage.removeItem(key));
+          } catch (e) {
+            // Ignore localStorage errors
+          }
+        }
+
+        // Use hard redirect instead of Next.js router to clear all cache
         setTimeout(() => {
-          router.push('/login?verified=true');
+          window.location.href = '/login?verified=true&t=' + Date.now();
         }, 3000);
       } else {
         setStatus('error');
@@ -89,11 +110,16 @@ export default function VerifyEmailPage() {
                 </p>
               </div>
 
-              <Link href="/login">
-                <Button className="w-full">
-                  Go to Login
-                </Button>
-              </Link>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  // Clear cache and use hard redirect
+                  sessionStorage.clear();
+                  window.location.href = '/login?verified=true&t=' + Date.now();
+                }}
+              >
+                Go to Login
+              </Button>
             </div>
           )}
 

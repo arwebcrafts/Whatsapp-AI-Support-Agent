@@ -1,23 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, ShieldCheck } from "lucide-react";
+import { MessageSquare, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showAdminVerification, setShowAdminVerification] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [attemptsLeft, setAttemptsLeft] = useState<number | undefined>(undefined);
+  const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
+
+  // Check if user just verified their email
+  useEffect(() => {
+    if (searchParams.get('verified') === 'true') {
+      setShowVerifiedMessage(true);
+      // Hide message after 10 seconds
+      setTimeout(() => setShowVerifiedMessage(false), 10000);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -160,6 +171,15 @@ export default function LoginPage() {
             {!showAdminVerification ? (
               // Regular login form
               <form onSubmit={handleSubmit} className="space-y-4">
+                {showVerifiedMessage && (
+                  <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-md text-sm flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      <strong>Email verified successfully!</strong> You can now log in to your account.
+                    </span>
+                  </div>
+                )}
+
                 {error && (
                   <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
                     {error}
