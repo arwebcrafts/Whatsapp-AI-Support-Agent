@@ -33,6 +33,7 @@ interface WhatsAppSession {
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
   conflictRetries?: number; // Track conflict retry attempts
   eventListeners?: Set<string>; // Track registered event listeners for cleanup
+  qrGeneratedAt?: number; // Timestamp when QR was generated (to prevent reconnect during pairing)
 }
 
 class WhatsAppServiceFixed {
@@ -194,6 +195,9 @@ class WhatsAppServiceFixed {
               const session = this.sessions.get(agentId);
               if (session) {
                 session.qr = qrCode;
+                // Mark when QR was generated to prevent auto-reconnect during pairing
+                session.qrGeneratedAt = Date.now();
+                console.log('⏰ QR generation timestamp recorded:', session.qrGeneratedAt);
               }
               console.log(`✅ QR Code generated successfully for agent ${agentId}`);
               console.log('📊 QR Code data URL length:', qrCode?.length || 0);
@@ -223,6 +227,27 @@ class WhatsAppServiceFixed {
               shouldReconnect,
               reason: lastDisconnect?.error?.message,
             });
+
+            // CRITICAL: Check if we're in the pairing window (QR was recently generated)
+            // During pairing, Baileys closes connection briefly - this is NORMAL
+            // DO NOT auto-reconnect during pairing window - let it complete naturally
+            const session = this.sessions.get(agentId);
+            const qrGeneratedAt = session?.qrGeneratedAt;
+            const timeSinceQR = qrGeneratedAt ? Date.now() - qrGeneratedAt : Infinity;
+            const isInPairingWindow = timeSinceQR < 60000; // 60 seconds
+
+            if (isInPairingWindow) {
+              console.log('⏸️ Connection closed during pairing window (QR scanned recently)');
+              console.log(`⏱️ Time since QR generated: ${Math.round(timeSinceQR / 1000)}s`);
+              console.log('🔄 This is NORMAL during WhatsApp pairing - letting it reconnect naturally');
+              console.log('🚫 NOT creating new connection - waiting for pairing to complete');
+
+              // DO NOT auto-reconnect, DO NOT delete session
+              // Let Baileys handle the reconnection as part of pairing process
+              clearTimeout(timeout);
+              resolve(null);
+              return;
+            }
 
             // Check for conflict error (multiple sessions on same WhatsApp number)
             const isConflict =
@@ -414,6 +439,7 @@ class WhatsAppServiceFixed {
             if (session) {
               session.isConnected = true;
               session.qr = null; // Clear QR once connected
+              session.qrGeneratedAt = undefined; // Clear QR timestamp - pairing complete
               session.isReconnecting = false; // Clear reconnecting flag
               session.conflictRetries = 0; // Reset conflict counter on successful connection
               session.sock = sock; // Update socket reference
@@ -453,6 +479,7 @@ class WhatsAppServiceFixed {
         userId,
         isReconnecting: false,
         conflictRetries: 0,
+        qrGeneratedAt: undefined, // Will be set when QR is generated
       });
 
       // Create initial WhatsAppConnection record if it doesn't exist
