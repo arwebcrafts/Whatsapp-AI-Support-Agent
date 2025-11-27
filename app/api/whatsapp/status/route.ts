@@ -56,17 +56,31 @@ export async function GET(req: NextRequest) {
     // Only log if there's a state mismatch that requires action
 
     // FIX: If DB shows connected but no in-memory session exists (server restart/logout scenario)
-    // Try to reconnect using saved auth files
+    // Continuously retry reconnection until successful
     if (isConnected && !hasSession) {
-      // Check if already reconnecting to prevent duplicate attempts
       const existingSession = whatsappServiceFixed.getSession(agentId);
+      const now = Date.now();
 
-      if (!existingSession || !existingSession.isReconnecting) {
+      // Throttle reconnection attempts - only retry every 10 seconds
+      const RETRY_INTERVAL = 10000; // 10 seconds between attempts
+      const lastAttempt = existingSession?.lastReconnectAttempt || 0;
+      const timeSinceLastAttempt = now - lastAttempt;
+
+      if (timeSinceLastAttempt >= RETRY_INTERVAL) {
         console.log('🔄 DB shows connected but no session in memory - attempting reconnection...');
+        console.log(`⏱️ Last attempt was ${Math.round(timeSinceLastAttempt / 1000)}s ago`);
+
+        // Update last attempt timestamp
+        if (existingSession) {
+          existingSession.lastReconnectAttempt = now;
+        }
 
         // Trigger reconnection in background (don't await)
         whatsappServiceFixed.connectWhatsApp(user.id, agentId)
           .catch(err => console.error('Auto-reconnect failed:', err));
+      } else {
+        const waitTime = Math.round((RETRY_INTERVAL - timeSinceLastAttempt) / 1000);
+        console.log(`⏳ Waiting ${waitTime}s before next reconnection attempt...`);
       }
 
       // Return status showing reconnecting state
@@ -81,6 +95,7 @@ export async function GET(req: NextRequest) {
           sessionConnected,
           dbConnected: isConnected,
           autoReconnecting: true,
+          nextRetryIn: Math.max(0, RETRY_INTERVAL - timeSinceLastAttempt),
         }
       });
     }

@@ -31,6 +31,7 @@ interface WhatsAppSession {
   agentId: string;
   userId: string;
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
+  lastReconnectAttempt?: number; // Timestamp of last reconnection attempt
   conflictRetries?: number; // Track conflict retry attempts
   eventListeners?: Set<string>; // Track registered event listeners for cleanup
 }
@@ -476,6 +477,7 @@ class WhatsAppServiceFixed {
         agentId,
         userId,
         isReconnecting: false,
+        lastReconnectAttempt: Date.now(),
         conflictRetries: 0,
       });
 
