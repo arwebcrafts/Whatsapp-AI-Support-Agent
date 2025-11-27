@@ -37,10 +37,32 @@ interface WhatsAppSession {
 
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
-  // Use persistent volume on Railway, fallback to local for development
-  private authDir = process.env.RAILWAY_ENVIRONMENT
-    ? '/data/whatsapp_sessions'  // Persistent volume on Railway
-    : path.join(process.cwd(), 'whatsapp_sessions');  // Local for dev
+
+  // Auto-detect persistent volume: check if /data directory exists (Railway volume mount point)
+  // Falls back to local directory if volume not available
+  private authDir = (() => {
+    const volumePath = '/data/whatsapp_sessions';
+    const localPath = path.join(process.cwd(), 'whatsapp_sessions');
+
+    // Try to access /data directory (Railway volume)
+    try {
+      if (fs.existsSync('/data')) {
+        console.log('✅ Detected persistent volume at /data');
+        return volumePath;
+      }
+    } catch (error) {
+      console.log('⚠️ No persistent volume detected, using local storage');
+    }
+
+    // Check if running on Railway by other env vars
+    if (process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_PROJECT_ID) {
+      console.log('⚠️ Running on Railway but /data volume not found!');
+      console.log('💡 Mount a volume at /data to enable persistent sessions');
+    }
+
+    return localPath;
+  })();
+
   private initialized = false;
   private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
   private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
