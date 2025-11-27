@@ -4,10 +4,14 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const checks = {
+    const checks: any = {
       dataExists: fs.existsSync('/data'),
       dataIsDirectory: false,
       dataContents: [] as string[],
+      dataWritable: false,
+      whatsappSessionsExists: false,
+      whatsappSessionsContents: [] as string[],
+      sessionFilesCount: 0,
       workspaceExists: fs.existsSync('/workspace'),
       currentDir: process.cwd(),
       sessionDir: '',
@@ -20,6 +24,16 @@ export async function GET() {
 
         if (checks.dataIsDirectory) {
           checks.dataContents = fs.readdirSync('/data');
+
+          // Test if writable
+          try {
+            const testFile = path.join('/data', '.write_test_debug');
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+            checks.dataWritable = true;
+          } catch (e) {
+            checks.dataWritable = false;
+          }
         }
       } catch (error) {
         console.error('Error checking /data:', error);
@@ -33,9 +47,31 @@ export async function GET() {
       checks.sessionDir = path.join(process.cwd(), 'whatsapp_sessions');
     }
 
+    // Check whatsapp_sessions directory
+    if (fs.existsSync(checks.sessionDir)) {
+      checks.whatsappSessionsExists = true;
+      try {
+        const sessions = fs.readdirSync(checks.sessionDir);
+        checks.whatsappSessionsContents = sessions;
+
+        // Count total files in all session directories
+        sessions.forEach(agentId => {
+          const agentDir = path.join(checks.sessionDir, agentId);
+          if (fs.existsSync(agentDir) && fs.statSync(agentDir).isDirectory()) {
+            const files = fs.readdirSync(agentDir);
+            checks.sessionFilesCount += files.length;
+          }
+        });
+      } catch (e) {
+        console.error('Error reading session dir:', e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       volumeDetected: checks.dataExists && checks.dataIsDirectory,
+      volumeWritable: checks.dataWritable,
+      sessionsInVolume: checks.whatsappSessionsExists && checks.sessionDir.startsWith('/data'),
       details: checks,
       envVars: {
         RAILWAY_STATIC_URL: !!process.env.RAILWAY_STATIC_URL,
