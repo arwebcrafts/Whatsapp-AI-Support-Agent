@@ -94,30 +94,15 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
         const keyCount = Object.keys(keys).length;
         console.log(`✅ Keys deserialized successfully (${keyCount} keys)`);
 
-        // CRITICAL: If credentials exist but no keys, session is corrupted (from before auto-save was added)
-        // Clear it and start fresh with new QR code
-        if (keyCount === 0 && sessionData.creds) {
-          console.log('⚠️ DETECTED CORRUPTED SESSION: Credentials exist but no signal keys!');
-          console.log('🗑️ This is old session data from before auto-save fix was deployed');
-          console.log('🔄 Clearing corrupted session and starting fresh...');
-
-          // Clear the corrupted session
-          await prisma.whatsAppConnection.updateMany({
-            where: { agentId },
-            data: {
-              sessionData: null as any,
-              isConnected: false,
-            },
-          });
-
-          // Start fresh with new credentials
-          creds = initAuthCreds();
-          keys = {};
-          console.log('✅ Cleared corrupted session - will generate new QR code');
-          console.log(`🆕 Initialized new WhatsApp session for agent ${agentId}`);
-        } else {
-          console.log(`✅ Loaded existing WhatsApp session from database for agent ${agentId}`);
+        // NOTE: 0 keys is NORMAL during initial pairing phase!
+        // Baileys saves credentials first, then generates keys during reconnection.
+        // Do NOT clear sessions with 0 keys - they're in the middle of pairing.
+        if (keyCount === 0) {
+          console.log('ℹ️ Session has 0 keys - likely in pairing process');
+          console.log('🔑 Keys will be generated when connection is established');
         }
+
+        console.log(`✅ Loaded existing WhatsApp session from database for agent ${agentId}`);
       } else {
         console.log(`✅ Loaded existing WhatsApp session from database for agent ${agentId}`);
       }
