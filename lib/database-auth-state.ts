@@ -169,13 +169,18 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
       console.log(`🔄 Attempting to save credentials for agent ${agentId}...`);
       console.log(`📊 Current state: ${keyCount} keys in memory`);
 
-      // CRITICAL FIX: Don't save credentials with 0 keys (incomplete pairing)
-      // During QR code pairing, Baileys fires creds.update BEFORE generating keys
-      // Saving at this point creates a corrupted session
+      // IMPORTANT: We MUST save credentials even with 0 keys during initial pairing
+      // Baileys workflow:
+      // 1. QR scan → saves credentials (0 keys)
+      // 2. Stream error 515 → reconnects using credentials
+      // 3. During reconnection → generates and saves keys
+      // If we block step 1, step 2 never happens!
+
       if (keyCount === 0) {
-        console.log('⏸️ Skipping save: No signal keys generated yet (pairing in progress)');
-        console.log('⏸️ Will save automatically once keys are generated');
-        return;
+        console.log('⚠️ Saving credentials with 0 keys (initial pairing phase)');
+        console.log('🔑 Keys will be generated during reconnection after stream error 515');
+      } else {
+        console.log(`💾 Saving credentials with ${keyCount} keys`);
       }
 
       // Prepare session data
