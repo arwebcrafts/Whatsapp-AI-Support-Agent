@@ -406,14 +406,28 @@ class WhatsAppServiceFixed {
                 }, 2000);
               }
             }
-            // Check if it's a bad session / connection failure (expired credentials)
+            // Check if it's a bad session / connection failure / validation error (expired credentials)
             else if (
               statusCode === DisconnectReason.badSession ||
               statusCode === DisconnectReason.timedOut ||
               lastDisconnect?.error?.message?.includes('Connection Failure') ||
-              lastDisconnect?.error?.message?.includes('Connection Error')
+              lastDisconnect?.error?.message?.includes('Connection Error') ||
+              lastDisconnect?.error?.message?.includes('validating connection') ||
+              lastDisconnect?.error?.message?.includes('Validation')
             ) {
-              console.log('🗑️ Detected expired/invalid credentials, clearing session...');
+              console.log('🗑️ Detected expired/invalid credentials or validation error, clearing session...');
+
+              // Check if this is a 0-key session that failed validation
+              const connection = await prisma.whatsAppConnection.findFirst({
+                where: { agentId },
+              });
+              const sessionData = connection?.sessionData as any;
+              const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
+
+              if (keyCount === 0) {
+                console.log('⚠️ Validation failed with 0 keys - credentials from QR scan likely expired');
+                console.log('💡 Solution: Generate fresh QR code for user to scan again');
+              }
 
               // Clear session data from database to force fresh QR generation
               await clearDatabaseAuthState(agentId);
