@@ -276,18 +276,18 @@ class WhatsAppServiceFixed {
                   return;
                 } else if (hasCredentials && keyCount === 0) {
                   // Credentials but no keys - pairing in progress
-                  // DON'T manually reconnect - let Baileys handle it automatically!
+                  // DON'T manually reconnect AND don't resolve promise yet!
+                  // Keep waiting for Baileys to complete the pairing and fire 'open' event
                   console.log('⚠️ Found credentials with 0 keys - initial pairing phase');
                   console.log('⏸️ Letting Baileys handle reconnection automatically');
-                  console.log('🚫 NOT manually disconnecting - keeping connection alive');
+                  console.log('🔄 Continuing to wait for connection to open...');
+                  console.log('⏳ Baileys will reconnect and generate keys internally');
 
-                  // Don't clear session - let Baileys continue the pairing process
-                  // Don't trigger manual reconnect - Baileys will reconnect internally
-
-                  // Just acknowledge the stream error and let Baileys handle it
-                  clearTimeout(timeout);
-                  resolve(null);
-                  return;
+                  // DON'T resolve or clear timeout - keep the promise alive!
+                  // DON'T clear session - Baileys needs it to reconnect
+                  // The 'open' event will be fired when Baileys completes pairing
+                  // Just let the event loop continue...
+                  return; // Exit handler but keep promise alive
                 } else {
                   console.log('⚠️ No credentials saved yet - pairing still in progress');
                   console.log('🚫 NOT creating new connection - waiting for pairing to complete');
