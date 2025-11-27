@@ -55,9 +55,10 @@ export async function GET(req: NextRequest) {
     // Status check log removed - was flooding logs due to frequent polling
     // Only log if there's a state mismatch that requires action
 
-    // FIX: If DB shows connected but no in-memory session exists (server restart/logout scenario)
+    // FIX: If DB shows connected but session is not fully connected in memory
     // Continuously retry reconnection until successful
-    if (isConnected && !hasSession) {
+    // STOP when session exists AND is connected (both must be true)
+    if (isConnected && (!hasSession || !sessionConnected)) {
       const existingSession = whatsappServiceFixed.getSession(agentId);
       const now = Date.now();
 
@@ -67,7 +68,8 @@ export async function GET(req: NextRequest) {
       const timeSinceLastAttempt = now - lastAttempt;
 
       if (timeSinceLastAttempt >= RETRY_INTERVAL) {
-        console.log('🔄 DB shows connected but no session in memory - attempting reconnection...');
+        console.log('🔄 DB shows connected but session not ready - attempting reconnection...');
+        console.log(`📊 Status: hasSession=${hasSession}, sessionConnected=${sessionConnected}`);
         console.log(`⏱️ Last attempt was ${Math.round(timeSinceLastAttempt / 1000)}s ago`);
 
         // Update last attempt timestamp
