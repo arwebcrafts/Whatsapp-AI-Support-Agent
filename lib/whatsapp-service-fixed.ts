@@ -275,20 +275,25 @@ class WhatsAppServiceFixed {
                   resolve(null);
                   return;
                 } else if (hasCredentials && keyCount === 0) {
-                  // Credentials but no keys - pairing in progress
-                  // Reconnect IMMEDIATELY (no delay) to preserve credential validity
-                  console.log('⚠️ Found credentials with 0 keys - initial pairing phase');
-                  console.log('🔄 Reconnecting IMMEDIATELY to generate keys (no delay)');
-                  console.log('⚡ Fast reconnection preserves credential validity');
+                  // Credentials but no keys - incomplete pairing
+                  // These credentials are from QR scan but keys were never generated
+                  // They cannot be used for authentication - must clear and retry
+                  console.log('⚠️ Found credentials with 0 keys - incomplete pairing detected');
+                  console.log('🗑️ Credentials from QR scan but keys never generated');
+                  console.log('💡 Clearing invalid session and generating fresh QR code');
+
+                  // Clear the incomplete session from database
+                  await clearDatabaseAuthState(agentId);
 
                   // Clear from memory
                   this.sessions.delete(agentId);
 
-                  // Reconnect IMMEDIATELY without delay
-                  // The 2-second delay was causing credentials to expire
-                  // Immediate reconnection keeps credentials valid
+                  // Update database status
+                  await this.updateConnectionStatus(agentId, false, null);
+
+                  // Generate fresh QR code - reconnect immediately
                   setImmediate(() => {
-                    console.log('🔌 Immediate reconnection initiated');
+                    console.log('🔄 Reconnecting with fresh session for new QR code');
                     this.connectWhatsApp(userId, agentId);
                   });
 
