@@ -52,15 +52,8 @@ export async function GET(req: NextRequest) {
     const hasSession = !!sessionData;
     const sessionConnected = sessionData?.isConnected || false;
 
-    // Log for debugging
-    console.log('📊 Status check:', {
-      agentId,
-      dbConnected: isConnected,
-      hasSession,
-      sessionConnected,
-      hasQR: !!sessionData?.qr,
-      phoneNumber: connection?.phoneNumber,
-    });
+    // Status check log removed - was flooding logs due to frequent polling
+    // Only log if there's a state mismatch that requires action
 
     // FIX: If DB shows connected but no in-memory session exists (server restart/logout scenario)
     // Try to reconnect using saved auth files
