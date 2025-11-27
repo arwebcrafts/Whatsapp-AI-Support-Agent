@@ -276,18 +276,25 @@ class WhatsAppServiceFixed {
                   return;
                 } else if (hasCredentials && keyCount === 0) {
                   // Credentials but no keys - pairing in progress
-                  // DON'T manually reconnect AND don't resolve promise yet!
-                  // Keep waiting for Baileys to complete the pairing and fire 'open' event
+                  // Reconnect IMMEDIATELY (no delay) to preserve credential validity
                   console.log('⚠️ Found credentials with 0 keys - initial pairing phase');
-                  console.log('⏸️ Letting Baileys handle reconnection automatically');
-                  console.log('🔄 Continuing to wait for connection to open...');
-                  console.log('⏳ Baileys will reconnect and generate keys internally');
+                  console.log('🔄 Reconnecting IMMEDIATELY to generate keys (no delay)');
+                  console.log('⚡ Fast reconnection preserves credential validity');
 
-                  // DON'T resolve or clear timeout - keep the promise alive!
-                  // DON'T clear session - Baileys needs it to reconnect
-                  // The 'open' event will be fired when Baileys completes pairing
-                  // Just let the event loop continue...
-                  return; // Exit handler but keep promise alive
+                  // Clear from memory
+                  this.sessions.delete(agentId);
+
+                  // Reconnect IMMEDIATELY without delay
+                  // The 2-second delay was causing credentials to expire
+                  // Immediate reconnection keeps credentials valid
+                  setImmediate(() => {
+                    console.log('🔌 Immediate reconnection initiated');
+                    this.connectWhatsApp(userId, agentId);
+                  });
+
+                  clearTimeout(timeout);
+                  resolve(null);
+                  return;
                 } else {
                   console.log('⚠️ No credentials saved yet - pairing still in progress');
                   console.log('🚫 NOT creating new connection - waiting for pairing to complete');
@@ -383,18 +390,28 @@ class WhatsAppServiceFixed {
               if (hasCredentials) {
                 // Credentials exist - reconnect to complete pairing or restore session
                 if (keyCount === 0) {
-                  console.log('⚠️ Stream error with 0 keys - reconnecting to generate keys...');
+                  console.log('⚠️ Stream error with 0 keys - reconnecting IMMEDIATELY to generate keys...');
+                  console.log('⚡ Fast reconnection preserves credential validity');
+
+                  // Clear from memory but keep session data in database
+                  this.sessions.delete(agentId);
+
+                  // Reconnect IMMEDIATELY to preserve credentials
+                  setImmediate(() => {
+                    console.log('🔌 Immediate reconnection for key generation');
+                    this.connectWhatsApp(userId, agentId);
+                  });
                 } else {
                   console.log(`✅ Stream error with ${keyCount} keys - normal reconnection`);
+
+                  // Clear from memory but keep session data in database
+                  this.sessions.delete(agentId);
+
+                  // Normal reconnection with slight delay
+                  setTimeout(() => {
+                    this.connectWhatsApp(userId, agentId);
+                  }, 2000);
                 }
-
-                // Clear from memory but keep session data in database
-                this.sessions.delete(agentId);
-
-                // Reconnect with existing credentials
-                setTimeout(() => {
-                  this.connectWhatsApp(userId, agentId);
-                }, 2000);
               } else {
                 // No credentials - pairing never completed, clear everything
                 console.log('⚠️ Stream error without credentials - clearing and retrying...');
