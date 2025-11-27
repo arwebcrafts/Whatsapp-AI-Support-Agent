@@ -169,6 +169,15 @@ export async function useDatabaseAuthState(agentId: string): Promise<DatabaseAut
       console.log(`🔄 Attempting to save credentials for agent ${agentId}...`);
       console.log(`📊 Current state: ${keyCount} keys in memory`);
 
+      // CRITICAL FIX: Don't save credentials with 0 keys (incomplete pairing)
+      // During QR code pairing, Baileys fires creds.update BEFORE generating keys
+      // Saving at this point creates a corrupted session
+      if (keyCount === 0) {
+        console.log('⏸️ Skipping save: No signal keys generated yet (pairing in progress)');
+        console.log('⏸️ Will save automatically once keys are generated');
+        return;
+      }
+
       // Prepare session data
       const sessionData = {
         creds: state.creds,

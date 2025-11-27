@@ -249,10 +249,19 @@ class WhatsAppServiceFixed {
                 const connection = await prisma.whatsAppConnection.findFirst({
                   where: { agentId },
                 });
-                const hasCredentials = connection?.sessionData != null;
+                const sessionData = connection?.sessionData as any;
+                const hasCredentials = sessionData != null;
 
-                if (hasCredentials) {
-                  console.log('✅ Pairing completed! Credentials saved to database');
+                // CRITICAL FIX: Check if credentials have VALID keys (not just credentials)
+                // Credentials with 0 keys = incomplete pairing
+                const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
+                const hasValidSession = hasCredentials && keyCount > 0;
+
+                console.log(`🔍 Pairing check: credentials=${hasCredentials}, keys=${keyCount}, valid=${hasValidSession}`);
+
+                if (hasValidSession) {
+                  console.log('✅ Pairing completed! Credentials with valid keys saved to database');
+                  console.log(`✅ Found ${keyCount} signal keys - session is valid`);
                   console.log('🔄 Reconnecting with saved credentials...');
 
                   // Clear from memory but keep session data in database
@@ -268,7 +277,10 @@ class WhatsAppServiceFixed {
                   resolve(null);
                   return;
                 } else {
-                  console.log('⚠️ No credentials saved yet - pairing still in progress');
+                  console.log('⚠️ No valid credentials saved yet - pairing still in progress');
+                  if (hasCredentials && keyCount === 0) {
+                    console.log('⚠️ Found credentials but 0 keys - waiting for key generation...');
+                  }
                   console.log('🚫 NOT creating new connection - waiting for pairing to complete');
                   clearTimeout(timeout);
                   resolve(null);
@@ -351,11 +363,19 @@ class WhatsAppServiceFixed {
               const connection = await prisma.whatsAppConnection.findFirst({
                 where: { agentId },
               });
-              const hasCredentials = connection?.sessionData != null;
+              const sessionData = connection?.sessionData as any;
+              const hasCredentials = sessionData != null;
 
-              if (hasCredentials) {
-                // Credentials exist - this is normal post-pairing restart
+              // CRITICAL FIX: Check if credentials have VALID keys
+              const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
+              const hasValidSession = hasCredentials && keyCount > 0;
+
+              console.log(`🔍 Stream error check: credentials=${hasCredentials}, keys=${keyCount}, valid=${hasValidSession}`);
+
+              if (hasValidSession) {
+                // Credentials exist with valid keys - this is normal post-pairing restart
                 console.log('⚠️ Stream error after pairing - reconnecting with saved credentials...');
+                console.log(`✅ Valid session found with ${keyCount} keys`);
 
                 // Clear from memory but keep session data in database
                 this.sessions.delete(agentId);
