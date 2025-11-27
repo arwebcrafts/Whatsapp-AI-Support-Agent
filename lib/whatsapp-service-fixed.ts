@@ -48,19 +48,39 @@ class WhatsAppServiceFixed {
     // Try to access /data directory (Railway volume)
     try {
       if (fs.existsSync('/data')) {
-        console.log('✅ Detected persistent volume at /data');
-        return volumePath;
+        console.log('✅ Detected /data directory');
+
+        // Check if /data is writable
+        try {
+          const testFile = path.join('/data', '.write_test');
+          fs.writeFileSync(testFile, 'test');
+          fs.unlinkSync(testFile);
+          console.log('✅ /data is writable');
+
+          // Create whatsapp_sessions directory if it doesn't exist
+          if (!fs.existsSync(volumePath)) {
+            fs.mkdirSync(volumePath, { recursive: true });
+            console.log('✅ Created /data/whatsapp_sessions directory');
+          }
+
+          console.log('✅ Using persistent volume at /data for sessions');
+          return volumePath;
+        } catch (writeError) {
+          console.error('❌ /data exists but is not writable:', writeError);
+          console.log('⚠️ Falling back to local storage');
+        }
       }
     } catch (error) {
-      console.log('⚠️ No persistent volume detected, using local storage');
+      console.log('⚠️ Error checking /data volume:', error);
     }
 
     // Check if running on Railway by other env vars
     if (process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_PROJECT_ID) {
-      console.log('⚠️ Running on Railway but /data volume not found!');
-      console.log('💡 Mount a volume at /data to enable persistent sessions');
+      console.log('⚠️ Running on Railway but /data volume not accessible!');
+      console.log('💡 Check if volume is properly mounted at /data');
     }
 
+    console.log('📁 Using local storage at:', localPath);
     return localPath;
   })();
 
