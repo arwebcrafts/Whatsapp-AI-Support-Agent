@@ -147,6 +147,10 @@ class WhatsAppServiceFixed {
         }
 
         console.log('⚠️ Found existing session for agent, disconnecting old session...');
+
+        // Mark as reconnecting to prevent auto-reconnect when we manually close it
+        existingSession.isReconnecting = true;
+
         try {
           await existingSession.sock?.end();
         } catch (error) {
@@ -368,6 +372,16 @@ class WhatsAppServiceFixed {
                 this.connectWhatsApp(userId, agentId);
               }, 2000);
             } else if (shouldReconnect) {
+              // Check if this was a manual close (isReconnecting flag set)
+              const session = this.sessions.get(agentId);
+              if (session?.isReconnecting) {
+                console.log('⏸️ Manual disconnect detected - skipping auto-reconnect');
+                this.sessions.delete(agentId);
+                clearTimeout(timeout);
+                resolve(null);
+                return;
+              }
+
               console.log('🔄 Connection lost, will reconnect...');
 
               // Clear session to allow fresh reconnection
