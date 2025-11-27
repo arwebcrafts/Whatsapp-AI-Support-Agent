@@ -48,7 +48,7 @@ export class AgentRouter {
     });
 
     // If customer already has a conversation, route to same agent (sticky)
-    if (existingConversation) {
+    if (existingConversation && existingConversation.agentId) {
       console.log(`📌 Sticky routing: Customer ${customerPhone} → Agent ${existingConversation.agentId}`);
       return existingConversation.agentId;
     }
