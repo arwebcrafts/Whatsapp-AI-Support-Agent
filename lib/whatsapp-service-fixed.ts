@@ -37,7 +37,10 @@ interface WhatsAppSession {
 
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
-  private authDir = path.join(process.cwd(), 'whatsapp_sessions');
+  // Use persistent volume on Railway, fallback to local for development
+  private authDir = process.env.RAILWAY_ENVIRONMENT
+    ? '/data/whatsapp_sessions'  // Persistent volume on Railway
+    : path.join(process.cwd(), 'whatsapp_sessions');  // Local for dev
   private initialized = false;
   private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
   private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
