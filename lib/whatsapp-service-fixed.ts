@@ -1,5 +1,6 @@
 import makeWASocket, {
   DisconnectReason,
+  useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
   downloadMediaMessage,
@@ -10,7 +11,6 @@ import path from 'path';
 import fs from 'fs';
 import { prisma } from './prisma';
 import { getPlanLimits } from './plan-limits';
-import { useDatabaseAuthState, clearDatabaseAuthState } from './database-auth-state';
 
 // Simple logger for Baileys
 const logger = {
@@ -33,16 +33,21 @@ interface WhatsAppSession {
   isReconnecting?: boolean; // Flag to prevent duplicate reconnections
   conflictRetries?: number; // Track conflict retry attempts
   eventListeners?: Set<string>; // Track registered event listeners for cleanup
-  qrGeneratedAt?: number; // Timestamp when QR was generated (to prevent reconnect during pairing)
 }
 
 class WhatsAppServiceFixed {
   private sessions: Map<string, WhatsAppSession> = new Map(); // key: agentId
+  private authDir = path.join(process.cwd(), 'whatsapp_sessions');
   private initialized = false;
   private messageDebounceTimers: Map<string, NodeJS.Timeout> = new Map(); // key: conversationId
   private pendingMessages: Map<string, number> = new Map(); // key: conversationId, value: message count
 
   constructor() {
+    // Create auth directory if it doesn't exist
+    if (!fs.existsSync(this.authDir)) {
+      fs.mkdirSync(this.authDir, { recursive: true });
+    }
+
     // Auto-restore sessions on server start (run async in background)
     this.initializeConnections().catch(err =>
       console.error('Error initializing WhatsApp connections:', err)
@@ -97,14 +102,16 @@ class WhatsAppServiceFixed {
       for (const connection of activeConnections) {
         if (!connection.agentId || !connection.userId) continue;
 
-        // Check if session data exists in database
-        if (connection.sessionData) {
+        const agentAuthDir = path.join(this.authDir, connection.agentId);
+
+        // Check if session files exist
+        if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
           console.log(`📋 Queuing connection for agent ${connection.agent?.name || connection.agentId}...`);
 
           // Add to connection manager queue (priority 0 = normal)
           connectionManager.enqueue(connection.userId, connection.agentId!, 0);
         } else {
-          console.log(`⚠️ No session data found in database for agent ${connection.agentId}, marking as disconnected`);
+          console.log(`⚠️ No session files found for agent ${connection.agentId}, marking as disconnected`);
           // Mark as disconnected since we can't restore it
           await prisma.whatsAppConnection.update({
             where: { id: connection.id },
@@ -148,8 +155,13 @@ class WhatsAppServiceFixed {
         this.sessions.delete(agentId);
       }
 
-      // Use database-backed auth state instead of file-based
-      const { state, saveCreds } = await useDatabaseAuthState(agentId);
+      const agentAuthDir = path.join(this.authDir, agentId);
+
+      if (!fs.existsSync(agentAuthDir)) {
+        fs.mkdirSync(agentAuthDir, { recursive: true });
+      }
+
+      const { state, saveCreds } = await useMultiFileAuthState(agentAuthDir);
       const { version } = await fetchLatestBaileysVersion();
 
       console.log('📡 Creating WebSocket connection...');
@@ -160,6 +172,7 @@ class WhatsAppServiceFixed {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
+        printQRInTerminal: true, // Also print to terminal for debugging
         browser: ['WhaSales AI', 'Chrome', '1.0.0'],
         defaultQueryTimeoutMs: undefined,
       });
@@ -195,14 +208,9 @@ class WhatsAppServiceFixed {
               const session = this.sessions.get(agentId);
               if (session) {
                 session.qr = qrCode;
-                // Mark when QR was generated to prevent auto-reconnect during pairing
-                session.qrGeneratedAt = Date.now();
-                console.log('⏰ QR generation timestamp recorded:', session.qrGeneratedAt);
               }
               console.log(`✅ QR Code generated successfully for agent ${agentId}`);
               console.log('📊 QR Code data URL length:', qrCode?.length || 0);
-              console.log('📱 Please scan this QR code with your WhatsApp mobile app');
-              console.log('⏳ Waiting for scan and pairing...');
 
               clearTimeout(timeout);
               resolve(qrCode); // Resolve with QR code
@@ -215,7 +223,6 @@ class WhatsAppServiceFixed {
 
           if (connection === 'connecting') {
             console.log('🔄 WhatsApp is connecting for agent:', agentId);
-            console.log('⏳ Connection state: CONNECTING - waiting for authentication...');
           }
 
           if (connection === 'close') {
@@ -227,97 +234,6 @@ class WhatsAppServiceFixed {
               shouldReconnect,
               reason: lastDisconnect?.error?.message,
             });
-
-            // CRITICAL: Check if we're in the pairing window (QR was recently generated)
-            // During pairing, Baileys closes connection briefly - this is NORMAL
-            const session = this.sessions.get(agentId);
-            const qrGeneratedAt = session?.qrGeneratedAt;
-            const timeSinceQR = qrGeneratedAt ? Date.now() - qrGeneratedAt : Infinity;
-            const isInPairingWindow = timeSinceQR < 60000; // 60 seconds
-
-            if (isInPairingWindow) {
-              console.log('⏸️ Connection closed during pairing window (QR scanned recently)');
-              console.log(`⏱️ Time since QR generated: ${Math.round(timeSinceQR / 1000)}s`);
-
-              // Check if this is stream error 515 after successful pairing
-              const isStreamError = statusCode === 515 || lastDisconnect?.error?.message?.includes('Stream Errored');
-
-              if (isStreamError) {
-                console.log('🔄 Stream error 515 detected - checking if pairing completed...');
-
-                // Check if credentials were saved (pairing successful)
-                const connection = await prisma.whatsAppConnection.findFirst({
-                  where: { agentId },
-                });
-                const sessionData = connection?.sessionData as any;
-                const hasCredentials = sessionData != null;
-
-                // Check key count
-                const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
-
-                console.log(`🔍 Pairing check: credentials=${hasCredentials}, keys=${keyCount}`);
-
-                if (hasCredentials && keyCount > 0) {
-                  // Full session with keys exists - safe to reconnect
-                  console.log(`✅ Found ${keyCount} signal keys - session is complete`);
-                  console.log('🔄 Reconnecting with complete session...');
-
-                  // Clear from memory but keep session data in database
-                  this.sessions.delete(agentId);
-
-                  // Reconnect with existing credentials
-                  setTimeout(() => {
-                    console.log('🔌 Initiating reconnection with saved credentials...');
-                    this.connectWhatsApp(userId, agentId);
-                  }, 2000);
-
-                  clearTimeout(timeout);
-                  resolve(null);
-                  return;
-                } else if (hasCredentials && keyCount === 0) {
-                  // Credentials but no keys - incomplete pairing
-                  // These credentials are from QR scan but keys were never generated
-                  // They cannot be used for authentication - must clear and retry
-                  console.log('⚠️ Found credentials with 0 keys - incomplete pairing detected');
-                  console.log('🗑️ Credentials from QR scan but keys never generated');
-                  console.log('💡 Clearing invalid session and generating fresh QR code');
-
-                  // Clear the incomplete session from database
-                  await clearDatabaseAuthState(agentId);
-
-                  // Clear from memory
-                  this.sessions.delete(agentId);
-
-                  // Update database status
-                  await this.updateConnectionStatus(agentId, false, null);
-
-                  // Generate fresh QR code - reconnect immediately
-                  setImmediate(() => {
-                    console.log('🔄 Reconnecting with fresh session for new QR code');
-                    this.connectWhatsApp(userId, agentId);
-                  });
-
-                  clearTimeout(timeout);
-                  resolve(null);
-                  return;
-                } else {
-                  console.log('⚠️ No credentials saved yet - pairing still in progress');
-                  console.log('🚫 NOT creating new connection - waiting for pairing to complete');
-                  clearTimeout(timeout);
-                  resolve(null);
-                  return;
-                }
-              } else {
-                console.log('🔄 This is NORMAL during WhatsApp pairing - letting it reconnect naturally');
-                console.log('🚫 NOT creating new connection - waiting for pairing to complete');
-
-                // DO NOT auto-reconnect, DO NOT delete session
-                // Let Baileys handle the reconnection as part of pairing process
-                clearTimeout(timeout);
-                resolve(null);
-                return;
-              }
-            }
 
             // Check for conflict error (multiple sessions on same WhatsApp number)
             const isConflict =
@@ -378,48 +294,35 @@ class WhatsAppServiceFixed {
               lastDisconnect?.error?.message?.includes('Stream Errored');
 
             // Stream error 515 is normal after QR scan pairing - it means "restart connection"
-            // Only clear credentials if pairing never completed (no session data exists)
+            // Only clear credentials if pairing never completed (no creds.json exists)
             if (isStreamError) {
-              // Check if credentials exist in database
-              const connection = await prisma.whatsAppConnection.findFirst({
-                where: { agentId },
-              });
-              const sessionData = connection?.sessionData as any;
-              const hasCredentials = sessionData != null;
-
-              // Check key count
-              const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
-
-              console.log(`🔍 Stream error check: credentials=${hasCredentials}, keys=${keyCount}`);
+              const credsPath = path.join(agentAuthDir, 'creds.json');
+              const hasCredentials = fs.existsSync(credsPath);
 
               if (hasCredentials) {
-                // Credentials exist - reconnect to complete pairing or restore session
-                if (keyCount === 0) {
-                  console.log('⚠️ Stream error with 0 keys - reconnecting IMMEDIATELY to generate keys...');
-                  console.log('⚡ Fast reconnection preserves credential validity');
+                // Credentials exist - this is normal post-pairing restart
+                console.log('⚠️ Stream error after pairing - reconnecting with saved credentials...');
 
-                  // Clear from memory but keep session data in database
-                  this.sessions.delete(agentId);
+                // Clear from memory but keep session files
+                this.sessions.delete(agentId);
 
-                  // Reconnect IMMEDIATELY to preserve credentials
-                  setImmediate(() => {
-                    console.log('🔌 Immediate reconnection for key generation');
-                    this.connectWhatsApp(userId, agentId);
-                  });
-                } else {
-                  console.log(`✅ Stream error with ${keyCount} keys - normal reconnection`);
-
-                  // Clear from memory but keep session data in database
-                  this.sessions.delete(agentId);
-
-                  // Normal reconnection with slight delay
-                  setTimeout(() => {
-                    this.connectWhatsApp(userId, agentId);
-                  }, 2000);
-                }
+                // Reconnect with existing credentials (don't clear session files)
+                setTimeout(() => {
+                  this.connectWhatsApp(userId, agentId);
+                }, 2000);
               } else {
                 // No credentials - pairing never completed, clear everything
                 console.log('⚠️ Stream error without credentials - clearing and retrying...');
+
+                // Clear the session directory
+                try {
+                  if (fs.existsSync(agentAuthDir)) {
+                    fs.rmSync(agentAuthDir, { recursive: true, force: true });
+                    console.log('✅ Cleared old session files');
+                  }
+                } catch (error) {
+                  console.error('❌ Error clearing session files:', error);
+                }
 
                 // Clear from memory
                 this.sessions.delete(agentId);
@@ -433,31 +336,24 @@ class WhatsAppServiceFixed {
                 }, 2000);
               }
             }
-            // Check if it's a bad session / connection failure / validation error (expired credentials)
+            // Check if it's a bad session / connection failure (expired credentials)
             else if (
               statusCode === DisconnectReason.badSession ||
               statusCode === DisconnectReason.timedOut ||
               lastDisconnect?.error?.message?.includes('Connection Failure') ||
-              lastDisconnect?.error?.message?.includes('Connection Error') ||
-              lastDisconnect?.error?.message?.includes('validating connection') ||
-              lastDisconnect?.error?.message?.includes('Validation')
+              lastDisconnect?.error?.message?.includes('Connection Error')
             ) {
-              console.log('🗑️ Detected expired/invalid credentials or validation error, clearing session...');
+              console.log('🗑️ Detected expired/invalid credentials, clearing session...');
 
-              // Check if this is a 0-key session that failed validation
-              const connection = await prisma.whatsAppConnection.findFirst({
-                where: { agentId },
-              });
-              const sessionData = connection?.sessionData as any;
-              const keyCount = sessionData?.keys ? Object.keys(sessionData.keys).length : 0;
-
-              if (keyCount === 0) {
-                console.log('⚠️ Validation failed with 0 keys - credentials from QR scan likely expired');
-                console.log('💡 Solution: Generate fresh QR code for user to scan again');
+              // Clear the session directory to force fresh QR generation
+              try {
+                if (fs.existsSync(agentAuthDir)) {
+                  fs.rmSync(agentAuthDir, { recursive: true, force: true });
+                  console.log('✅ Cleared old session files');
+                }
+              } catch (error) {
+                console.error('❌ Error clearing session files:', error);
               }
-
-              // Clear session data from database to force fresh QR generation
-              await clearDatabaseAuthState(agentId);
 
               // Clear from memory
               this.sessions.delete(agentId);
@@ -491,49 +387,9 @@ class WhatsAppServiceFixed {
             resolve(null); // Connection closed without QR
           } else if (connection === 'open') {
             console.log('✅ WhatsApp connected successfully for agent:', agentId);
-            console.log('📱 Connection details:', {
-              userId: sock.user?.id,
-              name: sock.user?.name,
-              phoneNumber: sock.user?.id?.split(':')[0] || sock.user?.id || '',
-            });
 
             // Get phone number
             const phoneNumber = sock.user?.id?.split(':')[0] || sock.user?.id || '';
-
-            // CRITICAL: Verify WhatsAppConnection record exists before saving credentials
-            console.log('🔍 Checking if WhatsAppConnection record exists in database...');
-            const dbConnection = await prisma.whatsAppConnection.findFirst({
-              where: { agentId },
-            });
-
-            if (!dbConnection) {
-              console.error('❌ CRITICAL: No WhatsAppConnection record found for agent', agentId);
-              console.error('❌ Cannot save credentials without database record!');
-              console.error('❌ This means the record was not created during connectWhatsApp initialization');
-            } else {
-              console.log('✅ WhatsAppConnection record found:', {
-                id: dbConnection.id,
-                userId: dbConnection.userId,
-                agentId: dbConnection.agentId,
-                hasSessionData: !!dbConnection.sessionData,
-              });
-
-              // CRITICAL: Save credentials to database after successful connection
-              console.log('💾 Attempting to save credentials to database...');
-              try {
-                await saveCreds();
-                console.log('✅ Credentials successfully saved to database!');
-
-                // Verify credentials were actually saved
-                const verifyConnection = await prisma.whatsAppConnection.findFirst({
-                  where: { agentId },
-                });
-                console.log('🔍 Verification - sessionData now exists:', !!verifyConnection?.sessionData);
-              } catch (saveError) {
-                console.error('❌ CRITICAL ERROR saving credentials:', saveError);
-                console.error('❌ Error details:', saveError instanceof Error ? saveError.message : String(saveError));
-              }
-            }
 
             // Update database
             await this.updateConnectionStatus(agentId, true, phoneNumber);
@@ -543,7 +399,6 @@ class WhatsAppServiceFixed {
             if (session) {
               session.isConnected = true;
               session.qr = null; // Clear QR once connected
-              session.qrGeneratedAt = undefined; // Clear QR timestamp - pairing complete
               session.isReconnecting = false; // Clear reconnecting flag
               session.conflictRetries = 0; // Reset conflict counter on successful connection
               session.sock = sock; // Update socket reference
@@ -583,7 +438,6 @@ class WhatsAppServiceFixed {
         userId,
         isReconnecting: false,
         conflictRetries: 0,
-        qrGeneratedAt: undefined, // Will be set when QR is generated
       });
 
       // Create initial WhatsAppConnection record if it doesn't exist
@@ -1696,8 +1550,11 @@ Let's make this conversation count!`;
     this.sessions.delete(agentId);
     await this.updateConnectionStatus(agentId, false, null);
 
-    // Clear auth data from database
-    await clearDatabaseAuthState(agentId);
+    // Remove auth files
+    const agentAuthDir = path.join(this.authDir, agentId);
+    if (fs.existsSync(agentAuthDir)) {
+      fs.rmSync(agentAuthDir, { recursive: true, force: true });
+    }
 
     console.log(`✅ Successfully disconnected and cleaned up agent ${agentId}`);
   }
@@ -1829,9 +1686,20 @@ Let's make this conversation count!`;
       this.sessions.delete(agentId);
     }
 
-    // Clear session data from database
-    await clearDatabaseAuthState(agentId);
-    console.log('✅ Cleared session data from database');
+    // Delete session files from disk
+    const agentAuthDir = path.join(this.authDir, agentId);
+    try {
+      if (fs.existsSync(agentAuthDir)) {
+        fs.rmSync(agentAuthDir, { recursive: true, force: true });
+        console.log('✅ Cleared session files from disk');
+      }
+    } catch (error) {
+      console.error('❌ Error clearing session files:', error);
+      throw error;
+    }
+
+    // Update database
+    await this.updateConnectionStatus(agentId, false, null);
 
     console.log('✅ Session cleared successfully');
   }
