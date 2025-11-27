@@ -32,16 +32,24 @@ export default async function ConversationsPage() {
     redirect("/dashboard/billing?subscriptionInactive=true");
   }
 
-  // Fetch conversations with messages
+  // Fetch conversations with pagination and optimized message loading
+  // SCALABILITY FIX: Limit conversations per page and only load last message initially
+  // This prevents N+1 query issue where 100 conversations × 50 messages = 5,000 rows
+  const CONVERSATIONS_PER_PAGE = 20;
+
   const conversations = await prisma.conversation.findMany({
     where: { userId: user.id },
     include: {
       messages: {
-        orderBy: { createdAt: "asc" },
-        take: 50,
+        orderBy: { createdAt: "desc" },
+        take: 1, // Only load the last message for list view (not 50!)
       },
+      agent: {
+        select: { name: true, id: true }
+      }
     },
     orderBy: { lastMessageAt: "desc" },
+    take: CONVERSATIONS_PER_PAGE, // Pagination: load 20 conversations at a time
   });
 
   // Serialize data for client component
@@ -56,6 +64,9 @@ export default async function ConversationsPage() {
     aiMode: conv.aiMode,
     notes: conv.notes,
     lastMessageAt: conv.lastMessageAt.toISOString(),
+    agentName: conv.agent?.name || 'Unknown',
+    agentId: conv.agent?.id,
+    // Only include last message for list view - full messages loaded on demand
     messages: conv.messages.map((msg) => ({
       id: msg.id,
       senderType: msg.senderType,

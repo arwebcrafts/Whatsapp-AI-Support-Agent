@@ -4,8 +4,20 @@ import { authOptions } from '@/lib/auth';
 import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
 import { getPlanLimits } from '@/lib/plan-limits';
+import { checkRateLimit, RateLimitPresets } from '@/lib/rate-limiter';
 
 export async function POST(req: NextRequest) {
+  // SECURITY: Rate limit to prevent message spam abuse
+  const rateLimit = checkRateLimit(req, {
+    maxRequests: 60, // 60 messages per minute per IP
+    windowMs: 60 * 1000,
+    message: 'Too many messages sent. Please slow down.',
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
     const session = await getServerSession(authOptions);
 

@@ -3,8 +3,20 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(req: NextRequest) {
+  // SECURITY: Rate limit WhatsApp connection attempts
+  const rateLimit = checkRateLimit(req, {
+    maxRequests: 10, // 10 connection attempts per 15 minutes
+    windowMs: 15 * 60 * 1000,
+    message: 'Too many connection attempts. Please try again later.',
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimit.response;
+  }
+
   try {
     const session = await getServerSession(authOptions);
 
