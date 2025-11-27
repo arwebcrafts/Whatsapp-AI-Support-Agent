@@ -52,56 +52,6 @@ export async function GET(req: NextRequest) {
     const hasSession = !!sessionData;
     const sessionConnected = sessionData?.isConnected || false;
 
-    // Status check log removed - was flooding logs due to frequent polling
-    // Only log if there's a state mismatch that requires action
-
-    // FIX: If DB shows connected but session is not fully connected in memory
-    // Continuously retry reconnection until successful
-    // STOP when session exists AND is connected (both must be true)
-    if (isConnected && (!hasSession || !sessionConnected)) {
-      const existingSession = whatsappServiceFixed.getSession(agentId);
-      const now = Date.now();
-
-      // Throttle reconnection attempts - only retry every 10 seconds
-      const RETRY_INTERVAL = 10000; // 10 seconds between attempts
-      const lastAttempt = existingSession?.lastReconnectAttempt || 0;
-      const timeSinceLastAttempt = now - lastAttempt;
-
-      if (timeSinceLastAttempt >= RETRY_INTERVAL) {
-        console.log('🔄 DB shows connected but session not ready - attempting reconnection...');
-        console.log(`📊 Status: hasSession=${hasSession}, sessionConnected=${sessionConnected}`);
-        console.log(`⏱️ Last attempt was ${Math.round(timeSinceLastAttempt / 1000)}s ago`);
-
-        // Update last attempt timestamp
-        if (existingSession) {
-          existingSession.lastReconnectAttempt = now;
-        }
-
-        // Trigger reconnection in background (don't await)
-        whatsappServiceFixed.connectWhatsApp(user.id, agentId)
-          .catch(err => console.error('Auto-reconnect failed:', err));
-      } else {
-        const waitTime = Math.round((RETRY_INTERVAL - timeSinceLastAttempt) / 1000);
-        console.log(`⏳ Waiting ${waitTime}s before next reconnection attempt...`);
-      }
-
-      // Return status showing reconnecting state
-      return NextResponse.json({
-        isConnected: false,
-        reconnecting: true,
-        phoneNumber: connection?.phoneNumber || null,
-        lastActive: connection?.lastActive || null,
-        qr: null,
-        debug: {
-          hasSession,
-          sessionConnected,
-          dbConnected: isConnected,
-          autoReconnecting: true,
-          nextRetryIn: Math.max(0, RETRY_INTERVAL - timeSinceLastAttempt),
-        }
-      });
-    }
-
     return NextResponse.json({
       isConnected: isConnected && hasSession && sessionConnected,
       phoneNumber: connection?.phoneNumber || null,
