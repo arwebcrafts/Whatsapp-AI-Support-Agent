@@ -257,29 +257,34 @@ class WhatsAppServiceFixed {
 
                 console.log(`🔍 Pairing check: credentials=${hasCredentials}, keys=${keyCount}`);
 
-                if (hasCredentials) {
-                  // IMPORTANT: Credentials exist (even with 0 keys)
-                  // This is normal during pairing - Baileys saves credentials first,
-                  // then generates keys during the RECONNECTION
-                  if (keyCount === 0) {
-                    console.log('⚠️ Found credentials with 0 keys - this is initial pairing phase');
-                    console.log('🔑 Keys will be generated during reconnection');
-                  } else {
-                    console.log(`✅ Found ${keyCount} signal keys - session is complete`);
-                  }
-
-                  console.log('🔄 Reconnecting to complete pairing and generate keys...');
+                if (hasCredentials && keyCount > 0) {
+                  // Full session with keys exists - safe to reconnect
+                  console.log(`✅ Found ${keyCount} signal keys - session is complete`);
+                  console.log('🔄 Reconnecting with complete session...');
 
                   // Clear from memory but keep session data in database
                   this.sessions.delete(agentId);
 
                   // Reconnect with existing credentials
-                  // During this reconnection, Baileys will generate the signal keys
                   setTimeout(() => {
                     console.log('🔌 Initiating reconnection with saved credentials...');
                     this.connectWhatsApp(userId, agentId);
                   }, 2000);
 
+                  clearTimeout(timeout);
+                  resolve(null);
+                  return;
+                } else if (hasCredentials && keyCount === 0) {
+                  // Credentials but no keys - pairing in progress
+                  // DON'T manually reconnect - let Baileys handle it automatically!
+                  console.log('⚠️ Found credentials with 0 keys - initial pairing phase');
+                  console.log('⏸️ Letting Baileys handle reconnection automatically');
+                  console.log('🚫 NOT manually disconnecting - keeping connection alive');
+
+                  // Don't clear session - let Baileys continue the pairing process
+                  // Don't trigger manual reconnect - Baileys will reconnect internally
+
+                  // Just acknowledge the stream error and let Baileys handle it
                   clearTimeout(timeout);
                   resolve(null);
                   return;
