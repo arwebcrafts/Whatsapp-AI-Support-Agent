@@ -183,11 +183,49 @@ export interface ValidationResult {
 }
 
 /**
+ * Check for insecure default values that should never be used in production
+ */
+function checkInsecureDefaults(): string[] {
+  const insecureErrors: string[] = [];
+
+  const insecurePatterns = [
+    { env: 'NEXTAUTH_SECRET', patterns: ['your-nextauth-secret', 'changeme', 'password'] },
+    { env: 'CRON_SECRET', patterns: ['CHANGE-THIS', 'changeme', 'password'] },
+    { env: 'CSRF_SECRET', patterns: ['CHANGE-THIS', 'changeme', 'password'] },
+    { env: 'OPENAI_API_KEY', patterns: ['your-openai-api-key', 'xxx'] },
+    { env: 'STRIPE_SECRET_KEY', patterns: ['sk_test_xxx', 'your-stripe-key'] },
+  ];
+
+  for (const { env, patterns } of insecurePatterns) {
+    const value = process.env[env];
+    if (value && patterns.some(pattern => value.toLowerCase().includes(pattern))) {
+      insecureErrors.push(`🚨 SECURITY: ${env} contains insecure default value!`);
+    }
+  }
+
+  // Check if using test/development keys in production
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
+      insecureErrors.push('🚨 SECURITY: Using Stripe TEST key in PRODUCTION!');
+    }
+    if (process.env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_')) {
+      insecureErrors.push('🚨 SECURITY: Using Stripe TEST publishable key in PRODUCTION!');
+    }
+  }
+
+  return insecureErrors;
+}
+
+/**
  * Validate all environment variables
  */
 export function validateEnvironment(): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  // Check for insecure defaults first
+  const insecureErrors = checkInsecureDefaults();
+  errors.push(...insecureErrors);
 
   for (const envVar of ENV_VARIABLES) {
     const value = process.env[envVar.name];
@@ -207,6 +245,20 @@ export function validateEnvironment(): ValidationResult {
     // Run custom validation if provided
     if (value && envVar.validate && !envVar.validate(value)) {
       errors.push(`❌ Invalid format: ${envVar.name} - ${envVar.description}`);
+    }
+  }
+
+  // Additional production checks
+  if (process.env.NODE_ENV === 'production') {
+    // Check DATABASE_URL has connection pooling configured
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl && !dbUrl.includes('connection_limit')) {
+      warnings.push('⚠️ DATABASE_URL missing connection pool config for production scale');
+    }
+
+    // Check Redis is configured for production
+    if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+      warnings.push('⚠️ No Redis configured - rate limiting will use in-memory store (not recommended for production)');
     }
   }
 
