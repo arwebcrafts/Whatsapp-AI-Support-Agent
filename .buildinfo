@@ -1,5 +1,6 @@
-BUILD_TIMESTAMP=2025-11-28T21:00:00Z
-BUILD_VERSION=1.0.6-admin-fix
+BUILD_TIMESTAMP=2025-11-28T22:30:00Z
+BUILD_VERSION=1.0.7-gap-class-fix
 FORCE_REBUILD=true
-COMMIT_HASH=4728ac6
-FIX_APPLIED=template-literal-badge
+COMMIT_HASH=11cfdb6
+FIX_APPLIED=removed-tailwind-gap-classes-inline-styles
+ISSUE_FIXED=react-error-130-element-type-invalid
