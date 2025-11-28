@@ -330,10 +330,14 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                         variant={getPlanBadgeVariant(user.planType)}
                         className={`capitalize ${user.planType === "admin_access" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
                       >
-                        <span className="flex items-center gap-1">
-                          {getPlanIcon(user.planType)}
-                          <span>{user.planType === "admin_access" ? "Admin Access (Unlimited)" : user.planType}</span>
-                        </span>
+                        {user.planType === "admin_access" ? (
+                          <>
+                            <Infinity className="w-3 h-3 mr-1 inline-block" />
+                            <span>Admin Access (Unlimited)</span>
+                          </>
+                        ) : (
+                          user.planType
+                        )}
                       </Badge>
                     </TableCell>
                     <TableCell>
