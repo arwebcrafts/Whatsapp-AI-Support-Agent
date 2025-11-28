@@ -1,0 +1,8 @@
+Build Timestamp: 2025-11-28T20:30:00Z
+Version: 1.0.5
+Changes:
+- Fixed React error #130 in admin dashboard
+- Converted all numeric renderings to String()
+- Fixed navigation links (Manage Users button)
+- Ensured proper data serialization
+- Force cache clear for production deployment
