@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// Admin Dashboard - Updated: 2025-11-28
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
 
