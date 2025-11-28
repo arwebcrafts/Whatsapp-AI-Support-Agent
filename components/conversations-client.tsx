@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,10 @@ import {
   Bot,
   Save,
   ThumbsUp,
-  ThumbsDown,
   Star,
-  ExternalLink
+  X,
+  Plus,
+  Tag as TagIcon
 } from "lucide-react";
 
 interface Conversation {
@@ -36,6 +36,7 @@ interface Conversation {
   lastMessageAt: string;
   messages: Message[];
   notes?: string | null;
+  tags?: string | null;
 }
 
 interface Message {
@@ -46,7 +47,6 @@ interface Message {
 }
 
 export default function ConversationsClient({ initialConversations }: { initialConversations: Conversation[] }) {
-  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,13 +59,67 @@ export default function ConversationsClient({ initialConversations }: { initialC
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [fullMessages, setFullMessages] = useState<Message[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load notes when conversation changes
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [fullMessages]);
+
+  // Load full messages when conversation is selected
   useEffect(() => {
     if (selectedConv) {
+      loadFullMessages(selectedConv.id);
       setNotes(selectedConv.notes || "");
+      setRating(0);
+      setFeedbackSubmitted(false);
+
+      // Parse tags from JSON string
+      try {
+        const parsedTags = selectedConv.tags ? JSON.parse(selectedConv.tags) : [];
+        setTags(Array.isArray(parsedTags) ? parsedTags : []);
+      } catch {
+        setTags([]);
+      }
     }
   }, [selectedConv?.id]);
+
+  // Auto-refresh messages every 5 seconds
+  useEffect(() => {
+    if (!selectedConv) return;
+
+    const interval = setInterval(() => {
+      loadFullMessages(selectedConv.id, true); // Silent refresh
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedConv?.id]);
+
+  // Load full messages for selected conversation
+  const loadFullMessages = async (conversationId: string, silent = false) => {
+    if (!silent) setLoadingMessages(true);
+
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setFullMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    } finally {
+      if (!silent) setLoadingMessages(false);
+    }
+  };
 
   // Filter conversations based on search
   const filteredConversations = conversations.filter(conv =>
@@ -86,6 +140,37 @@ export default function ConversationsClient({ initialConversations }: { initialC
     return date.toLocaleDateString();
   };
 
+  // Send message
+  const handleSendMessage = async () => {
+    if (!selectedConv || !newMessage.trim()) return;
+
+    setSendingMessage(true);
+    try {
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          message: newMessage,
+        }),
+      });
+
+      if (res.ok) {
+        setNewMessage("");
+        // Immediately refresh messages
+        await loadFullMessages(selectedConv.id);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   // Save notes
   const handleSaveNotes = async () => {
     if (!selectedConv) return;
@@ -99,7 +184,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
       });
 
       if (res.ok) {
-        // Update local state
         setConversations(conversations.map(c =>
           c.id === selectedConv.id ? { ...c, notes } : c
         ));
@@ -126,7 +210,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
       });
 
       if (res.ok) {
-        // Update local state - mode change also enables AI
         setConversations(conversations.map(c =>
           c.id === selectedConv.id ? { ...c, aiMode: mode, aiEnabled: true } : c
         ));
@@ -140,6 +223,84 @@ export default function ConversationsClient({ initialConversations }: { initialC
     }
   };
 
+  // Update lead score
+  const handleUpdateLeadScore = async (score: string) => {
+    if (!selectedConv) return;
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedConv.id}/update-score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadScore: score }),
+      });
+
+      if (res.ok) {
+        setConversations(conversations.map(c =>
+          c.id === selectedConv.id ? { ...c, leadScore: score } : c
+        ));
+        setSelectedConv({ ...selectedConv, leadScore: score });
+      }
+    } catch (error) {
+      console.error("Error updating lead score:", error);
+    }
+  };
+
+  // Add tag
+  const handleAddTag = async () => {
+    if (!selectedConv || !newTag.trim() || tags.length >= 10) return;
+
+    const updatedTags = [...tags, newTag.trim()];
+    setAddingTag(true);
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedConv.id}/update-tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+
+      if (res.ok) {
+        setTags(updatedTags);
+        setNewTag("");
+        const tagsJson = JSON.stringify(updatedTags);
+        setConversations(conversations.map(c =>
+          c.id === selectedConv.id ? { ...c, tags: tagsJson } : c
+        ));
+        setSelectedConv({ ...selectedConv, tags: tagsJson });
+      }
+    } catch (error) {
+      console.error("Error adding tag:", error);
+    } finally {
+      setAddingTag(false);
+    }
+  };
+
+  // Remove tag
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!selectedConv) return;
+
+    const updatedTags = tags.filter(t => t !== tagToRemove);
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedConv.id}/update-tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+
+      if (res.ok) {
+        setTags(updatedTags);
+        const tagsJson = JSON.stringify(updatedTags);
+        setConversations(conversations.map(c =>
+          c.id === selectedConv.id ? { ...c, tags: tagsJson } : c
+        ));
+        setSelectedConv({ ...selectedConv, tags: tagsJson });
+      }
+    } catch (error) {
+      console.error("Error removing tag:", error);
+    }
+  };
+
   // Submit feedback
   const handleSubmitFeedback = async (feedbackRating: number) => {
     if (!selectedConv) return;
@@ -150,7 +311,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: selectedConv.id,
-          agentId: null, // Will be populated from conversation
+          agentId: null,
           rating: feedbackRating,
           feedbackType: feedbackRating >= 4 ? 'positive' : feedbackRating >= 2 ? 'neutral' : 'negative'
         }),
@@ -160,7 +321,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
         setRating(feedbackRating);
         setFeedbackSubmitted(true);
 
-        // Trigger analytics update
         await fetch("/api/conversation-analytics", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -175,15 +335,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
       alert("Failed to submit feedback");
     }
   };
-
-  // Reset feedback when conversation changes
-  useEffect(() => {
-    if (selectedConv) {
-      setNotes(selectedConv.notes || "");
-      setRating(0);
-      setFeedbackSubmitted(false);
-    }
-  }, [selectedConv?.id]);
 
   // Get AI suggestion for co-pilot mode
   useEffect(() => {
@@ -204,7 +355,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
           setAiSuggestion(data.suggestion || "");
         } else if (res.status === 403) {
           const data = await res.json();
-          // Handle limit reached or mode requirement
           if (data.limitReached) {
             setAiSuggestion("⚠️ " + data.message);
           } else if (data.requiresModeChange) {
@@ -320,7 +470,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
         </div>
       </div>
 
-      {/* CENTER: Chat Area (55%) */}
+      {/* CENTER: Full Chat Interface (55%) */}
       <div className="w-[55%] flex flex-col bg-white">
         {!selectedConv ? (
           <div className="flex-1 flex items-center justify-center text-center px-6">
@@ -352,16 +502,28 @@ export default function ConversationsClient({ initialConversations }: { initialC
                   >
                     {selectedConv.leadScore.toUpperCase()}
                   </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedConv.aiMode === "auto" && "🤖 Auto"}
+                    {selectedConv.aiMode === "copilot" && "✨ Co-Pilot"}
+                    {selectedConv.aiMode === "manual" && "👤 Manual"}
+                  </Badge>
                 </div>
               </div>
             </div>
 
-            {/* Messages - COMPACT */}
+            {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {selectedConv.messages.length === 0 ? (
+              {loadingMessages && fullMessages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-500">Loading messages...</p>
+                  </div>
+                </div>
+              ) : fullMessages.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm">No messages yet</p>
               ) : (
-                selectedConv.messages.map((msg) => {
+                fullMessages.map((msg) => {
                   const isCustomer = msg.senderType === "customer";
                   return (
                     <div
@@ -387,31 +549,71 @@ export default function ConversationsClient({ initialConversations }: { initialC
                   );
                 })
               )}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-                  For full messaging features, open conversation in detail view
-                </p>
-                <div className="flex gap-2">
+            {/* Co-Pilot Suggestion (if mode = copilot) */}
+            {selectedConv.aiMode === "copilot" && aiSuggestion && !aiSuggestion.startsWith("⚠️") && (
+              <div className="px-4 py-2 bg-purple-50 border-t border-purple-200">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-purple-900 mb-1">AI Suggestion:</p>
+                    <p className="text-xs text-purple-800 leading-relaxed">{aiSuggestion}</p>
+                  </div>
                   <Button
-                    onClick={() => router.push(`/dashboard/conversations/${selectedConv.id}`)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                    onClick={() => setNewMessage(aiSuggestion)}
+                    className="h-7 text-xs bg-purple-600 hover:bg-purple-700"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Full Chat
+                    Use
                   </Button>
                 </div>
               </div>
+            )}
+
+            {/* Message Input Area */}
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+              {selectedConv.aiMode === "auto" ? (
+                <div className="flex items-center justify-center gap-2 py-2">
+                  <Bot className="h-4 w-4 text-green-600" />
+                  <p className="text-sm text-green-700">
+                    AI is handling this conversation automatically
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder={
+                      selectedConv.aiMode === "copilot"
+                        ? "Type your message or use AI suggestion above..."
+                        : "Type your message..."
+                    }
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    className="flex-1 min-h-[60px] max-h-[120px] resize-none"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={sendingMessage || !newMessage.trim()}
+                    className="h-[60px] px-6"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
 
-      {/* RIGHT: Lead Info Panel (20%) */}
+      {/* RIGHT: Conversation Details (20%) */}
       <div className="w-[20%] border-l border-gray-200 bg-white overflow-y-auto">
         {!selectedConv ? (
           <div className="p-6 text-center text-gray-400 text-sm">
@@ -447,7 +649,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
               </div>
             </div>
 
-            {/* Lead Score */}
+            {/* Lead Score - NOW EDITABLE */}
             <div>
               <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
                 <Flame className="h-3.5 w-3.5" />
@@ -457,6 +659,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
                 {["hot", "warm", "cold"].map((score) => (
                   <button
                     key={score}
+                    onClick={() => handleUpdateLeadScore(score)}
                     className={`w-full px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                       selectedConv.leadScore === score
                         ? score === "hot"
@@ -474,6 +677,55 @@ export default function ConversationsClient({ initialConversations }: { initialC
               </div>
             </div>
 
+            {/* Tags - ADD/REMOVE */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <TagIcon className="h-3.5 w-3.5" />
+                Tags
+              </h3>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="text-xs flex items-center gap-1 pr-1"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:bg-gray-200 rounded-full p-0.5"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              {tags.length < 10 && (
+                <div className="flex gap-1">
+                  <Input
+                    placeholder="Add tag..."
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    className="h-7 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleAddTag}
+                    disabled={addingTag || !newTag.trim()}
+                    className="h-7 px-2"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* Engagement Progress */}
             <div>
               <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
@@ -488,45 +740,6 @@ export default function ConversationsClient({ initialConversations }: { initialC
                 <Progress value={selectedConv.engagementScore} className="h-1.5" />
               </div>
             </div>
-
-            {/* Co-Pilot Suggestions */}
-            {selectedConv.aiMode === "copilot" && (
-              <div>
-                <h3 className="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-                  AI Suggestion
-                </h3>
-                {loadingSuggestion ? (
-                  <Card className="p-2.5 bg-purple-50 border-purple-200">
-                    <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-                      <span className="ml-2 text-xs text-purple-700">Analyzing conversation...</span>
-                    </div>
-                  </Card>
-                ) : aiSuggestion ? (
-                  <Card className="p-2.5 bg-purple-50 border-purple-200">
-                    <p className="text-xs text-purple-900 leading-relaxed whitespace-pre-wrap">
-                      {aiSuggestion}
-                    </p>
-                    {!aiSuggestion.startsWith("⚠️") && (
-                      <Button
-                        size="sm"
-                        className="w-full mt-2 h-7 text-xs bg-purple-600 hover:bg-purple-700"
-                        onClick={() => setNewMessage(aiSuggestion)}
-                      >
-                        Use This Response
-                      </Button>
-                    )}
-                  </Card>
-                ) : (
-                  <Card className="p-2.5 bg-gray-50 border-gray-200">
-                    <p className="text-xs text-gray-600 text-center py-2">
-                      No suggestion available yet. Wait for a customer message.
-                    </p>
-                  </Card>
-                )}
-              </div>
-            )}
 
             {/* Conversation Feedback */}
             <div>
