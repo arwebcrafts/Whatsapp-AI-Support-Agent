@@ -1,6 +1,6 @@
-BUILD_TIMESTAMP=2025-11-28T22:30:00Z
-BUILD_VERSION=1.0.7-gap-class-fix
+BUILD_TIMESTAMP=2025-11-28T23:00:00Z
+BUILD_VERSION=1.0.8-space-x-utilities-fix
 FORCE_REBUILD=true
-COMMIT_HASH=11cfdb6
-FIX_APPLIED=removed-tailwind-gap-classes-inline-styles
-ISSUE_FIXED=react-error-130-element-type-invalid
+COMMIT_HASH=690c8f5
+FIX_APPLIED=replaced-gap-and-inline-styles-with-space-x-utilities
+ISSUES_FIXED=react-error-130-and-500-ssr-error
