@@ -296,8 +296,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                         variant={getPlanBadgeVariant(user.planType)}
                         className={`capitalize ${user.planType === "admin_access" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
                       >
-                        {getPlanIcon(user.planType)}
-                        {user.planType === "admin_access" ? "Admin Access (Unlimited)" : user.planType}
+                        <span className="flex items-center gap-1">
+                          {getPlanIcon(user.planType)}
+                          <span>{user.planType === "admin_access" ? "Admin Access (Unlimited)" : user.planType}</span>
+                        </span>
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -367,7 +369,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                 {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No users found
+                      <span>No users found</span>
                     </TableCell>
                   </TableRow>
                 )}
