@@ -212,9 +212,9 @@ export default async function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <div className="text-2xl font-bold">{String(stats.totalUsers)}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.activeUsers} active • {stats.trialUsers} trial
+                {String(stats.activeUsers)} active • {String(stats.trialUsers)} trial
               </p>
             </CardContent>
           </Card>
@@ -225,7 +225,7 @@ export default async function AdminDashboard() {
               <Bot className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAgents}</div>
+              <div className="text-2xl font-bold">{String(stats.totalAgents)}</div>
               <p className="text-xs text-muted-foreground">
                 AI agents created
               </p>
@@ -238,7 +238,7 @@ export default async function AdminDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.estimatedMRR.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${String(stats.estimatedMRR.toFixed(2))}</div>
               <p className="text-xs text-muted-foreground">
                 Monthly recurring revenue
               </p>
@@ -251,7 +251,7 @@ export default async function AdminDashboard() {
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeConnections}</div>
+              <div className="text-2xl font-bold">{String(stats.activeConnections)}</div>
               <p className="text-xs text-muted-foreground">
                 WhatsApp connected
               </p>
@@ -272,21 +272,21 @@ export default async function AdminDashboard() {
                   <MessageSquare className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">Total Messages</span>
                 </div>
-                <span className="font-bold">{stats.totalMessages.toLocaleString()}</span>
+                <span className="font-bold">{String(stats.totalMessages.toLocaleString())}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">Total Conversations</span>
                 </div>
-                <span className="font-bold">{stats.totalConversations.toLocaleString()}</span>
+                <span className="font-bold">{String(stats.totalConversations.toLocaleString())}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">This Month</span>
                 </div>
-                <span className="font-bold">{stats.monthlyMessages.toLocaleString()}</span>
+                <span className="font-bold">{String(stats.monthlyMessages.toLocaleString())}</span>
               </div>
             </CardContent>
           </Card>
@@ -302,10 +302,10 @@ export default async function AdminDashboard() {
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div>
                     <div className="text-sm font-medium text-blue-900">Monthly Subscriptions</div>
-                    <div className="text-xs text-blue-600">{stats.monthlyCount} users</div>
+                    <div className="text-xs text-blue-600">{String(stats.monthlyCount)} users</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-blue-900">${stats.monthlyMRR}</div>
+                    <div className="text-lg font-bold text-blue-900">${String(stats.monthlyMRR)}</div>
                     <div className="text-xs text-blue-600">MRR</div>
                   </div>
                 </div>
@@ -314,11 +314,11 @@ export default async function AdminDashboard() {
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div>
                     <div className="text-sm font-medium text-green-900">Yearly Subscriptions</div>
-                    <div className="text-xs text-green-600">{stats.yearlyCount} users</div>
+                    <div className="text-xs text-green-600">{String(stats.yearlyCount)} users</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-green-900">${stats.yearlyARR}</div>
-                    <div className="text-xs text-green-600">ARR (${(stats.yearlyARR / 12).toFixed(2)}/mo)</div>
+                    <div className="text-lg font-bold text-green-900">${String(stats.yearlyARR)}</div>
+                    <div className="text-xs text-green-600">ARR (${String((stats.yearlyARR / 12).toFixed(2))}/mo)</div>
                   </div>
                 </div>
 
@@ -326,10 +326,10 @@ export default async function AdminDashboard() {
                 <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div>
                     <div className="text-sm font-medium text-orange-900">Lifetime Deals</div>
-                    <div className="text-xs text-orange-600">{stats.lifetimeCount} users</div>
+                    <div className="text-xs text-orange-600">{String(stats.lifetimeCount)} users</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-orange-900">${stats.lifetimeRevenue}</div>
+                    <div className="text-lg font-bold text-orange-900">${String(stats.lifetimeRevenue)}</div>
                     <div className="text-xs text-orange-600">One-time</div>
                   </div>
                 </div>
@@ -339,11 +339,11 @@ export default async function AdminDashboard() {
                   <div>
                     <div className="text-sm font-bold text-gray-900">Total MRR</div>
                     <div className="text-xs text-gray-600">
-                      {stats.monthlyCount + stats.yearlyCount + stats.lifetimeCount} paid users
+                      {String(stats.monthlyCount + stats.yearlyCount + stats.lifetimeCount)} paid users
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-gray-900">${stats.estimatedMRR.toFixed(2)}</div>
+                    <div className="text-xl font-bold text-gray-900">${String(stats.estimatedMRR.toFixed(2))}</div>
                     <div className="text-xs text-gray-600">Per month</div>
                   </div>
                 </div>
@@ -366,7 +366,7 @@ export default async function AdminDashboard() {
               {stats.subscriptionBreakdown.map((sub: any) => (
                 <div key={sub.planType} className="flex items-center justify-between">
                   <span className="text-sm capitalize font-medium">{sub.planType}</span>
-                  <span className="font-bold text-lg">{sub._count} users</span>
+                  <span className="font-bold text-lg">{String(sub._count)} users</span>
                 </div>
               ))}
               {stats.subscriptionBreakdown.length === 0 && (
