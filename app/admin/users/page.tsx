@@ -74,5 +74,19 @@ export default async function AdminUsersPage() {
     })),
   }));
 
+  // DEBUG: Log serialized data types
+  console.log('=== SERVER SERIALIZATION DEBUG ===');
+  console.log('Total users:', serializedUsers.length);
+  if (serializedUsers.length > 0) {
+    const firstUser = serializedUsers[0];
+    console.log('First user sample:', {
+      email: firstUser.email,
+      _count_type: typeof firstUser._count.agents,
+      _count_value: firstUser._count.agents,
+      messageUsage_type: typeof firstUser.messageUsage[0]?.messagesUsed,
+      messageUsage_value: firstUser.messageUsage[0]?.messagesUsed,
+    });
+  }
+
   return <AdminUsersClient users={serializedUsers} />;
 }
