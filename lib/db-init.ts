@@ -33,15 +33,19 @@ export async function initializeDatabase() {
 
     console.log('✅ Prisma Client generated');
 
-    // Step 2: Push schema to database
-    console.log('🚀 Pushing schema to database...');
-    const { stdout: pushStdout, stderr: pushStderr } = await execPromise('npx prisma db push --accept-data-loss --skip-generate');
+    // Step 2: Deploy migrations to database
+    console.log('🚀 Deploying database migrations...');
+    const { stdout: migrateStdout, stderr: migrateStderr } = await execPromise('npx prisma migrate deploy');
 
-    if (pushStderr) {
-      console.warn('⚠️ Prisma push warnings:', pushStderr);
+    if (migrateStderr) {
+      console.warn('⚠️ Prisma migrate warnings:', migrateStderr);
     }
 
-    console.log('✅ Database schema synchronized');
+    if (migrateStdout) {
+      console.log(migrateStdout);
+    }
+
+    console.log('✅ Database migrations deployed successfully');
     console.log('🎉 Database initialization complete!');
 
     return true;
