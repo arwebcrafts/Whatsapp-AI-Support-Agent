@@ -54,7 +54,7 @@ export default async function AdminUsersPage() {
     },
   });
 
-  // Serialize dates to strings and convert BigInt counts to numbers for client component
+  // Serialize ALL data to strings to prevent any numeric rendering issues
   const serializedUsers = users.map(user => ({
     id: user.id,
     email: user.email,
@@ -65,12 +65,12 @@ export default async function AdminUsersPage() {
     subscriptionStatus: user.subscriptionStatus,
     planType: user.planType,
     _count: {
-      agents: Number(user._count.agents),
-      conversations: Number(user._count.conversations),
-      whatsappConnections: Number(user._count.whatsappConnections),
+      agents: String(user._count.agents),
+      conversations: String(user._count.conversations),
+      whatsappConnections: String(user._count.whatsappConnections),
     },
     messageUsage: user.messageUsage.map(usage => ({
-      messagesUsed: Number(usage.messagesUsed),
+      messagesUsed: String(usage.messagesUsed),
     })),
   }));
 

@@ -44,12 +44,12 @@ interface User {
   subscriptionStatus: string;
   planType: string;
   _count: {
-    agents: number;
-    conversations: number;
-    whatsappConnections: number;
+    agents: string; // String to prevent React rendering errors
+    conversations: string;
+    whatsappConnections: string;
   };
   messageUsage: Array<{
-    messagesUsed: number;
+    messagesUsed: string; // String to prevent React rendering errors
   }>;
 }
 
@@ -229,7 +229,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   Manage user accounts, subscriptions, and limits
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{String(filteredUsers.length)} users</Badge>
+              <Badge variant="secondary">{filteredUsers.length} users</Badge>
             </div>
 
             {/* Filters */}
@@ -314,9 +314,9 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                         {user.subscriptionStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell>{String(user._count.agents)}</TableCell>
+                    <TableCell>{user._count.agents}</TableCell>
                     <TableCell>
-                      {String(user.messageUsage?.[0]?.messagesUsed ?? 0)}
+                      {user.messageUsage?.[0]?.messagesUsed ?? "0"}
                     </TableCell>
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString()}
