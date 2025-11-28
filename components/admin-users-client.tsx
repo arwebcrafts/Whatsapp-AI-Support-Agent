@@ -58,20 +58,6 @@ interface AdminUsersClientProps {
 }
 
 export default function AdminUsersClient({ users: initialUsers }: AdminUsersClientProps) {
-  // DEBUG: Log received data
-  console.log('=== CLIENT RECEIVED DATA DEBUG ===');
-  console.log('Received users count:', initialUsers.length);
-  if (initialUsers.length > 0) {
-    const firstUser = initialUsers[0];
-    console.log('First user received:', {
-      email: firstUser.email,
-      _count: firstUser._count,
-      _count_agents_type: typeof firstUser._count.agents,
-      messageUsage: firstUser.messageUsage,
-      messageUsage_type: firstUser.messageUsage[0] ? typeof firstUser.messageUsage[0].messagesUsed : 'N/A',
-    });
-  }
-
   const router = useRouter();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -202,24 +188,13 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     return matchesSearch && matchesPlan;
   });
 
-  // DEBUG: Log filtered users and types
-  console.log('=== FILTERED USERS DEBUG ===');
-  console.log('Filtered count:', filteredUsers.length);
-  console.log('Filtered count type:', typeof filteredUsers.length);
-
   function getPlanBadgeVariant(planType: string) {
     if (planType === "admin_access") return "default";
     return "outline";
   }
 
   function getPlanIcon(planType: string) {
-    console.log('getPlanIcon called with:', planType, typeof planType);
-    if (planType === "admin_access") {
-      const icon = <Infinity className="w-3 h-3 mr-1" />;
-      console.log('Returning Infinity icon');
-      return icon;
-    }
-    console.log('Returning null for planType:', planType);
+    if (planType === "admin_access") return <Infinity className="w-3 h-3 mr-1" />;
     return null;
   }
 
