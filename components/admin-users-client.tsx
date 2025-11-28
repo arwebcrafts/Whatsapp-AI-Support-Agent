@@ -254,7 +254,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   Manage user accounts, subscriptions, and limits
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{filteredUsers.length} users</Badge>
+              <Badge variant="secondary">{`${filteredUsers.length} users`}</Badge>
             </div>
 
             {/* Filters */}
