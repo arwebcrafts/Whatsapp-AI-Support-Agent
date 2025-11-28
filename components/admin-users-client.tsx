@@ -39,17 +39,17 @@ interface User {
   email: string;
   name: string | null;
   role: string;
-  createdAt: string; // Always serialized to string from server
-  trialEndsAt: string | null; // Always serialized to string from server
+  createdAt: string;
+  trialEndsAt: string | null;
   subscriptionStatus: string;
   planType: string;
   _count: {
-    agents: string; // String to prevent React rendering errors
+    agents: string;
     conversations: string;
     whatsappConnections: string;
   };
   messageUsage: Array<{
-    messagesUsed: string; // String to prevent React rendering errors
+    messagesUsed: string;
   }>;
 }
 
@@ -58,29 +58,6 @@ interface AdminUsersClientProps {
 }
 
 export default function AdminUsersClient({ users: initialUsers }: AdminUsersClientProps) {
-  // DEBUG: Log received data (v2)
-  console.log('=== CLIENT RECEIVED DATA DEBUG (v2) ===');
-  console.log('Received users count:', initialUsers.length);
-  if (initialUsers.length > 0) {
-    const firstUser = initialUsers[0];
-    console.log('First user received:', {
-      email: firstUser.email,
-      _count: firstUser._count,
-      _count_agents_type: typeof firstUser._count.agents,
-      messageUsage: firstUser.messageUsage,
-      messageUsage_type: firstUser.messageUsage[0] ? typeof firstUser.messageUsage[0].messagesUsed : 'N/A',
-    });
-
-    const adminUser = initialUsers.find(u => u.planType === 'admin_access');
-    if (adminUser) {
-      console.log('Admin user in client:', {
-        email: adminUser.email,
-        planType: adminUser.planType,
-        planType_type: typeof adminUser.planType,
-      });
-    }
-  }
-
   const router = useRouter();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -211,25 +188,9 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     return matchesSearch && matchesPlan;
   });
 
-  // DEBUG: Log filtered users and badge rendering (v2)
-  console.log('=== FILTERED USERS DEBUG (v2) ===');
-  console.log('Filtered count:', filteredUsers.length);
-  console.log('Filtered count type:', typeof filteredUsers.length);
-  console.log('Badge content will be:', `${filteredUsers.length} users`);
-
   function getPlanBadgeVariant(planType: string) {
     if (planType === "admin_access") return "default";
     return "outline";
-  }
-
-  function getPlanIcon(planType: string) {
-    console.log('getPlanIcon called with:', planType, '| type:', typeof planType);
-    if (planType === "admin_access") {
-      const icon = <Infinity className="w-3 h-3 mr-1" />;
-      console.log('Returning Infinity icon for admin_access');
-      return icon;
-    }
-    return null;
   }
 
   return (
@@ -238,11 +199,11 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center" style={{ gap: '0.75rem' }}>
               <Link href="/admin">
                 <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
+                  <ArrowLeft className="w-4 h-4" style={{ marginRight: '0.5rem' }} />
+                  <span>Back</span>
                 </Button>
               </Link>
               <Users className="w-8 h-8 text-primary" />
@@ -263,11 +224,11 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   Manage user accounts, subscriptions, and limits
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{`${filteredUsers.length} users`}</Badge>
+              <Badge variant="secondary">{String(filteredUsers.length) + " users"}</Badge>
             </div>
 
             {/* Filters */}
-            <div className="flex gap-4 mt-4">
+            <div className="flex mt-4" style={{ gap: '1rem' }}>
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -318,8 +279,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     <TableCell>
                       {user.role === "admin" ? (
                         <Badge variant="default">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Admin
+                          <Crown className="w-3 h-3" style={{ marginRight: '0.25rem' }} />
+                          <span>Admin</span>
                         </Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>
@@ -332,7 +293,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       >
                         {user.planType === "admin_access" ? (
                           <>
-                            <Infinity className="w-3 h-3 mr-1 inline-block" />
+                            <Infinity className="w-3 h-3 inline-block" style={{ marginRight: '0.25rem' }} />
                             <span>Admin Access (Unlimited)</span>
                           </>
                         ) : (
@@ -362,7 +323,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex" style={{ gap: '0.25rem' }}>
                         {user.role !== "admin" && (
                           <Button
                             variant="ghost"
@@ -442,8 +403,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       <SelectItem value="business">Business</SelectItem>
                       <SelectItem value="admin_access">
                         <div className="flex items-center">
-                          <Infinity className="w-3 h-3 mr-2" />
-                          Admin Access (Unlimited)
+                          <Infinity className="w-3 h-3" style={{ marginRight: '0.5rem' }} />
+                          <span>Admin Access (Unlimited)</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -494,7 +455,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   </Select>
                 </div>
 
-                <div className="flex gap-2 justify-end">
+                <div className="flex justify-end" style={{ gap: '0.5rem' }}>
                   <Button variant="outline" onClick={() => setEditingUser(null)}>
                     Cancel
                   </Button>
