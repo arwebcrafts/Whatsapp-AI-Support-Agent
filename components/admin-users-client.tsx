@@ -39,8 +39,8 @@ interface User {
   email: string;
   name: string | null;
   role: string;
-  createdAt: string | Date;
-  trialEndsAt: string | Date | null;
+  createdAt: string; // Always serialized to string from server
+  trialEndsAt: string | null; // Always serialized to string from server
   subscriptionStatus: string;
   planType: string;
   _count: {
