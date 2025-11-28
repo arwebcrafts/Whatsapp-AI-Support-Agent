@@ -88,8 +88,53 @@ export class DocumentProcessor {
           $('iframe').remove();
           $('noscript').remove();
 
-          // Extract main content
+          // Extract main content with enhanced selectors for products, pricing, etc.
           let pageContent = '';
+          let structuredData = '';
+
+          // Try to extract structured data first (products, pricing, etc.)
+          const productSelectors = [
+            '.product',
+            '.product-item',
+            '[itemtype*="Product"]',
+            '.woocommerce-product',
+            '.shopify-product',
+          ];
+
+          const priceSelectors = [
+            '.price',
+            '.product-price',
+            '[itemprop="price"]',
+            '.cost',
+            '.pricing',
+          ];
+
+          // Extract product information if present
+          productSelectors.forEach(selector => {
+            $(selector).each((_, element) => {
+              const productName = $(element).find('h1, h2, h3, .product-title, .product-name').first().text().trim();
+              const productDesc = $(element).find('.description, .product-description, p').first().text().trim();
+              const productPrice = $(element).find(priceSelectors.join(', ')).first().text().trim();
+
+              if (productName) {
+                structuredData += `\n\nPRODUCT: ${productName}`;
+                if (productDesc) structuredData += `\nDescription: ${productDesc}`;
+                if (productPrice) structuredData += `\nPrice: ${productPrice}`;
+              }
+            });
+          });
+
+          // Extract pricing tables
+          $('table').each((_, table) => {
+            const tableText = $(table).text().trim();
+            if (tableText.toLowerCase().includes('price') ||
+                tableText.toLowerCase().includes('plan') ||
+                tableText.toLowerCase().includes('cost')) {
+              structuredData += `\n\nPRICING TABLE:\n${tableText}`;
+            }
+          });
+
+          // Extract main content
           const mainSelectors = [
             'main',
             'article',
@@ -111,6 +156,11 @@ export class DocumentProcessor {
           // If no main content found, get body text
           if (!pageContent) {
             pageContent = $('body').text();
+          }
+
+          // Combine structured data with main content
+          if (structuredData) {
+            pageContent = structuredData + '\n\n--- PAGE CONTENT ---\n' + pageContent;
           }
 
           // Clean up whitespace
@@ -143,6 +193,7 @@ export class DocumentProcessor {
                   toVisit.length + visitedUrls.size < maxPages
                 ) {
                   // Skip common non-content URLs and blogs (saves AI tokens)
+                  // BUT keep product, pricing, service, and offer pages
                   const skipPatterns = [
                     '/wp-admin',
                     '/wp-login',
@@ -168,8 +219,31 @@ export class DocumentProcessor {
                     '#',
                   ];
 
+                  // Prioritize important pages (products, pricing, services, about)
+                  const priorityPatterns = [
+                    '/product',
+                    '/shop',
+                    '/store',
+                    '/pricing',
+                    '/price',
+                    '/service',
+                    '/offer',
+                    '/about',
+                    '/contact',
+                    '/faq',
+                  ];
+
+                  const isPriorityUrl = priorityPatterns.some(pattern =>
+                    absoluteUrl.toLowerCase().includes(pattern)
+                  );
+
                   if (!skipPatterns.some(pattern => absoluteUrl.includes(pattern))) {
-                    toVisit.push(absoluteUrl);
+                    // Add priority URLs to the front of the queue
+                    if (isPriorityUrl) {
+                      toVisit.unshift(absoluteUrl);
+                    } else {
+                      toVisit.push(absoluteUrl);
+                    }
                   }
                 }
               } catch {
