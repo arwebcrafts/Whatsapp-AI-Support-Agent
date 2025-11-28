@@ -199,11 +199,11 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center" style={{ gap: '0.75rem' }}>
+            <div className="flex items-center space-x-3">
               <Link href="/admin">
                 <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4" style={{ marginRight: '0.5rem' }} />
-                  <span>Back</span>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
                 </Button>
               </Link>
               <Users className="w-8 h-8 text-primary" />
@@ -224,11 +224,11 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   Manage user accounts, subscriptions, and limits
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{String(filteredUsers.length) + " users"}</Badge>
+              <Badge variant="secondary">{filteredUsers.length.toString() + " users"}</Badge>
             </div>
 
             {/* Filters */}
-            <div className="flex mt-4" style={{ gap: '1rem' }}>
+            <div className="flex mt-4 space-x-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -279,8 +279,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     <TableCell>
                       {user.role === "admin" ? (
                         <Badge variant="default">
-                          <Crown className="w-3 h-3" style={{ marginRight: '0.25rem' }} />
-                          <span>Admin</span>
+                          <Crown className="w-3 h-3 mr-1" />
+                          Admin
                         </Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>
@@ -293,7 +293,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       >
                         {user.planType === "admin_access" ? (
                           <>
-                            <Infinity className="w-3 h-3 inline-block" style={{ marginRight: '0.25rem' }} />
+                            <Infinity className="w-3 h-3 mr-1 inline-block" />
                             <span>Admin Access (Unlimited)</span>
                           </>
                         ) : (
@@ -323,7 +323,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <div className="flex" style={{ gap: '0.25rem' }}>
+                      <div className="flex space-x-1">
                         {user.role !== "admin" && (
                           <Button
                             variant="ghost"
@@ -368,7 +368,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                 {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      <span>No users found</span>
+                      No users found
                     </TableCell>
                   </TableRow>
                 )}
@@ -403,8 +403,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       <SelectItem value="business">Business</SelectItem>
                       <SelectItem value="admin_access">
                         <div className="flex items-center">
-                          <Infinity className="w-3 h-3" style={{ marginRight: '0.5rem' }} />
-                          <span>Admin Access (Unlimited)</span>
+                          <Infinity className="w-3 h-3 mr-2" />
+                          Admin Access (Unlimited)
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -455,7 +455,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   </Select>
                 </div>
 
-                <div className="flex justify-end" style={{ gap: '0.5rem' }}>
+                <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setEditingUser(null)}>
                     Cancel
                   </Button>
