@@ -45,9 +45,11 @@ model Agent {
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String
+  businessName    String?  // Business name for natural introductions
   description     String?  @db.Text
   businessType    String?  // 'ecommerce', 'realestate', 'education', etc.
   aiTone          String   @default("friendly") // 'professional', 'friendly', 'direct', 'warm'
+  responseDelay   Int      @default(5) // Delay in seconds before responding (default 5s)
   isActive        Boolean  @default(true)
   isTemplate      Boolean  @default(false) // Pre-built templates
   createdAt       DateTime @default(now())

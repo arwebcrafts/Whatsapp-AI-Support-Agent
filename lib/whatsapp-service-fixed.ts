@@ -632,6 +632,13 @@ class WhatsAppServiceFixed {
       if (shouldAutoReply) {
         console.log('🤖 AI is enabled in AUTO mode, using debounced response...');
 
+        // Get agent's response delay setting (default 5 seconds)
+        const agent = await prisma.agent.findUnique({
+          where: { id: agentId },
+          select: { responseDelay: true },
+        });
+        const responseDelay = (agent?.responseDelay || 5) * 1000; // Convert to milliseconds
+
         // Clear existing debounce timer for this conversation
         const existingTimer = this.messageDebounceTimers.get(conversation.id);
         if (existingTimer) {
@@ -644,7 +651,7 @@ class WhatsAppServiceFixed {
         this.pendingMessages.set(conversation.id, currentCount + 1);
         console.log(`📊 Pending messages for this conversation: ${currentCount + 1}`);
 
-        // Set new debounce timer - wait 3 seconds after last message
+        // Set new debounce timer - use agent's configured delay
         const timer = setTimeout(async () => {
           const messageCount = this.pendingMessages.get(conversation.id) || 1;
           console.log(`⏰ Timer expired! Processing ${messageCount} message(s) together...`);
@@ -652,6 +659,14 @@ class WhatsAppServiceFixed {
           // Clear the timer and counter
           this.messageDebounceTimers.delete(conversation.id);
           this.pendingMessages.delete(conversation.id);
+
+          // Send typing indicator first
+          try {
+            await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
+            console.log('✍️ Sent typing indicator');
+          } catch (error) {
+            console.error('Error sending typing indicator:', error);
+          }
 
           // Check if user can send messages
           const { canUserSendMessage } = await import('./trial-checker');
@@ -663,10 +678,17 @@ class WhatsAppServiceFixed {
           } else {
             console.log(`❌ Cannot send AI reply: ${canSend.reason}`);
           }
-        }, 3000); // Wait 3 seconds after last message
+
+          // Stop typing indicator
+          try {
+            await sock.sendPresenceUpdate('paused', msg.key.remoteJid);
+          } catch (error) {
+            console.error('Error stopping typing indicator:', error);
+          }
+        }, responseDelay);
 
         this.messageDebounceTimers.set(conversation.id, timer);
-        console.log('⏱️ Debounce timer set (3 seconds)');
+        console.log(`⏱️ Debounce timer set (${responseDelay / 1000} seconds)`);
 
       } else if (conversation.aiEnabled && aiMode === 'copilot') {
         console.log('✨ AI is in CO-PILOT mode - user will request suggestions manually');
@@ -742,6 +764,7 @@ class WhatsAppServiceFixed {
 
       const aiTone = conversation.agent?.aiTone || 'friendly';
       const agentName = conversation.agent?.name || 'AI Assistant';
+      const businessName = conversation.agent?.businessName || '';
       const agentDescription = conversation.agent?.description || '';
       const businessType = conversation.agent?.businessType || '';
       const conversationGoal = conversation.conversationGoal || 'info';
@@ -1188,7 +1211,9 @@ You are a PROFESSIONAL sales expert who understands human psychology, builds gen
 
 **OPENING (First Message):**
 Warm greeting + brief introduction as customer support + understand their need
-Example: "Hi! I'm ${agentName}, your customer support assistant. I'm here to help you with any questions about our products, services, or anything else you need. How can I assist you today? 😊"
+Example: "${businessName ? `Hi! I'm ${agentName} from ${businessName}. How can I assist you today? 😊` : `Hi! I'm ${agentName}, your customer support assistant. How can I assist you today? 😊`}"
+
+IMPORTANT: Use the exact format above for first messages. Keep it short, natural, and friendly.
 
 **DISCOVERY PHASE:**
 Ask 2-3 smart questions to understand:

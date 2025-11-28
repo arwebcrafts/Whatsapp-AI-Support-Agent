@@ -81,14 +81,16 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, description, aiTone, isActive } = body;
+    const { name, businessName, description, aiTone, responseDelay, isActive } = body;
 
     const updated = await prisma.agent.update({
       where: { id: params.id },
       data: {
         name,
+        businessName,
         description,
         aiTone,
+        responseDelay,
         isActive,
       },
     });

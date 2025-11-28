@@ -67,8 +67,10 @@ export default function AgentDetailPage() {
 
   // Form state
   const [name, setName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [description, setDescription] = useState("");
   const [aiTone, setAiTone] = useState("friendly");
+  const [responseDelay, setResponseDelay] = useState(5);
 
   // Knowledge form
   const [newKnowledge, setNewKnowledge] = useState("");
@@ -88,8 +90,10 @@ export default function AgentDetailPage() {
         const data = await res.json();
         setAgent(data.agent);
         setName(data.agent.name);
+        setBusinessName(data.agent.businessName || "");
         setDescription(data.agent.description || "");
         setAiTone(data.agent.aiTone);
+        setResponseDelay(data.agent.responseDelay || 5);
       } else {
         router.push("/dashboard/agents");
       }
@@ -106,7 +110,7 @@ export default function AgentDetailPage() {
       await fetch(`/api/agents/${agentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, aiTone }),
+        body: JSON.stringify({ name, businessName, description, aiTone, responseDelay }),
       });
       await loadAgent();
     } catch (error) {
@@ -403,8 +407,22 @@ export default function AgentDetailPage() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Sarah, Alex, John"
                     className="mt-1"
                   />
+                  <p className="text-xs text-gray-500 mt-1">This is how your agent will introduce itself</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="businessName">Business Name (Optional)</Label>
+                  <Input
+                    id="businessName"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g., Air Web Crafts, Tech Solutions"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Your business/company name for a professional introduction</p>
                 </div>
 
                 <div>
@@ -413,6 +431,7 @@ export default function AgentDetailPage() {
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Brief description of the agent's role"
                     className="mt-1"
                   />
                 </div>
@@ -430,6 +449,22 @@ export default function AgentDetailPage() {
                     <option value="direct">Direct</option>
                     <option value="warm">Warm</option>
                   </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="responseDelay">Response Delay (seconds)</Label>
+                  <Input
+                    id="responseDelay"
+                    type="number"
+                    min="3"
+                    max="30"
+                    value={responseDelay}
+                    onChange={(e) => setResponseDelay(parseInt(e.target.value) || 5)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    How long to wait before responding (3-30 seconds). Recommended: 5-6 seconds
+                  </p>
                 </div>
 
                 <Button onClick={saveAgent} disabled={saving}>
