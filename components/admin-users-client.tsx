@@ -58,6 +58,29 @@ interface AdminUsersClientProps {
 }
 
 export default function AdminUsersClient({ users: initialUsers }: AdminUsersClientProps) {
+  // DEBUG: Log received data (v2)
+  console.log('=== CLIENT RECEIVED DATA DEBUG (v2) ===');
+  console.log('Received users count:', initialUsers.length);
+  if (initialUsers.length > 0) {
+    const firstUser = initialUsers[0];
+    console.log('First user received:', {
+      email: firstUser.email,
+      _count: firstUser._count,
+      _count_agents_type: typeof firstUser._count.agents,
+      messageUsage: firstUser.messageUsage,
+      messageUsage_type: firstUser.messageUsage[0] ? typeof firstUser.messageUsage[0].messagesUsed : 'N/A',
+    });
+
+    const adminUser = initialUsers.find(u => u.planType === 'admin_access');
+    if (adminUser) {
+      console.log('Admin user in client:', {
+        email: adminUser.email,
+        planType: adminUser.planType,
+        planType_type: typeof adminUser.planType,
+      });
+    }
+  }
+
   const router = useRouter();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -188,13 +211,24 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     return matchesSearch && matchesPlan;
   });
 
+  // DEBUG: Log filtered users and badge rendering (v2)
+  console.log('=== FILTERED USERS DEBUG (v2) ===');
+  console.log('Filtered count:', filteredUsers.length);
+  console.log('Filtered count type:', typeof filteredUsers.length);
+  console.log('Badge content will be:', `${filteredUsers.length} users`);
+
   function getPlanBadgeVariant(planType: string) {
     if (planType === "admin_access") return "default";
     return "outline";
   }
 
   function getPlanIcon(planType: string) {
-    if (planType === "admin_access") return <Infinity className="w-3 h-3 mr-1" />;
+    console.log('getPlanIcon called with:', planType, '| type:', typeof planType);
+    if (planType === "admin_access") {
+      const icon = <Infinity className="w-3 h-3 mr-1" />;
+      console.log('Returning Infinity icon for admin_access');
+      return icon;
+    }
     return null;
   }
 
