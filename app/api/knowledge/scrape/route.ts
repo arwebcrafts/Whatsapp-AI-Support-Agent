@@ -30,8 +30,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Normalize URL (remove trailing slash for consistency)
+    const normalizedUrl = url.trim().replace(/\/$/, '');
+
+    // Check if this URL already exists for this user/agent
+    if (agentId) {
+      const existingKnowledge = await prisma.knowledgeBase.findFirst({
+        where: {
+          userId: user.id,
+          sourceUrl: normalizedUrl,
+          agentKnowledge: {
+            some: {
+              agentId: agentId
+            }
+          }
+        },
+        include: {
+          agentKnowledge: true
+        }
+      });
+
+      if (existingKnowledge) {
+        return NextResponse.json(
+          {
+            message: "This website has already been scraped for this agent",
+            knowledge: existingKnowledge,
+            alreadyExists: true
+          },
+          { status: 200 }
+        );
+      }
+    } else {
+      // Check for duplicate URL for this user (no agent specified)
+      const existingKnowledge = await prisma.knowledgeBase.findFirst({
+        where: {
+          userId: user.id,
+          sourceUrl: normalizedUrl,
+        }
+      });
+
+      if (existingKnowledge) {
+        return NextResponse.json(
+          {
+            message: "This website has already been scraped",
+            knowledge: existingKnowledge,
+            alreadyExists: true
+          },
+          { status: 200 }
+        );
+      }
+    }
+
     // Scrape website
-    const result = await documentProcessor.scrapeWebsite(url);
+    const result = await documentProcessor.scrapeWebsite(normalizedUrl);
 
     // Save to knowledge base
     const knowledge = await prisma.knowledgeBase.create({
@@ -40,7 +91,7 @@ export async function POST(req: NextRequest) {
         title: result.title,
         content: documentProcessor.sanitizeContent(result.content),
         sourceType: 'website',
-        sourceUrl: url,
+        sourceUrl: normalizedUrl,
       },
     });
 
@@ -60,7 +111,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ knowledge }, { status: 201 });
+    return NextResponse.json({ knowledge, alreadyExists: false }, { status: 201 });
   } catch (error: any) {
     console.error("Website scrape error:", error);
     return NextResponse.json(
