@@ -54,11 +54,19 @@ export default async function AdminUsersPage() {
     },
   });
 
-  // Serialize dates to strings for client component (fixes Next.js serialization error)
+  // Serialize dates to strings and ensure all numeric values are properly typed
   const serializedUsers = users.map(user => ({
     ...user,
     createdAt: user.createdAt.toISOString(),
     trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+    _count: {
+      agents: Number(user._count.agents),
+      conversations: Number(user._count.conversations),
+      whatsappConnections: Number(user._count.whatsappConnections),
+    },
+    messageUsage: user.messageUsage.map(usage => ({
+      messagesUsed: Number(usage.messagesUsed),
+    })),
   }));
 
   return <AdminUsersClient users={serializedUsers} />;
