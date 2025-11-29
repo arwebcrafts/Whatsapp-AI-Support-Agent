@@ -1358,7 +1358,7 @@ export default function Home() {
             {/* Trust Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-4xl mx-auto">
               <div className="text-center">
-                <p className="text-4xl font-bold text-primary mb-2">10,000+</p>
+                <p className="text-4xl font-bold text-primary mb-2">1,000+</p>
                 <p className="text-gray-600">Active Users</p>
               </div>
               <div className="text-center">

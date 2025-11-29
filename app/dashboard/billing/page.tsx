@@ -80,29 +80,62 @@ export default function BillingPage() {
       name: "Starter",
       type: "starter",
       monthlyPrice: 9,
-      yearlyPrice: 79,
+      yearlyPrice: 75,
       lifetimePrice: 79,
-      messages: "2,000",
-      features: ["2,000 messages/month", "1 WhatsApp Connection", "1 Agent", "AI auto-replies", "Knowledge base"],
+      messages: "3,000",
+      features: [
+        "3,000 messages/month",
+        "3 AI Modes (Auto/Copilot/Manual)",
+        "Voice message transcription",
+        "Smart 3-stage follow-ups",
+        "Knowledge base (website scraping)",
+        "Lead scoring & analytics dashboard",
+        "Interactive buttons & lists",
+        "Manual takeover mode",
+        "AI agent templates library",
+        "Normal support"
+      ],
     },
     {
-      name: "Professional",
+      name: "Pro",
       type: "professional",
       monthlyPrice: 19,
-      yearlyPrice: 169,
+      yearlyPrice: 159,
       lifetimePrice: 149,
-      messages: "5,000",
-      features: ["5,000 messages/month", "1 WhatsApp Connection", "1 Agent", "Voice notes", "Smart follow-ups", "Priority support"],
+      messages: "10,000",
+      features: [
+        "10,000 messages/month",
+        "3 AI Modes (Auto/Copilot/Manual)",
+        "Voice message transcription",
+        "Smart 3-stage follow-ups",
+        "Knowledge base (website scraping)",
+        "Lead scoring & analytics dashboard",
+        "Interactive buttons & lists",
+        "Manual takeover mode",
+        "AI agent templates library",
+        "Priority support"
+      ],
       popular: true,
     },
     {
       name: "Business",
       type: "business",
       monthlyPrice: 39,
-      yearlyPrice: 349,
+      yearlyPrice: 327,
       lifetimePrice: 199,
-      messages: "12,000",
-      features: ["12,000 messages/month", "1 WhatsApp Connection", "1 Agent", "All features", "Analytics", "VIP support"],
+      messages: "20,000",
+      features: [
+        "20,000 messages/month",
+        "3 AI Modes (Auto/Copilot/Manual)",
+        "Voice message transcription",
+        "Smart 3-stage follow-ups",
+        "Knowledge base (website scraping)",
+        "Lead scoring & analytics dashboard",
+        "Interactive buttons & lists",
+        "Manual takeover mode",
+        "AI agent templates library",
+        "Priority support"
+      ],
     },
   ];
 
@@ -169,28 +202,32 @@ export default function BillingPage() {
             </TabsList>
 
             <TabsContent value="monthly" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {plans.map((plan) => (
-                  <Card key={plan.type} className={plan.popular ? "border-primary border-2" : ""}>
+                  <Card key={plan.type} className={plan.popular ? "border-primary border-2 scale-105" : ""}>
                     {plan.popular && (
-                      <div className="text-center">
-                        <Badge className="mt-4">Most Popular</Badge>
-                      </div>
+                      <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        Most Popular
+                      </Badge>
                     )}
                     <CardHeader>
                       <CardTitle>{plan.name}</CardTitle>
-                      <CardDescription>{plan.messages} messages/month</CardDescription>
+                      <CardDescription>Perfect for growing businesses</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">${plan.monthlyPrice}</span>
                         <span className="text-gray-600">/month</span>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2 mb-6">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                            <span className="text-sm">{feature}</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">{plan.messages} messages/month</p>
+                        <p className="text-sm text-gray-600 mb-4">{plan.features[plan.features.length - 1]}</p>
+                      </div>
+                      <ul className="space-y-2 mb-6 text-sm">
+                        {plan.features.slice(1, -1).map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -205,37 +242,106 @@ export default function BillingPage() {
                   </Card>
                 ))}
               </div>
+
+              {/* Enterprise Plan */}
+              <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50 mb-8">
+                <CardHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">Enterprise</CardTitle>
+                      <CardDescription>Custom solutions for large teams</CardDescription>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-purple-600">Custom Pricing</p>
+                      <p className="text-sm text-gray-600 mt-2">Tailored to your needs</p>
+                    </div>
+                    <div className="flex justify-center md:justify-end">
+                      <Button size="lg" className="bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href = '/contact'}>
+                        Contact Sales
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited messages</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited WhatsApp numbers</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Dedicated account manager</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Custom integrations & API access</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>White-label options</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>SLA guarantees</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Onboarding & training</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>24/7 VIP support</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 14-Day Money-Back Guarantee */}
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="yearly" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {plans.map((plan) => (
-                  <Card key={plan.type} className={plan.popular ? "border-primary border-2" : ""}>
+                  <Card key={plan.type} className={plan.popular ? "border-primary border-2 scale-105" : ""}>
                     {plan.popular && (
-                      <div className="text-center">
-                        <Badge className="mt-4">Most Popular</Badge>
-                      </div>
+                      <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        Most Popular
+                      </Badge>
                     )}
                     <CardHeader>
-                      <Badge variant="secondary" className="w-fit mb-2">
-                        Save {Math.round((1 - plan.yearlyPrice / (plan.monthlyPrice * 12)) * 100)}%
+                      <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">
+                        Get 3 Months Free! 🎉
                       </Badge>
                       <CardTitle>{plan.name}</CardTitle>
-                      <CardDescription>{plan.messages} messages/month</CardDescription>
+                      <CardDescription>Perfect for growing businesses</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold">${plan.yearlyPrice}</span>
                         <span className="text-gray-600">/year</span>
                       </div>
                       <p className="text-sm text-gray-500">
-                        ~${(plan.yearlyPrice / 12).toFixed(2)}/month
+                        ~${(plan.yearlyPrice / 12).toFixed(2)}/month (Save {Math.round((1 - plan.yearlyPrice / (plan.monthlyPrice * 12)) * 100)}%)
                       </p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2 mb-6">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                            <span className="text-sm">{feature}</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">{plan.messages} messages/month</p>
+                        <p className="text-sm text-gray-600 mb-4">{plan.features[plan.features.length - 1]}</p>
+                      </div>
+                      <ul className="space-y-2 mb-6 text-sm">
+                        {plan.features.slice(1, -1).map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -249,6 +355,71 @@ export default function BillingPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+
+              {/* Enterprise Plan */}
+              <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50 mb-8">
+                <CardHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">Enterprise</CardTitle>
+                      <CardDescription>Custom solutions for large teams</CardDescription>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-purple-600">Custom Pricing</p>
+                      <p className="text-sm text-gray-600 mt-2">Tailored to your needs</p>
+                    </div>
+                    <div className="flex justify-center md:justify-end">
+                      <Button size="lg" className="bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href = '/contact'}>
+                        Contact Sales
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited messages</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited WhatsApp numbers</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Dedicated account manager</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Custom integrations & API access</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>White-label options</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>SLA guarantees</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Onboarding & training</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>24/7 VIP support</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 14-Day Money-Back Guarantee */}
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                </div>
               </div>
             </TabsContent>
 
@@ -269,13 +440,13 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {plans.map((plan) => (
-                  <Card key={plan.type} className={plan.popular ? "border-orange-500 border-2" : ""}>
+                  <Card key={plan.type} className={plan.popular ? "border-orange-500 border-2 scale-105" : ""}>
                     {plan.popular && (
-                      <div className="text-center">
-                        <Badge className="mt-4 bg-orange-600">Best Value</Badge>
-                      </div>
+                      <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-600">
+                        🔥 Best Value
+                      </Badge>
                     )}
                     <CardHeader>
                       <CardTitle>{plan.name} Lifetime</CardTitle>
@@ -289,21 +460,22 @@ export default function BillingPage() {
                       </p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2 mb-6">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span className="text-sm">{plan.messages} messages/month</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span className="text-sm font-bold">Forever</span>
-                        </li>
-                        {plan.features.slice(1).map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-primary" />
-                            <span className="text-sm">{feature}</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">{plan.messages} messages/month</p>
+                        <p className="text-sm text-gray-600 mb-2">{plan.features[plan.features.length - 1]}</p>
+                        <p className="text-sm font-bold text-orange-600"><strong>Forever access ✨</strong></p>
+                      </div>
+                      <ul className="space-y-2 mb-6 text-sm">
+                        {plan.features.slice(1, -1).map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{feature}</span>
                           </li>
                         ))}
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>All future updates included</span>
+                        </li>
                       </ul>
                       <Button
                         className="w-full bg-orange-600 hover:bg-orange-700"
@@ -315,6 +487,71 @@ export default function BillingPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+
+              {/* Enterprise Plan */}
+              <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50 mb-8">
+                <CardHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">Lifetime Enterprise</CardTitle>
+                      <CardDescription>One-time payment, unlimited forever</CardDescription>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-purple-600">Custom Pricing</p>
+                      <p className="text-sm text-gray-600 mt-2">Tailored to your needs</p>
+                    </div>
+                    <div className="flex justify-center md:justify-end">
+                      <Button size="lg" className="bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href = '/contact'}>
+                        Contact Sales
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited messages forever</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Unlimited WhatsApp numbers</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Dedicated account manager</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Custom integrations & API access</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>White-label options</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>SLA guarantees</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Onboarding & training</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>24/7 VIP support forever</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 14-Day Money-Back Guarantee */}
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
