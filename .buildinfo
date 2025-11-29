@@ -1,10 +1,10 @@
-BUILD_TIMESTAMP=2025-11-29T00:00:00Z
-BUILD_VERSION=1.1.0-fragment-fix
+BUILD_TIMESTAMP=2025-11-29T00:15:00Z
+BUILD_VERSION=1.1.1-no-nested-wrappers-fix
 FORCE_REBUILD=true
-COMMIT_HASH=1f2ab25
+COMMIT_HASH=586d9ad
 DEBUG_MODE=enabled
 LOGGING_LEVEL=comprehensive
-FIX_APPLIED=replaced-fragments-with-single-wrappers-in-badges
-ROOT_CAUSE=badge-components-cannot-handle-react-fragments-as-children
-SOLUTION=use-span-inline-flex-wrapper-instead-of-fragments
+FIX_APPLIED=removed-all-nested-span-wrappers-apply-inline-flex-to-badge-classname
+ROOT_CAUSE=nested-span-created-children-array-with-numeric-values
+SOLUTION=badge-children-are-now-icon-plus-direct-text-no-wrappers
 DO_NOT_REMOVE_LOGS=true
