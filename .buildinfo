@@ -1,6 +1,8 @@
-BUILD_TIMESTAMP=2025-11-28T23:00:00Z
-BUILD_VERSION=1.0.8-space-x-utilities-fix
+BUILD_TIMESTAMP=2025-11-28T23:30:00Z
+BUILD_VERSION=1.0.9-detailed-debug-logging
 FORCE_REBUILD=true
-COMMIT_HASH=690c8f5
-FIX_APPLIED=replaced-gap-and-inline-styles-with-space-x-utilities
-ISSUES_FIXED=react-error-130-and-500-ssr-error
+COMMIT_HASH=7bf11b0
+DEBUG_MODE=enabled
+LOGGING_LEVEL=comprehensive
+PURPOSE=identify-react-error-130-numeric-source
+DO_NOT_REMOVE_LOGS=true
