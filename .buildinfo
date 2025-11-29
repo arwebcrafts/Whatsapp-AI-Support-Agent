@@ -1,8 +1,10 @@
-BUILD_TIMESTAMP=2025-11-28T23:30:00Z
-BUILD_VERSION=1.0.9-detailed-debug-logging
+BUILD_TIMESTAMP=2025-11-29T00:00:00Z
+BUILD_VERSION=1.1.0-fragment-fix
 FORCE_REBUILD=true
-COMMIT_HASH=7bf11b0
+COMMIT_HASH=1f2ab25
 DEBUG_MODE=enabled
 LOGGING_LEVEL=comprehensive
-PURPOSE=identify-react-error-130-numeric-source
+FIX_APPLIED=replaced-fragments-with-single-wrappers-in-badges
+ROOT_CAUSE=badge-components-cannot-handle-react-fragments-as-children
+SOLUTION=use-span-inline-flex-wrapper-instead-of-fragments
 DO_NOT_REMOVE_LOGS=true
