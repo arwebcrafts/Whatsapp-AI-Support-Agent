@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { url, agentId } = body;
+    const { url, agentId, maxPages } = body;
 
     if (!url) {
       return NextResponse.json(
@@ -29,6 +29,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Use provided maxPages or default to 50 for comprehensive scraping
+    const pagesToScrape = maxPages && typeof maxPages === 'number' && maxPages > 0
+      ? Math.min(maxPages, 100) // Cap at 100 pages maximum
+      : 50; // Default to 50 pages for better coverage
 
     // Normalize URL (remove trailing slash for consistency)
     const normalizedUrl = url.trim().replace(/\/$/, '');
@@ -81,8 +86,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Scrape website
-    const result = await documentProcessor.scrapeWebsite(normalizedUrl);
+    // Scrape website with specified number of pages
+    const result = await documentProcessor.scrapeWebsite(normalizedUrl, pagesToScrape);
 
     // Save to knowledge base
     const knowledge = await prisma.knowledgeBase.create({

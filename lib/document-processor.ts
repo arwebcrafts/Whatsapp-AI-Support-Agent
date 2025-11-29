@@ -35,7 +35,7 @@ export class DocumentProcessor {
    * @param url - Starting URL to scrape
    * @param maxPages - Maximum number of pages to crawl (default: 10)
    */
-  async scrapeWebsite(url: string, maxPages: number = 10): Promise<{
+  async scrapeWebsite(url: string, maxPages: number = 50): Promise<{
     title: string;
     content: string;
     description?: string;

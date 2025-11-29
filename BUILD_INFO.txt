@@ -1,7 +1,9 @@
-Build Timestamp: 2025-11-29T00:15:00Z
-Version: 1.1.4
+Build Timestamp: 2025-11-29T01:00:00Z
+Version: 1.2.0
 Changes:
-- Fixed JavaScript Infinity global conflict with Lucide icon
-- Renamed Infinity import to InfinityIcon to avoid name collision
-- JavaScript's Infinity constant was shadowing the React component
-- Resolved "Element type is invalid... but got: number" error
+- Fixed real-time chat list updates - added 10s polling to conversation list
+- Fixed website scraping - increased from 10 to 50 pages default (max 100)
+- Fixed manual mode auto-reply - clear debounce timers when mode changes
+- Fixed chat continuity - conversations now persist across session reconnects
+- Added /api/conversations endpoint for fetching conversation list
+- Added clearConversationTimer() method to prevent unwanted auto-replies

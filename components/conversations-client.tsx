@@ -104,6 +104,23 @@ export default function ConversationsClient({ initialConversations }: { initialC
     return () => clearInterval(interval);
   }, [selectedConv?.id]);
 
+  // Auto-refresh conversation list every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/conversations');
+        if (res.ok) {
+          const data = await res.json();
+          setConversations(data.conversations || []);
+        }
+      } catch (error) {
+        console.error("Error refreshing conversations:", error);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Load full messages for selected conversation
   const loadFullMessages = async (conversationId: string, silent = false) => {
     if (!silent) setLoadingMessages(true);

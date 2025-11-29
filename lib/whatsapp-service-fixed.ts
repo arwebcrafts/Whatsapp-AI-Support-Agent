@@ -587,15 +587,17 @@ class WhatsAppServiceFixed {
       }
 
       // Find or create conversation
+      // Match by agentId and customerPhone only (not whatsappConnectionId)
+      // This ensures conversation continuity even after session reconnects
       let conversation = await prisma.conversation.findFirst({
         where: {
           agentId,
-          whatsappConnectionId: whatsappConnection.id,
           customerPhone,
         },
       });
 
       if (!conversation) {
+        // Create new conversation
         conversation = await prisma.conversation.create({
           data: {
             userId,
@@ -607,6 +609,14 @@ class WhatsAppServiceFixed {
             aiEnabled: true,
           },
         });
+      } else if (conversation.whatsappConnectionId !== whatsappConnection.id) {
+        // Update whatsappConnectionId if session was reconnected
+        // This keeps the conversation associated with the current active connection
+        conversation = await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { whatsappConnectionId: whatsappConnection.id },
+        });
+        console.log(`🔄 Updated conversation ${conversation.id} with new connection ID`);
       }
 
       // Save customer message
@@ -1661,6 +1671,20 @@ Let's make this conversation count!`;
 
   getSession(agentId: string): WhatsAppSession | undefined {
     return this.sessions.get(agentId);
+  }
+
+  /**
+   * Clear any pending debounce timers for a conversation
+   * Useful when AI mode changes to manual/copilot to prevent unwanted auto-replies
+   */
+  clearConversationTimer(conversationId: string): void {
+    const timer = this.messageDebounceTimers.get(conversationId);
+    if (timer) {
+      clearTimeout(timer);
+      this.messageDebounceTimers.delete(conversationId);
+      this.pendingMessages.delete(conversationId);
+      console.log(`🛑 Cleared pending auto-reply timer for conversation ${conversationId}`);
+    }
   }
 
   async sendMessage(agentId: string, remoteJid: string, message: string): Promise<void> {
