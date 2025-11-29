@@ -58,6 +58,24 @@ interface AdminUsersClientProps {
 }
 
 export default function AdminUsersClient({ users: initialUsers }: AdminUsersClientProps) {
+  // DETAILED DEBUG LOGGING - DO NOT REMOVE
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎨 CLIENT COMPONENT INITIALIZATION');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('Received initialUsers count:', initialUsers.length);
+
+  if (initialUsers.length > 0) {
+    console.log('\n📊 FIRST USER RECEIVED BY CLIENT:');
+    const firstUser = initialUsers[0];
+    console.log(JSON.stringify(firstUser, null, 2));
+
+    console.log('\n🔬 CLIENT RECEIVED DATA TYPES:');
+    console.log('- _count.agents:', typeof firstUser._count.agents, '=', firstUser._count.agents);
+    console.log('- _count.conversations:', typeof firstUser._count.conversations, '=', firstUser._count.conversations);
+    console.log('- messageUsage[0]?.messagesUsed:', typeof firstUser.messageUsage[0]?.messagesUsed, '=', firstUser.messageUsage[0]?.messagesUsed);
+  }
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
   const router = useRouter();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -188,7 +206,20 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
     return matchesSearch && matchesPlan;
   });
 
+  // DETAILED DEBUG LOGGING - DO NOT REMOVE
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 FILTERED USERS DEBUG');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('Filtered users count:', filteredUsers.length);
+  console.log('Type of filteredUsers.length:', typeof filteredUsers.length);
+
+  const userCountBadgeContent = filteredUsers.length.toString() + " users";
+  console.log('Badge content for user count:', userCountBadgeContent);
+  console.log('Type of badge content:', typeof userCountBadgeContent);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
   function getPlanBadgeVariant(planType: string) {
+    console.log('🎨 getPlanBadgeVariant called with:', planType, '| type:', typeof planType);
     if (planType === "admin_access") return "default";
     return "outline";
   }
@@ -224,7 +255,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                   Manage user accounts, subscriptions, and limits
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{filteredUsers.length.toString() + " users"}</Badge>
+              <Badge variant="secondary">{userCountBadgeContent}</Badge>
             </div>
 
             {/* Filters */}
@@ -268,8 +299,23 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                {filteredUsers.map((user, userIndex) => {
+                  // DETAILED DEBUG LOGGING - DO NOT REMOVE
+                  console.log(`\n🔍 RENDERING USER ${userIndex}: ${user.email}`);
+                  console.log('- role:', user.role, '| type:', typeof user.role);
+                  console.log('- planType:', user.planType, '| type:', typeof user.planType);
+                  console.log('- subscriptionStatus:', user.subscriptionStatus, '| type:', typeof user.subscriptionStatus);
+                  console.log('- _count.agents:', user._count.agents, '| type:', typeof user._count.agents);
+                  console.log('- messageUsage[0]?.messagesUsed:', user.messageUsage?.[0]?.messagesUsed, '| type:', typeof user.messageUsage?.[0]?.messagesUsed);
+
+                  // Check what will be rendered in each Badge
+                  console.log('\n📍 Badge Children Analysis:');
+                  console.log('- Role Badge will render:', user.role === "admin" ? "Crown + Admin" : "User");
+                  console.log('- Plan Badge will render:', user.planType === "admin_access" ? "Infinity + Admin Access (Unlimited)" : user.planType);
+                  console.log('- Status Badge will render:', user.subscriptionStatus);
+
+                  return (
+                    <TableRow key={user.id}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{user.email}</p>
@@ -364,7 +410,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">

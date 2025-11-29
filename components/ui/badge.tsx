@@ -28,6 +28,21 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
+  // DETAILED DEBUG LOGGING - DO NOT REMOVE
+  console.log('🎨 Badge component rendering with:');
+  console.log('- variant:', variant);
+  console.log('- className:', className);
+  console.log('- children:', props.children);
+  console.log('- children type:', typeof props.children);
+
+  // Deep check for numeric values in children
+  if (Array.isArray(props.children)) {
+    console.log('⚠️ Children is an ARRAY:', props.children);
+    props.children.forEach((child, idx) => {
+      console.log(`  - child[${idx}] type:`, typeof child, '| value:', child);
+    });
+  }
+
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
   )
