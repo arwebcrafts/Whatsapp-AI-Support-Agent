@@ -78,16 +78,16 @@ export default function Home() {
               {/* Social Proof Stats */}
               <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">2,847</div>
+                  <div className="text-3xl font-bold text-green-600">1,000+</div>
                   <div className="text-sm text-gray-600">Active Users</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-green-600">98%</div>
-                  <div className="text-sm text-gray-600">Response Rate</div>
+                  <div className="text-sm text-gray-600">Satisfaction Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">&lt; 3s</div>
-                  <div className="text-sm text-gray-600">Avg. Reply Time</div>
+                  <div className="text-3xl font-bold text-green-600">&lt;3s</div>
+                  <div className="text-sm text-gray-600">Response Time</div>
                 </div>
               </div>
 
