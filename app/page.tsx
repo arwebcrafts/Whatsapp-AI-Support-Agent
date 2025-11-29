@@ -17,10 +17,18 @@ import {
 } from "lucide-react";
 import AnimatedChatPreview from "@/components/animated-chat-preview";
 import BlackFridayBanner from "@/components/black-friday-banner";
+import WhatsAppWidget from "@/components/whatsapp-widget";
+import ExitIntentPopup from "@/components/exit-intent-popup";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Exit Intent Popup */}
+      <ExitIntentPopup />
+
+      {/* WhatsApp Widget */}
+      <WhatsAppWidget />
+
       {/* Black Friday Banner with Countdown */}
       <BlackFridayBanner />
 
@@ -419,6 +427,311 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Comparison Table Section */}
+        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose WhaSales AI?</h2>
+              <p className="text-xl text-gray-600">See how we compare to traditional solutions</p>
+            </div>
+
+            {/* Mobile-Responsive Comparison Table */}
+            <div className="max-w-6xl mx-auto">
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full border-collapse bg-white rounded-lg shadow-lg">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-green-600 to-blue-600 text-white">
+                      <th className="p-4 text-left font-bold text-lg">Feature</th>
+                      <th className="p-4 text-center font-bold text-lg border-l-2 border-white">
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl mb-1">⚡</span>
+                          <span>WhaSales AI</span>
+                        </div>
+                      </th>
+                      <th className="p-4 text-center font-bold text-lg border-l-2 border-white">
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl mb-1">👤</span>
+                          <span>Hiring Staff</span>
+                        </div>
+                      </th>
+                      <th className="p-4 text-center font-bold text-lg border-l-2 border-white">
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl mb-1">🏢</span>
+                          <span>WhatsApp API</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Monthly Cost</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <span className="text-2xl font-bold text-green-600">$9 - $39</span>
+                        <p className="text-xs text-gray-600 mt-1">All-inclusive</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-red-600">$500 - $2,000</span>
+                        <p className="text-xs text-gray-600 mt-1">Varies by region</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-red-600">$200 - $1,000+</span>
+                        <p className="text-xs text-gray-600 mt-1">+ setup fees</p>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Setup Time</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-green-600">30 seconds</span>
+                        <p className="text-xs text-gray-600 mt-1">Scan QR code</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-orange-600">2-4 weeks</span>
+                        <p className="text-xs text-gray-600 mt-1">Hiring & training</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-orange-600">4-8 weeks</span>
+                        <p className="text-xs text-gray-600 mt-1">Meta approval</p>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Response Time</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-green-600">&lt;3 seconds</span>
+                        <p className="text-xs text-gray-600 mt-1">Instant AI</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-gray-600">5-30 minutes</span>
+                        <p className="text-xs text-gray-600 mt-1">Human delay</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-xl font-bold text-gray-600">Manual setup</span>
+                        <p className="text-xs text-gray-600 mt-1">Need developers</p>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">24/7 Availability</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-red-600 text-2xl">✗</span>
+                        <p className="text-xs text-gray-600 mt-1">Extra cost</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-orange-600 text-2xl">~</span>
+                        <p className="text-xs text-gray-600 mt-1">Need setup</p>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Multi-Language</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-red-600 text-2xl">✗</span>
+                        <p className="text-xs text-gray-600 mt-1">Limited</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-orange-600 text-2xl">~</span>
+                        <p className="text-xs text-gray-600 mt-1">Extra cost</p>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Voice Transcription</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-red-600 text-2xl">✗</span>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-red-600 text-2xl">✗</span>
+                      </td>
+                    </tr>
+                    <tr className="border-b hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Smart Follow-ups</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-orange-600 text-2xl">~</span>
+                        <p className="text-xs text-gray-600 mt-1">Inconsistent</p>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-orange-600 text-2xl">~</span>
+                        <p className="text-xs text-gray-600 mt-1">Manual setup</p>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="p-4 font-semibold">Analytics Dashboard</td>
+                      <td className="p-4 text-center bg-green-50 border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <span className="text-red-600 text-2xl">✗</span>
+                      </td>
+                      <td className="p-4 text-center border-l-2 border-gray-200">
+                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View - Card-based comparison */}
+              <div className="md:hidden space-y-4">
+                <Card className="border-2 border-green-500">
+                  <CardHeader className="bg-gradient-to-r from-green-600 to-blue-600 text-white">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-2xl">⚡</span>
+                      WhaSales AI
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Monthly Cost:</span>
+                        <span className="text-lg font-bold text-green-600">$9 - $39</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Setup Time:</span>
+                        <span className="text-lg font-bold text-green-600">30 seconds</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Response Time:</span>
+                        <span className="text-lg font-bold text-green-600">&lt;3 seconds</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">24/7 Availability:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Multi-Language:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Voice Transcription:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Smart Follow-ups:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Analytics Dashboard:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="bg-gray-100">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-2xl">👤</span>
+                      Hiring Staff
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Monthly Cost:</span>
+                        <span className="text-lg font-bold text-red-600">$500 - $2,000</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Setup Time:</span>
+                        <span className="text-sm text-orange-600">2-4 weeks</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Response Time:</span>
+                        <span className="text-sm text-gray-600">5-30 minutes</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">24/7 Availability:</span>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Multi-Language:</span>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Voice Transcription:</span>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Smart Follow-ups:</span>
+                        <span className="text-sm text-orange-600">Inconsistent</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Analytics Dashboard:</span>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="bg-gray-100">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-2xl">🏢</span>
+                      WhatsApp API
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Monthly Cost:</span>
+                        <span className="text-lg font-bold text-red-600">$200 - $1,000+</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Setup Time:</span>
+                        <span className="text-sm text-orange-600">4-8 weeks</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Response Time:</span>
+                        <span className="text-sm text-gray-600">Manual setup</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">24/7 Availability:</span>
+                        <span className="text-sm text-orange-600">Need setup</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Multi-Language:</span>
+                        <span className="text-sm text-orange-600">Extra cost</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Voice Transcription:</span>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Smart Follow-ups:</span>
+                        <span className="text-sm text-orange-600">Manual setup</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Analytics Dashboard:</span>
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Bottom CTA */}
+              <div className="mt-12 text-center bg-gradient-to-r from-green-100 to-blue-100 p-8 rounded-lg">
+                <h3 className="text-2xl font-bold mb-4">Save $500 - $2,000/month vs. Hiring Staff</h3>
+                <p className="text-lg text-gray-700 mb-6">Get started in 30 seconds. No credit card required.</p>
+                <Link href="/signup">
+                  <Button size="lg" className="text-lg">
+                    Start Free Trial Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Pricing Section */}
         <section id="pricing" className="py-20 bg-white">
           <div className="container mx-auto px-4">
@@ -427,7 +740,7 @@ export default function Home() {
               <p className="text-xl text-gray-600">Choose the plan that fits your business</p>
             </div>
 
-            <Tabs defaultValue="lifetime" className="max-w-6xl mx-auto">
+            <Tabs defaultValue="monthly" className="max-w-6xl mx-auto">
               <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
                 <TabsTrigger value="monthly">Monthly</TabsTrigger>
                 <TabsTrigger value="yearly">Yearly</TabsTrigger>
@@ -1203,6 +1516,204 @@ export default function Home() {
               <p className="text-xl text-gray-600">Join thousands of businesses growing with WhaSales AI</p>
             </div>
 
+            {/* Detailed Case Studies */}
+            <div className="max-w-6xl mx-auto mb-16 space-y-8">
+              {/* Case Study 1 */}
+              <Card className="border-2 border-green-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
+                  <div className="flex items-start gap-6">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-blue-500 flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+                      R
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl mb-2">Rajesh Electronics - Bangalore</CardTitle>
+                      <CardDescription className="text-lg">Consumer Electronics Retail | 15 Years in Business</CardDescription>
+                      <div className="flex gap-1 mt-3">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className="text-yellow-400 text-xl">★</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div>
+                      <h4 className="font-bold text-red-600 mb-3">❌ The Problem</h4>
+                      <p className="text-gray-700 text-sm">
+                        "We were drowning in 200+ WhatsApp messages daily. Customers waited hours for responses. I was losing sales to competitors who replied faster. Hiring staff would cost ₹40,000/month ($500) minimum."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-green-600 mb-3">✅ The Solution</h4>
+                      <p className="text-gray-700 text-sm">
+                        "Set up WhaSales AI in 30 seconds. Trained it on our product catalog and pricing. The AI now handles 90% of questions automatically in English, Hindi, and Kannada."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-blue-600 mb-3">📈 The Results</h4>
+                      <ul className="text-sm space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">250% increase in sales</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Saved 20 hours/week</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Response time: 3s (was 2 hours)</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">ROI: 2,500% in 2 months</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-green-500">
+                    <p className="italic text-gray-700">
+                      "I recovered $15,000 in lost sales in the first month alone from the AI's automatic follow-ups. This is hands-down the best business decision I've made this year."
+                    </p>
+                    <p className="text-sm font-semibold mt-2">- Rajesh Kumar, Owner</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Case Study 2 */}
+              <Card className="border-2 border-purple-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                  <div className="flex items-start gap-6">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+                      A
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl mb-2">Aisha Real Estate - Karachi</CardTitle>
+                      <CardDescription className="text-lg">Property Consulting Agency | 50+ Active Listings</CardDescription>
+                      <div className="flex gap-1 mt-3">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className="text-yellow-400 text-xl">★</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div>
+                      <h4 className="font-bold text-red-600 mb-3">❌ The Problem</h4>
+                      <p className="text-gray-700 text-sm">
+                        "Property inquiries came 24/7, but I could only work 9-5. By the time I replied, clients had already contacted 3-4 other agents. I was missing 60% of potential leads."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-green-600 mb-3">✅ The Solution</h4>
+                      <p className="text-gray-700 text-sm">
+                        "WhaSales AI now answers property questions instantly in Urdu and English. It sends property photos, schedules viewings, and follows up with interested buyers automatically."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-blue-600 mb-3">📈 The Results</h4>
+                      <ul className="text-sm space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">3x more property viewings</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Closed 12 deals in 1 month</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Works while I sleep</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">No missed leads</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-purple-500">
+                    <p className="italic text-gray-700">
+                      "The voice message transcription is a game-changer! I used to spend 3 hours daily listening to voice notes. Now the AI handles everything. My commission has tripled!"
+                    </p>
+                    <p className="text-sm font-semibold mt-2">- Aisha Hassan, Real Estate Agent</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Case Study 3 */}
+              <Card className="border-2 border-blue-200 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                  <div className="flex items-start gap-6">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+                      M
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl mb-2">Maya Fashion Boutique - Dhaka</CardTitle>
+                      <CardDescription className="text-lg">Online Fashion Store | Instagram: 50K Followers</CardDescription>
+                      <div className="flex gap-1 mt-3">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className="text-yellow-400 text-xl">★</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div>
+                      <h4 className="font-bold text-red-600 mb-3">❌ The Problem</h4>
+                      <p className="text-gray-700 text-sm">
+                        "During flash sales, I got 500+ messages in 2 hours. I couldn't keep up! Cart abandonment was 70%. Customers moved to competitors within minutes if I didn't reply."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-green-600 mb-3">✅ The Solution</h4>
+                      <p className="text-gray-700 text-sm">
+                        "WhaSales AI now handles order inquiries, size/color availability, pricing, and payment links instantly. The smart follow-ups recover abandoned carts automatically."
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-blue-600 mb-3">📈 The Results</h4>
+                      <ul className="text-sm space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Cart abandonment: 70% → 15%</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Revenue up 380% in 3 months</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Handles 1,000+ msgs/day</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="font-semibold">Saved $1,200/mo on staff</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <p className="italic text-gray-700">
+                      "I went from working 16 hours/day to 4 hours/day. The AI handles everything perfectly. My customers don't even know they're talking to AI - that's how good it is!"
+                    </p>
+                    <p className="text-sm font-semibold mt-2">- Maya Rahman, Boutique Owner</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Regular Testimonials Grid */}
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold">More Success Stories</h3>
+              <p className="text-gray-600">See what other businesses are saying</p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Testimonial 1 */}
               <Card className="hover:shadow-lg transition-shadow">
@@ -1442,6 +1953,39 @@ export default function Home() {
                     No! WhaSales AI works with your regular WhatsApp number - no official API required.
                     We use the same connection method as WhatsApp Web, so there's no complex Meta approval process.
                     Just scan the QR code and you're ready to go in 30 seconds.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>How long does setup take?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Just 30 seconds! Simply scan the QR code with your WhatsApp, train the AI with your business info, and you're live. No technical setup, no coding, no complicated integrations needed.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Do I need technical skills?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    No, zero coding or technical skills required! Our platform is built for business owners, not developers. If you can use WhatsApp, you can use WhaSales AI. Everything is point-and-click simple.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Can I use my existing WhatsApp number?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Yes! Works with any WhatsApp number - personal or business. You don't need to change numbers or notify customers. Just connect your existing WhatsApp and start automating instantly.
                   </p>
                 </CardContent>
               </Card>
