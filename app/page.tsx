@@ -438,7 +438,7 @@ export default function Home() {
 
               {/* Monthly Plans */}
               <TabsContent value="monthly" className="mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <Card>
                     <CardHeader>
                       <CardTitle>Starter</CardTitle>
@@ -449,30 +449,50 @@ export default function Home() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2 text-sm">
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span className="font-semibold">3,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>3 AI Modes</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Voice transcription</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Smart follow-ups</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>Knowledge base</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Basic analytics</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Interactive buttons</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Manual takeover</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Normal support</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -483,8 +503,8 @@ export default function Home() {
                     </CardFooter>
                   </Card>
 
-                  <Card className="border-primary border-2 relative">
-                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Card className="border-primary border-2 relative shadow-lg scale-105">
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">
                       Most Popular
                     </Badge>
                     <CardHeader>
@@ -496,38 +516,50 @@ export default function Home() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2 text-sm">
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span className="font-semibold">10,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>Voice transcription</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>Smart follow-ups</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Knowledge base</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>Interactive buttons</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Lead scoring</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Manual takeover</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Full analytics</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span className="font-semibold text-primary">Priority support</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -548,34 +580,50 @@ export default function Home() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2 text-sm">
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span className="font-semibold">20,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All Pro features</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Voice transcription</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Smart follow-ups</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Knowledge base</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span>Interactive buttons</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                           <span>Manual takeover</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Admin portal</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Priority support</span>
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                          <span className="font-semibold text-primary">Priority support</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -585,87 +633,111 @@ export default function Home() {
                       </Link>
                     </CardFooter>
                   </Card>
+                </div>
 
-                  <Card className="border-purple-500 border-2">
-                    <CardHeader>
-                      <CardTitle>Enterprise</CardTitle>
-                      <CardDescription>Custom solutions</CardDescription>
-                      <div className="mt-4">
-                        <span className="text-4xl font-bold">Custom</span>
+                {/* Enterprise Plan - Horizontal Card */}
+                <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                      <div>
+                        <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
+                        <p className="text-gray-600">Custom solutions for large teams</p>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span className="font-semibold">Unlimited messages</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Unlimited WhatsApp</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Unlimited agents</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All features</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Dedicated support</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Custom integrations</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>SLA guarantee</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                    <CardFooter>
-                      <Link href="/dashboard/support" className="w-full">
-                        <Button className="w-full" variant="outline">Contact Sales</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span>Unlimited messages</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span>Unlimited WhatsApp numbers</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span>Unlimited AI agents</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span>All features + custom integrations</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span className="font-semibold text-purple-600">Dedicated support & SLA</span>
+                        </div>
+                      </div>
+                      <div className="text-center md:text-right">
+                        <div className="text-3xl font-bold mb-3">Custom Pricing</div>
+                        <Link href="/dashboard/support">
+                          <Button size="lg" variant="outline" className="border-purple-500 text-purple-600 hover:bg-purple-50">
+                            Contact Sales
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 14-Day Money-Back Guarantee */}
+                <div className="mt-8 text-center">
+                  <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                    <span className="text-green-600">- Try risk-free!</span>
+                  </div>
                 </div>
               </TabsContent>
 
               {/* Yearly Plans */}
               <TabsContent value="yearly" className="mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <Card>
                     <CardHeader>
                       <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">Get 3 Months Free! 🎉</Badge>
                       <CardTitle>Starter</CardTitle>
                       <CardDescription>Perfect for small shops</CardDescription>
                       <div className="mt-4">
-                        <span className="text-4xl font-bold">$79</span>
+                        <span className="text-4xl font-bold">$75</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$6.58/month (Save 32%)</p>
+                      <p className="text-sm text-gray-500 mt-1">~$6.25/month (Save 31%)</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>2,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">3,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-4">Normal support</p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 WhatsApp Connection</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 Agent</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>AI auto-replies</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics dashboard</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Interactive buttons & lists</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Manual takeover mode</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>AI agent templates library</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -676,33 +748,57 @@ export default function Home() {
                     </CardFooter>
                   </Card>
 
-                  <Card className="border-primary border-2 relative">
+                  <Card className="border-primary border-2 relative shadow-lg scale-105">
                     <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       Most Popular
                     </Badge>
                     <CardHeader>
                       <Badge variant="secondary" className="w-fit mb-2 bg-green-100 text-green-700">Get 3 Months Free! 🎉</Badge>
-                      <CardTitle>Professional</CardTitle>
+                      <CardTitle>Pro</CardTitle>
                       <CardDescription>For e-commerce & agencies</CardDescription>
                       <div className="mt-4">
-                        <span className="text-4xl font-bold">$169</span>
+                        <span className="text-4xl font-bold">$159</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$14/month (Save 31%)</p>
+                      <p className="text-sm text-gray-500 mt-1">~$13.25/month (Save 30%)</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>5,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">10,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-4">Priority support</p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>3 WhatsApp numbers</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All features included</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics dashboard</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Interactive buttons & lists</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Manual takeover mode</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>AI agent templates library</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -719,24 +815,48 @@ export default function Home() {
                       <CardTitle>Business</CardTitle>
                       <CardDescription>High-volume businesses</CardDescription>
                       <div className="mt-4">
-                        <span className="text-4xl font-bold">$349</span>
+                        <span className="text-4xl font-bold">$327</span>
                         <span className="text-gray-600">/year</span>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">~$29/month (Save 31%)</p>
+                      <p className="text-sm text-gray-500 mt-1">~$27.25/month (Save 30%)</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>12,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">20,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-4">Priority support</p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>10 WhatsApp numbers</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All features + priority support</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics dashboard</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Interactive buttons & lists</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Manual takeover mode</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>AI agent templates library</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -746,6 +866,73 @@ export default function Home() {
                       </Link>
                     </CardFooter>
                   </Card>
+                </div>
+
+                {/* Enterprise Plan - Horizontal Layout */}
+                <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50">
+                  <CardHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                      <div>
+                        <CardTitle className="text-2xl mb-2">Enterprise</CardTitle>
+                        <CardDescription>Custom solutions for large teams</CardDescription>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-purple-600">Custom Pricing</p>
+                        <p className="text-sm text-gray-600 mt-2">Tailored to your needs</p>
+                      </div>
+                      <div className="flex justify-center md:justify-end">
+                        <Link href="/contact">
+                          <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+                            Contact Sales
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Unlimited messages</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Unlimited WhatsApp numbers</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Dedicated account manager</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Custom integrations & API access</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>White-label options</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>SLA guarantees</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Onboarding & training</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>24/7 VIP support</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 14-Day Money-Back Guarantee */}
+                <div className="mt-8 text-center">
+                  <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -767,7 +954,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <Card>
                     <CardHeader>
                       <div className="flex justify-between items-center mb-2">
@@ -782,22 +969,35 @@ export default function Home() {
                       <p className="text-sm text-green-600 font-semibold mt-1">Save $1,200+ vs monthly</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>2,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">3,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-2">Normal support</p>
+                        <p className="text-sm font-bold text-orange-600"><strong>Forever access ✨</strong></p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span><strong>Forever</strong></span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All future updates</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>AI auto-replies</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>All future updates included</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -827,26 +1027,35 @@ export default function Home() {
                       <p className="text-sm text-green-600 font-semibold mt-1">Save $2,700+ vs monthly</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>5,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">10,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-2">Priority support</p>
+                        <p className="text-sm font-bold text-orange-600"><strong>Forever access ✨</strong></p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span><strong>Forever</strong></span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All future updates</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Voice notes & follow-ups</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Priority support</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>All future updates included</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -873,26 +1082,35 @@ export default function Home() {
                       <p className="text-sm text-green-600 font-semibold mt-1">Save $5,400+ vs monthly</p>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>12,000 messages/month</span>
+                      <div className="mb-4">
+                        <p className="font-semibold text-lg mb-2">20,000 messages/month</p>
+                        <p className="text-sm text-gray-600 mb-2">Priority support</p>
+                        <p className="text-sm font-bold text-orange-600"><strong>Forever access ✨</strong></p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>3 AI Modes (Auto/Copilot/Manual)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span><strong>Forever</strong></span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Voice message transcription</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All future updates</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Smart 3-stage follow-ups</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Unlimited everything</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Knowledge base (website scraping)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>VIP support</span>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>Lead scoring & analytics</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                          <span>All future updates included</span>
                         </li>
                       </ul>
                     </CardContent>
@@ -905,8 +1123,257 @@ export default function Home() {
                     </CardFooter>
                   </Card>
                 </div>
+
+                {/* Enterprise Plan - Horizontal Layout */}
+                <Card className="border-purple-500 border-2 bg-gradient-to-r from-purple-50 to-blue-50">
+                  <CardHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                      <div>
+                        <CardTitle className="text-2xl mb-2">Lifetime Enterprise</CardTitle>
+                        <CardDescription>One-time payment, unlimited forever</CardDescription>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-purple-600">Custom Pricing</p>
+                        <p className="text-sm text-gray-600 mt-2">Tailored to your needs</p>
+                      </div>
+                      <div className="flex justify-center md:justify-end">
+                        <Link href="/contact">
+                          <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+                            Contact Sales
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Unlimited messages forever</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Unlimited WhatsApp numbers</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Dedicated account manager</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Custom integrations & API access</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>White-label options</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>SLA guarantees</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>Onboarding & training</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <span>24/7 VIP support forever</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 14-Day Money-Back Guarantee */}
+                <div className="mt-8 text-center">
+                  <div className="inline-flex items-center gap-2 bg-green-50 border-2 border-green-200 rounded-full px-6 py-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">14-Day Money-Back Guarantee</span>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Customers Say</h2>
+              <p className="text-xl text-gray-600">Join thousands of businesses growing with WhaSales AI</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {/* Testimonial 1 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                      A
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Ahmed Al-Rahman</CardTitle>
+                      <CardDescription>E-commerce Store Owner, Dubai</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "WhaSales AI increased my sales by 250% in just 2 months! The AI responds instantly to customers 24/7. I'm closing deals while I sleep. Best investment ever!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 2 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center text-white font-bold text-xl">
+                      P
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Priya Sharma</CardTitle>
+                      <CardDescription>Digital Marketing Agency, Mumbai</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "Managing 50+ clients' WhatsApp chats was impossible. Now the AI handles initial responses and I only jump in when needed. Saved me 20 hours per week!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 3 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xl">
+                      M
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Muhammad Hassan</CardTitle>
+                      <CardDescription>Real Estate Agency, Karachi</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "The voice message transcription is a game-changer! No more listening to 100+ voice notes daily. AI understands everything and responds perfectly in Urdu too!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 4 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                      S
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Sarah Chen</CardTitle>
+                      <CardDescription>Fashion Boutique, Kuala Lumpur</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "Setup took literally 30 seconds - just scan QR code! The AI learned my product catalog from my website automatically. My customers think I hired a full team!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 5 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-xl">
+                      R
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Rajesh Kumar</CardTitle>
+                      <CardDescription>Electronics Store, Bangalore</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "The smart follow-ups are incredible! AI automatically reminds customers about abandoned carts. Recovered $15,000 in lost sales in the first month alone!"
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Testimonial 6 */}
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                      F
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Fatima Al-Mansoori</CardTitle>
+                      <CardDescription>Beauty Products, Abu Dhabi</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-yellow-400">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600">
+                    "I was skeptical at first, but the 14-day guarantee convinced me to try. Now I can't imagine running my business without it! Response time went from 2 hours to 3 seconds!"
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Trust Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-4xl mx-auto">
+              <div className="text-center">
+                <p className="text-4xl font-bold text-primary mb-2">10,000+</p>
+                <p className="text-gray-600">Active Users</p>
+              </div>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-primary mb-2">98%</p>
+                <p className="text-gray-600">Satisfaction Rate</p>
+              </div>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-primary mb-2">24/7</p>
+                <p className="text-gray-600">AI Support</p>
+              </div>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-primary mb-2">&lt;3s</p>
+                <p className="text-gray-600">Response Time</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1076,6 +1543,40 @@ export default function Home() {
                   </a>
                 </li>
               </ul>
+            </div>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="border-t border-gray-800 mt-12 pt-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-8">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-white">WhatsApp Compatible</p>
+                <p className="text-xs text-gray-400 mt-1">Official Web API</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-white">No API Required</p>
+                <p className="text-xs text-gray-400 mt-1">Works with any number</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-white">GDPR Compliant</p>
+                <p className="text-xs text-gray-400 mt-1">Data privacy guaranteed</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-orange-600 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-white">14-Day Guarantee</p>
+                <p className="text-xs text-gray-400 mt-1">Money back promise</p>
+              </div>
             </div>
           </div>
 
