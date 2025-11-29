@@ -324,30 +324,31 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     </TableCell>
                     <TableCell>
                       {user.role === "admin" ? (
-                        <Badge variant="default">
-                          <span className="inline-flex items-center">
-                            <Crown className="w-3 h-3 mr-1" />
-                            <span>Admin</span>
-                          </span>
+                        <Badge variant="default" className="inline-flex items-center">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Admin
                         </Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={getPlanBadgeVariant(user.planType)}
-                        className={`capitalize ${user.planType === "admin_access" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
-                      >
-                        {user.planType === "admin_access" ? (
-                          <span className="inline-flex items-center">
-                            <Infinity className="w-3 h-3 mr-1" />
-                            <span>Admin Access (Unlimited)</span>
-                          </span>
-                        ) : (
-                          user.planType
-                        )}
-                      </Badge>
+                      {user.planType === "admin_access" ? (
+                        <Badge
+                          variant={getPlanBadgeVariant(user.planType)}
+                          className="capitalize bg-purple-600 hover:bg-purple-700 inline-flex items-center"
+                        >
+                          <Infinity className="w-3 h-3 mr-1" />
+                          Admin Access (Unlimited)
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant={getPlanBadgeVariant(user.planType)}
+                          className="capitalize"
+                        >
+                          {user.planType}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
