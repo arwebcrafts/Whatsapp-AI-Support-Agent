@@ -121,15 +121,18 @@ export default function ConversationsClient({ initialConversations }: { initialC
     return () => clearInterval(interval);
   }, []);
 
-  // Load full messages for selected conversation
+  // Load full messages for selected conversation with pagination
   const loadFullMessages = async (conversationId: string, silent = false) => {
     if (!silent) setLoadingMessages(true);
 
     try {
-      const res = await fetch(`/api/conversations/${conversationId}/messages`);
+      // Load last 100 messages initially for better performance
+      // For very long chats, this prevents loading thousands of messages at once
+      const res = await fetch(`/api/conversations/${conversationId}/messages?limit=100&offset=0`);
       if (res.ok) {
         const data = await res.json();
         setFullMessages(data.messages || []);
+        // Could add "Load More" button if data.pagination.hasMore is true
       }
     } catch (error) {
       console.error("Error loading messages:", error);

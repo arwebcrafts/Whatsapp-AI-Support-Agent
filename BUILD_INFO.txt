@@ -1,5 +1,5 @@
-Build Timestamp: 2025-11-29T01:00:00Z
-Version: 1.2.0
+Build Timestamp: 2025-11-29T01:30:00Z
+Version: 1.2.1
 Changes:
 - Fixed real-time chat list updates - added 10s polling to conversation list
 - Fixed website scraping - increased from 10 to 50 pages default (max 100)
@@ -7,3 +7,5 @@ Changes:
 - Fixed chat continuity - conversations now persist across session reconnects
 - Added /api/conversations endpoint for fetching conversation list
 - Added clearConversationTimer() method to prevent unwanted auto-replies
+- Added message pagination - loads 100 messages max per conversation for performance
+- Database indexes documentation provided for scalability
