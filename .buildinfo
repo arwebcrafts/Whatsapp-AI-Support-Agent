@@ -1,10 +1,10 @@
-BUILD_TIMESTAMP=2025-11-29T00:15:00Z
-BUILD_VERSION=1.1.1-no-nested-wrappers-fix
+BUILD_TIMESTAMP=2025-11-29T00:30:00Z
+BUILD_VERSION=1.1.2-single-child-wrapper-fix
 FORCE_REBUILD=true
-COMMIT_HASH=586d9ad
+COMMIT_HASH=e0b01b7
 DEBUG_MODE=enabled
 LOGGING_LEVEL=comprehensive
-FIX_APPLIED=removed-all-nested-span-wrappers-apply-inline-flex-to-badge-classname
-ROOT_CAUSE=nested-span-created-children-array-with-numeric-values
-SOLUTION=badge-children-are-now-icon-plus-direct-text-no-wrappers
+FIX_APPLIED=wrap-badge-children-in-single-span-element
+ROOT_CAUSE=badge-receiving-multiple-children-as-array-with-numeric-indices
+SOLUTION=badge-receives-single-span-child-containing-icon-and-text
 DO_NOT_REMOVE_LOGS=true
