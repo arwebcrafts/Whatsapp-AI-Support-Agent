@@ -325,10 +325,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     <TableCell>
                       {user.role === "admin" ? (
                         <Badge variant="default">
-                          <span>
-                            <Crown className="w-3 h-3 mr-1 inline" />
-                            Admin
-                          </span>
+                          <Crown className="w-3 h-3 mr-1 inline" />
+                          Admin
                         </Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>
@@ -340,10 +338,8 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                           variant={getPlanBadgeVariant(user.planType)}
                           className="capitalize bg-purple-600 hover:bg-purple-700"
                         >
-                          <span>
-                            <Infinity className="w-3 h-3 mr-1 inline" />
-                            Admin Access (Unlimited)
-                          </span>
+                          <Infinity className="w-3 h-3 mr-1 inline" />
+                          Admin Access (Unlimited)
                         </Badge>
                       ) : (
                         <Badge
