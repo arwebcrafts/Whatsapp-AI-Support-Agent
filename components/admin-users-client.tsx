@@ -30,7 +30,7 @@ import {
   Crown,
   UserCog,
   Shield,
-  Infinity,
+  Infinity as InfinityIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -338,7 +338,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                           variant={getPlanBadgeVariant(user.planType)}
                           className="capitalize bg-purple-600 hover:bg-purple-700"
                         >
-                          <Infinity className="w-3 h-3 mr-1 inline" />
+                          <InfinityIcon className="w-3 h-3 mr-1 inline" />
                           Admin Access (Unlimited)
                         </Badge>
                       ) : (
@@ -453,7 +453,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       <SelectItem value="business">Business</SelectItem>
                       <SelectItem value="admin_access">
                         <div className="flex items-center">
-                          <Infinity className="w-3 h-3 mr-2" />
+                          <InfinityIcon className="w-3 h-3 mr-2" />
                           <span>Admin Access (Unlimited)</span>
                         </div>
                       </SelectItem>

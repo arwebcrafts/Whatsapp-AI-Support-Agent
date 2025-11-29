@@ -1,7 +1,7 @@
-Build Timestamp: 2025-11-29T00:00:00Z
-Version: 1.1.3
+Build Timestamp: 2025-11-29T00:15:00Z
+Version: 1.1.4
 Changes:
-- Fixed "Element type is invalid" error on admin/users page
-- Removed span wrappers from Badge components with icons
-- Badge now receives icon and text directly as children array
-- Resolved React rendering issue with Crown and Infinity icons
+- Fixed JavaScript Infinity global conflict with Lucide icon
+- Renamed Infinity import to InfinityIcon to avoid name collision
+- JavaScript's Infinity constant was shadowing the React component
+- Resolved "Element type is invalid... but got: number" error
