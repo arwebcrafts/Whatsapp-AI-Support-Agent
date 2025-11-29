@@ -1,6 +1,18 @@
-Build Timestamp: 2025-11-29T01:30:00Z
-Version: 1.2.1
+Build Timestamp: 2025-11-29T02:15:00Z
+Version: 1.3.0
 Changes:
+- Major landing page UI overhaul with improved conversion focus
+- Updated pricing structure: 3,000, 10,000, 20,000 messages/month (from 2,000/5,000/12,000)
+- Restructured pricing to 3-column grid (Starter, Pro, Business) + horizontal Enterprise card
+- Made ALL features available in ALL plans - only message limits differ
+- Added 14-day money-back guarantee badges across all pricing tabs
+- Expanded features showcase from 6 to 12 features in 4-column grid
+- Added testimonials section with 6 customer reviews and trust statistics
+- Added trust badges to footer (WhatsApp Compatible, No API Required, GDPR Compliant, 14-Day Guarantee)
+- Updated hero headline to "Automate 90% of WhatsApp Chats, Close 3x More Sales - While You Sleep"
+- Changed response time from <30s to <3s for better accuracy
+- Consistent pricing across Monthly ($9/$19/$39), Yearly ($75/$159/$327), and Lifetime ($79/$149/$199) tabs
+- Fixed Infinity icon import conflict in admin users page (renamed to InfinityIcon)
 - Fixed real-time chat list updates - added 10s polling to conversation list
 - Fixed website scraping - increased from 10 to 50 pages default (max 100)
 - Fixed manual mode auto-reply - clear debounce timers when mode changes
