@@ -325,8 +325,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                     <TableCell>
                       {user.role === "admin" ? (
                         <Badge variant="default">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Admin
+                          <span className="inline-flex items-center">
+                            <Crown className="w-3 h-3 mr-1" />
+                            <span>Admin</span>
+                          </span>
                         </Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>
@@ -338,10 +340,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                         className={`capitalize ${user.planType === "admin_access" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
                       >
                         {user.planType === "admin_access" ? (
-                          <>
-                            <Infinity className="w-3 h-3 mr-1 inline-block" />
+                          <span className="inline-flex items-center">
+                            <Infinity className="w-3 h-3 mr-1" />
                             <span>Admin Access (Unlimited)</span>
-                          </>
+                          </span>
                         ) : (
                           user.planType
                         )}
@@ -451,7 +453,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                       <SelectItem value="admin_access">
                         <div className="flex items-center">
                           <Infinity className="w-3 h-3 mr-2" />
-                          Admin Access (Unlimited)
+                          <span>Admin Access (Unlimited)</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
