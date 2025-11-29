@@ -56,10 +56,10 @@ export default function Home() {
                 ⚡ Affordable WhatsApp Automation
               </Badge>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                Turn WhatsApp Chats Into Sales With AI
+                Automate 90% of WhatsApp Chats, Close 3x More Sales - While You Sleep
               </h1>
               <p className="text-xl md:text-2xl text-gray-600 mb-8">
-                Connect in 30 seconds. Reply instantly. Convert 3x more leads.
+                AI responds in &lt;3 seconds. Works 24/7. Learns your business. No coding required.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <Link href="/signup">
@@ -86,7 +86,7 @@ export default function Home() {
                   <div className="text-sm text-gray-600">Response Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">&lt; 30s</div>
+                  <div className="text-3xl font-bold text-green-600">&lt; 3s</div>
                   <div className="text-sm text-gray-600">Avg. Reply Time</div>
                 </div>
               </div>
@@ -105,13 +105,13 @@ export default function Home() {
               <p className="text-xl text-gray-600">Powerful features that work 24/7 for your business</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader>
                   <Bot className="h-10 w-10 text-primary mb-2" />
                   <CardTitle>AI Auto-Replies 24/7</CardTitle>
                   <CardDescription>
-                    Never miss a lead. AI responds instantly to every message, even while you sleep.
+                    AI responds in &lt;3 seconds to every message, even while you sleep. Never miss a lead again.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -119,19 +119,19 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <MessageSquare className="h-10 w-10 text-primary mb-2" />
-                  <CardTitle>Voice Note Support</CardTitle>
+                  <CardTitle>3 AI Modes</CardTitle>
                   <CardDescription>
-                    AI understands and responds to voice messages automatically.
+                    Auto, Copilot, or Manual mode. Switch instantly based on your needs.
                   </CardDescription>
                 </CardHeader>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <Zap className="h-10 w-10 text-primary mb-2" />
-                  <CardTitle>Smart Follow-Ups</CardTitle>
+                  <MessageSquare className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Voice Transcription</CardTitle>
                   <CardDescription>
-                    Automatically follow up with leads who don't respond within 24 hours.
+                    AI transcribes and responds to voice messages automatically. No manual listening required.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -141,7 +141,47 @@ export default function Home() {
                   <Globe className="h-10 w-10 text-primary mb-2" />
                   <CardTitle>Multi-Language</CardTitle>
                   <CardDescription>
-                    Chat with customers in any language. AI adapts automatically.
+                    Chat in any language. AI adapts automatically to customer's language.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Zap className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Smart 3-Stage Follow-ups</CardTitle>
+                  <CardDescription>
+                    Automatic follow-ups at 3 hours, 24 hours, and 7 days. Recovers cold leads automatically.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Flame className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Lead Scoring</CardTitle>
+                  <CardDescription>
+                    Hot, Warm, Cold lead tracking. Focus on high-intent customers first.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Bot className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Analytics Dashboard</CardTitle>
+                  <CardDescription>
+                    Track performance, response times, conversion rates, and customer insights in real-time.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Send className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Interactive Buttons</CardTitle>
+                  <CardDescription>
+                    Send interactive WhatsApp buttons and lists. Better engagement than plain text.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -149,9 +189,9 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <Users className="h-10 w-10 text-primary mb-2" />
-                  <CardTitle>Multiple AI Agents</CardTitle>
+                  <CardTitle>AI Agent Templates</CardTitle>
                   <CardDescription>
-                    Create multiple AI agents for different business needs and products.
+                    Pre-built templates for E-commerce, Real Estate, Education, Restaurants, and more.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -159,9 +199,29 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <BookOpen className="h-10 w-10 text-primary mb-2" />
-                  <CardTitle>Knowledge Base Training</CardTitle>
+                  <CardTitle>Knowledge Base</CardTitle>
                   <CardDescription>
-                    Train your AI with your business info, pricing, and policies.
+                    Upload PDFs, scrape websites, add FAQs. AI learns your business in minutes.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Zap className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Manual Takeover</CardTitle>
+                  <CardDescription>
+                    Switch from AI to human with 1 click. Full control when you need it.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Users className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle>Admin Portal</CardTitle>
+                  <CardDescription>
+                    Support tickets, user management, analytics. Enterprise-grade features included.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -378,7 +438,7 @@ export default function Home() {
 
               {/* Monthly Plans */}
               <TabsContent value="monthly" className="mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <Card>
                     <CardHeader>
                       <CardTitle>Starter</CardTitle>
@@ -392,29 +452,33 @@ export default function Home() {
                       <ul className="space-y-2">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>2,000 messages/month</span>
+                          <span className="font-semibold">3,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 WhatsApp Connection</span>
+                          <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 Agent</span>
+                          <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>AI auto-replies</span>
+                          <span>3 AI Modes</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
                           <span>Knowledge base</span>
                         </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Basic analytics</span>
+                        </li>
                       </ul>
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
                       </Link>
                     </CardFooter>
                   </Card>
@@ -435,33 +499,41 @@ export default function Home() {
                       <ul className="space-y-2">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>5,000 messages/month</span>
+                          <span className="font-semibold">10,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 WhatsApp Connection</span>
+                          <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 Agent</span>
+                          <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>AI auto-replies</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Voice note support</span>
+                          <span>Voice transcription</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
                           <span>Smart follow-ups</span>
                         </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Interactive buttons</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Lead scoring</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Full analytics</span>
+                        </li>
                       </ul>
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
                       </Link>
                     </CardFooter>
                   </Card>
@@ -479,33 +551,84 @@ export default function Home() {
                       <ul className="space-y-2">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>12,000 messages/month</span>
+                          <span className="font-semibold">20,000 messages/month</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 WhatsApp Connection</span>
+                          <span>1 WhatsApp number</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>1 Agent</span>
+                          <span>1 AI Agent</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>All Professional features</span>
+                          <span>All Pro features</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Manual takeover</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Admin portal</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-primary" />
                           <span>Priority support</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                          <span>Analytics dashboard</span>
-                        </li>
                       </ul>
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+
+                  <Card className="border-purple-500 border-2">
+                    <CardHeader>
+                      <CardTitle>Enterprise</CardTitle>
+                      <CardDescription>Custom solutions</CardDescription>
+                      <div className="mt-4">
+                        <span className="text-4xl font-bold">Custom</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span className="font-semibold">Unlimited messages</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Unlimited WhatsApp</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Unlimited agents</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>All features</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Dedicated support</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>Custom integrations</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                          <span>SLA guarantee</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                    <CardFooter>
+                      <Link href="/dashboard/support" className="w-full">
+                        <Button className="w-full" variant="outline">Contact Sales</Button>
                       </Link>
                     </CardFooter>
                   </Card>
