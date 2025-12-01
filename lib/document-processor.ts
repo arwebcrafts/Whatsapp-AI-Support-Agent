@@ -79,14 +79,14 @@ export class DocumentProcessor {
             mainDescription = $('meta[name="description"]').attr('content') || '';
           }
 
-          // Remove unwanted elements
+          // Remove only truly unwanted elements (keep nav/header/footer as they may contain pricing)
           $('script').remove();
           $('style').remove();
-          $('nav').remove();
-          $('footer').remove();
-          $('header').remove();
           $('iframe').remove();
           $('noscript').remove();
+          // Remove only generic footer/nav that don't contain pricing
+          $('footer:not(:has(.price, .pricing, [class*="price"], [class*="plan"]))').remove();
+          $('nav:not(:has(.price, .pricing, [class*="price"], [class*="plan"]))').remove();
 
           // Extract main content with enhanced selectors for products, pricing, etc.
           let pageContent = '';
@@ -124,6 +124,35 @@ export class DocumentProcessor {
             });
           });
 
+          // Extract ALL pricing content including hidden tabs
+          // Common tab/accordion patterns
+          const tabSelectors = [
+            '[role="tabpanel"]',
+            '.tab-content',
+            '.tab-pane',
+            '[class*="tab"]',
+            '[class*="TabPanel"]',
+            '[data-tab-content]',
+            '[aria-labelledby]',
+          ];
+
+          // Extract content from all tabs (including hidden ones)
+          tabSelectors.forEach(selector => {
+            $(selector).each((_, element) => {
+              const tabText = $(element).text().trim();
+              if (tabText && tabText.length > 20) {
+                // Check if it contains pricing-related keywords
+                const lowerText = tabText.toLowerCase();
+                if (lowerText.includes('price') || lowerText.includes('plan') ||
+                    lowerText.includes('month') || lowerText.includes('year') ||
+                    lowerText.includes('lifetime') || lowerText.includes('$') ||
+                    lowerText.includes('cost') || lowerText.includes('subscription')) {
+                  structuredData += `\n\nPRICING INFO:\n${tabText}`;
+                }
+              }
+            });
+          });
+
           // Extract pricing tables
           $('table').each((_, table) => {
             const tableText = $(table).text().trim();
@@ -132,6 +161,27 @@ export class DocumentProcessor {
                 tableText.toLowerCase().includes('cost')) {
               structuredData += `\n\nPRICING TABLE:\n${tableText}`;
             }
+          });
+
+          // Extract pricing cards/sections
+          const pricingSelectors = [
+            '.pricing',
+            '.price-card',
+            '.pricing-card',
+            '.pricing-table',
+            '.pricing-plan',
+            '[class*="pricing"]',
+            '[class*="price-"]',
+            '[class*="plan-"]',
+          ];
+
+          pricingSelectors.forEach(selector => {
+            $(selector).each((_, element) => {
+              const pricingText = $(element).text().trim();
+              if (pricingText && pricingText.length > 20) {
+                structuredData += `\n\nPRICING SECTION:\n${pricingText}`;
+              }
+            });
           });
 
           // Extract main content

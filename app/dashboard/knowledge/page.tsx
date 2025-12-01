@@ -64,7 +64,7 @@ export default function KnowledgeBasePage() {
 
     setLoading(true);
     try {
-      await fetch("/api/knowledge", {
+      const res = await fetch("/api/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,10 +73,19 @@ export default function KnowledgeBasePage() {
         }),
       });
 
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.message || "Failed to save knowledge");
+        return;
+      }
+
+      // Success: Clear form and reload
       setNewContent("");
       await loadKnowledge();
+      alert("Knowledge saved successfully!");
     } catch (error) {
       console.error("Error adding knowledge:", error);
+      alert("Failed to save knowledge. Please try again.");
     } finally {
       setLoading(false);
     }
