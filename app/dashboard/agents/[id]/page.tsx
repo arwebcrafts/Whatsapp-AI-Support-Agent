@@ -11,6 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Bot,
   Smartphone,
@@ -22,6 +30,8 @@ import {
   Trash2,
   Upload,
   Globe,
+  Edit,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -78,8 +88,24 @@ export default function AgentDetailPage() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [scrapingWebsite, setScrapingWebsite] = useState(false);
 
+  // Knowledge edit states
+  const [editingKnowledge, setEditingKnowledge] = useState<any>(null);
+  const [isKnowledgeDialogOpen, setIsKnowledgeDialogOpen] = useState(false);
+  const [editContent, setEditContent] = useState("");
+
+  // FAQ states
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [isFaqDialogOpen, setIsFaqDialogOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<any>(null);
+  const [faqFormData, setFaqFormData] = useState({
+    question: "",
+    answer: "",
+    category: "general",
+  });
+
   useEffect(() => {
     loadAgent();
+    loadFaqs();
   }, [agentId]);
 
   async function loadAgent() {
@@ -272,6 +298,116 @@ export default function AgentDetailPage() {
     }
   }
 
+  function openEditKnowledgeDialog(knowledge: any) {
+    setEditingKnowledge(knowledge);
+    setEditContent(knowledge.content);
+    setIsKnowledgeDialogOpen(true);
+  }
+
+  async function updateKnowledge() {
+    if (!editContent.trim() || !editingKnowledge) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/knowledge/${editingKnowledge.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: editContent,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.message || "Failed to update knowledge");
+        return;
+      }
+
+      setIsKnowledgeDialogOpen(false);
+      setEditingKnowledge(null);
+      setEditContent("");
+      await loadAgent();
+      alert("Knowledge updated successfully!");
+    } catch (error) {
+      console.error("Error updating knowledge:", error);
+      alert("Failed to update knowledge. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function loadFaqs() {
+    try {
+      const res = await fetch(`/api/agents/${agentId}/faqs`);
+      if (res.ok) {
+        const data = await res.json();
+        setFaqs(data.faqs || []);
+      }
+    } catch (error) {
+      console.error("Error loading FAQs:", error);
+    }
+  }
+
+  async function handleFaqSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    setSaving(true);
+    try {
+      if (editingFaq) {
+        await fetch(`/api/agents/${agentId}/faqs/${editingFaq.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqFormData),
+        });
+      } else {
+        await fetch(`/api/agents/${agentId}/faqs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(faqFormData),
+        });
+      }
+
+      setIsFaqDialogOpen(false);
+      setEditingFaq(null);
+      setFaqFormData({ question: "", answer: "", category: "general" });
+      await loadFaqs();
+    } catch (error) {
+      console.error("Error saving FAQ:", error);
+      alert("Failed to save FAQ");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteFaq(faqId: string) {
+    if (!confirm("Delete this FAQ?")) return;
+
+    try {
+      await fetch(`/api/agents/${agentId}/faqs/${faqId}`, {
+        method: "DELETE",
+      });
+      await loadFaqs();
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+    }
+  }
+
+  function openCreateFaqDialog() {
+    setEditingFaq(null);
+    setFaqFormData({ question: "", answer: "", category: "general" });
+    setIsFaqDialogOpen(true);
+  }
+
+  function openEditFaqDialog(faq: any) {
+    setEditingFaq(faq);
+    setFaqFormData({
+      question: faq.question,
+      answer: faq.answer,
+      category: faq.category,
+    });
+    setIsFaqDialogOpen(true);
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -390,6 +526,7 @@ export default function AgentDetailPage() {
           <TabsList>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+            <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           </TabsList>
 
@@ -488,10 +625,10 @@ export default function AgentDetailPage() {
                   onChange={(e) => setNewKnowledge(e.target.value)}
                   placeholder="Add business information, product details, policies, etc..."
                   className="h-32"
-                  maxLength={10000}
+                  maxLength={50000}
                 />
                 <p className="text-xs text-gray-500">
-                  {newKnowledge.length} / 10,000 characters
+                  {newKnowledge.length} / 50,000 characters
                 </p>
                 <Button onClick={addKnowledge}>
                   <BookOpen className="h-4 w-4 mr-2" />
@@ -579,13 +716,24 @@ export default function AgentDetailPage() {
                               {knowledge.content}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteKnowledge(knowledge.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditKnowledgeDialog(knowledge)}
+                              title="Edit knowledge"
+                            >
+                              <Edit className="h-4 w-4 text-blue-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteKnowledge(knowledge.id)}
+                              title="Delete knowledge"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -646,7 +794,188 @@ export default function AgentDetailPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* FAQs Tab */}
+          <TabsContent value="faqs" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Frequently Asked Questions</CardTitle>
+                    <CardDescription>
+                      Add common questions and answers for this agent
+                    </CardDescription>
+                  </div>
+                  <Button onClick={openCreateFaqDialog}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add FAQ
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {faqs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-semibold mb-2">No FAQs yet</h3>
+                    <p className="text-gray-600 mb-4">
+                      Create your first FAQ to help your AI provide better answers
+                    </p>
+                    <Button onClick={openCreateFaqDialog}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First FAQ
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {faqs.map((faq) => (
+                      <div key={faq.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium">{faq.question}</span>
+                              <Badge variant="secondary">{faq.category}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-700">{faq.answer}</p>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditFaqDialog(faq)}
+                              title="Edit FAQ"
+                            >
+                              <Edit className="h-4 w-4 text-blue-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteFaq(faq.id)}
+                              title="Delete FAQ"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* Knowledge Edit Dialog */}
+        <Dialog open={isKnowledgeDialogOpen} onOpenChange={setIsKnowledgeDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Edit Knowledge Base Entry</DialogTitle>
+              <DialogDescription>
+                Update your business information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-content">Content</Label>
+                <Textarea
+                  id="edit-content"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  placeholder="Edit your business information..."
+                  className="min-h-[300px]"
+                  maxLength={50000}
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  {editContent.length} / 50,000 characters
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsKnowledgeDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={updateKnowledge} disabled={saving}>
+                Update Knowledge
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* FAQ Dialog */}
+        <Dialog open={isFaqDialogOpen} onOpenChange={setIsFaqDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingFaq ? "Edit FAQ" : "Create New FAQ"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingFaq
+                  ? "Update your frequently asked question"
+                  : "Add a common question and answer to help your AI"}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleFaqSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="faq-question">Question</Label>
+                  <Input
+                    id="faq-question"
+                    value={faqFormData.question}
+                    onChange={(e) =>
+                      setFaqFormData({ ...faqFormData, question: e.target.value })
+                    }
+                    placeholder="What's your delivery time?"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="faq-answer">Answer</Label>
+                  <Textarea
+                    id="faq-answer"
+                    value={faqFormData.answer}
+                    onChange={(e) =>
+                      setFaqFormData({ ...faqFormData, answer: e.target.value })
+                    }
+                    placeholder="We deliver in 3-5 business days to all locations."
+                    rows={4}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="faq-category">Category</Label>
+                  <Input
+                    id="faq-category"
+                    value={faqFormData.category}
+                    onChange={(e) =>
+                      setFaqFormData({ ...faqFormData, category: e.target.value })
+                    }
+                    placeholder="general"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFaqDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {editingFaq ? "Update" : "Create"} FAQ
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
