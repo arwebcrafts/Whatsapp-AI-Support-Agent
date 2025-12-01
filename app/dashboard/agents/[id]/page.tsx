@@ -120,6 +120,13 @@ export default function AgentDetailPage() {
         setDescription(data.agent.description || "");
         setAiTone(data.agent.aiTone);
         setResponseDelay(data.agent.responseDelay || 5);
+
+        // Load manual knowledge base content into the field
+        const manualKnowledge = data.agent.agentKnowledge
+          .filter((ak: any) => ak.knowledge.sourceType === "manual")
+          .map((ak: any) => ak.knowledge.content)
+          .join("\n\n---\n\n");
+        setNewKnowledge(manualKnowledge);
       } else {
         router.push("/dashboard/agents");
       }
@@ -191,7 +198,22 @@ export default function AgentDetailPage() {
   async function addKnowledge() {
     if (!newKnowledge.trim()) return;
 
+    setSaving(true);
     try {
+      // Delete all existing manual knowledge entries for this agent
+      if (agent?.agentKnowledge) {
+        const manualEntries = agent.agentKnowledge.filter(
+          (ak: any) => ak.knowledge.sourceType === "manual"
+        );
+
+        for (const entry of manualEntries) {
+          await fetch(`/api/knowledge/${entry.knowledge.id}`, {
+            method: "DELETE",
+          });
+        }
+      }
+
+      // Create new single manual knowledge entry with all content
       const res = await fetch("/api/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,16 +226,18 @@ export default function AgentDetailPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        alert(`Failed to add knowledge: ${data.message || 'Unknown error'}`);
+        alert(`Failed to save knowledge: ${data.message || 'Unknown error'}`);
         return;
       }
 
-      setNewKnowledge("");
+      // Reload agent data (the field will keep the content)
       await loadAgent();
-      alert("Knowledge added successfully!");
+      alert("Manual Knowledge Base saved successfully!");
     } catch (error) {
-      console.error("Error adding knowledge:", error);
-      alert("Network error. Please check your connection.");
+      console.error("Error saving knowledge:", error);
+      alert("Failed to save knowledge. Please try again.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -614,26 +638,39 @@ export default function AgentDetailPage() {
 
           {/* Knowledge Base Tab */}
           <TabsContent value="knowledge" className="space-y-6">
-            {/* Add Manual Knowledge */}
+            {/* Manual Knowledge Base Editor */}
             <Card>
               <CardHeader>
-                <CardTitle>Add Knowledge Manually</CardTitle>
+                <CardTitle>Manual Knowledge Base</CardTitle>
+                <CardDescription>
+                  Your agent's knowledge - edit anytime, formatting preserved (links, bullets, etc.)
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
                   value={newKnowledge}
                   onChange={(e) => setNewKnowledge(e.target.value)}
-                  placeholder="Add business information, product details, policies, etc..."
-                  className="h-32"
+                  placeholder="Type or paste your business information here...
+
+Examples:
+• Product catalog with links
+• Pricing and offers
+• Policies and FAQs
+• Contact information
+
+Everything you add here stays in this field. Your AI learns from it and responds accordingly."
+                  className="min-h-[400px] font-mono text-sm"
                   maxLength={50000}
                 />
-                <p className="text-xs text-gray-500">
-                  {newKnowledge.length} / 50,000 characters
-                </p>
-                <Button onClick={addKnowledge}>
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Add Knowledge
-                </Button>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    {newKnowledge.length} / 50,000 characters
+                  </p>
+                  <Button onClick={addKnowledge} disabled={saving} size="lg">
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? "Saving..." : "Save Knowledge Base"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -689,20 +726,27 @@ export default function AgentDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Existing Knowledge */}
+            {/* Uploaded Files & Scraped Websites */}
             <Card>
               <CardHeader>
-                <CardTitle>Knowledge Base ({agent.agentKnowledge.length})</CardTitle>
+                <CardTitle>
+                  Uploaded Documents & Scraped Websites ({agent.agentKnowledge.filter((ak: any) => ak.knowledge.sourceType !== "manual").length})
+                </CardTitle>
+                <CardDescription>
+                  Files and websites added to this agent's knowledge
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {agent.agentKnowledge.length === 0 ? (
+                {agent.agentKnowledge.filter((ak: any) => ak.knowledge.sourceType !== "manual").length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                    <p>No knowledge added yet</p>
+                    <p>No files or websites added yet</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {agent.agentKnowledge.map(({ knowledge }) => (
+                    {agent.agentKnowledge
+                      .filter((ak: any) => ak.knowledge.sourceType !== "manual")
+                      .map(({ knowledge }) => (
                       <div key={knowledge.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
