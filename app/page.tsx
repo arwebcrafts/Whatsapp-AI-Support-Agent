@@ -720,10 +720,10 @@ export default function Home() {
               {/* Bottom CTA */}
               <div className="mt-12 text-center bg-gradient-to-r from-green-100 to-blue-100 p-8 rounded-lg">
                 <h3 className="text-2xl font-bold mb-4">Save $500 - $2,000/month vs. Hiring Staff</h3>
-                <p className="text-lg text-gray-700 mb-6">Get started in 30 seconds. No credit card required.</p>
+                <p className="text-lg text-gray-700 mb-6">Get started in 30 seconds. 3-day free trial.</p>
                 <Link href="/signup">
                   <Button size="lg" className="text-lg">
-                    Start Free Trial Now
+                    Start Free Trial
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -2004,7 +2004,7 @@ export default function Home() {
             </p>
             <Link href="/signup">
               <Button size="lg" variant="secondary" className="text-lg">
-                Start Free Trial - No Credit Card Required
+                Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
