@@ -226,16 +226,20 @@ export default function AgentDetailPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        alert(`Failed to save knowledge: ${data.message || 'Unknown error'}`);
+        console.error("Failed to save knowledge:", data.message || 'Unknown error');
         return;
       }
 
-      // Reload agent data (the field will keep the content)
-      await loadAgent();
-      alert("Manual Knowledge Base saved successfully!");
+      // Reload agent data in background without resetting field or tabs
+      const agentRes = await fetch(`/api/agents/${agentId}`);
+      if (agentRes.ok) {
+        const data = await agentRes.json();
+        setAgent(data.agent);
+      }
+
+      // Content stays in field, no popup, no redirect
     } catch (error) {
       console.error("Error saving knowledge:", error);
-      alert("Failed to save knowledge. Please try again.");
     } finally {
       setSaving(false);
     }
