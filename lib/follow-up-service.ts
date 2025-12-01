@@ -201,9 +201,9 @@ export class FollowUpService {
         case 'no_response_3hr':
           // Re-engagement after customer goes quiet
           const reEngageMessages = [
-            `Hi! Just wanted to check in - are you still interested? I'm here if you have any questions! 😊`,
+            `Hi! Just wanted to check in - are you still interested? I'm here if you have any questions!`,
             `Hey there! Still thinking it over? I'm happy to help with any questions or concerns you might have.`,
-            `Hi! Just following up on our conversation. Let me know if you need any more information - I'm here to help! 🙌`,
+            `Hi! Just following up on our conversation. Let me know if you need any more information - I'm here to help!`,
             `Hello! I noticed you might need a moment to think. No pressure at all - just wanted to let you know I'm here if you have questions!`,
           ];
           followUpMessage = reEngageMessages[Math.floor(Math.random() * reEngageMessages.length)];
@@ -212,11 +212,11 @@ export class FollowUpService {
         case 'no_purchase_24hr':
           // Incentive/urgency after 24 hours no purchase
           const incentiveMessages = [
-            `Hi! I wanted to reach out because we have a limited-time offer that might interest you. Would you like to hear about it? 🎁`,
-            `Hey! Just thought I'd check in - is there anything holding you back? Sometimes I can offer special pricing or solve concerns. Let me know! 💫`,
+            `Hi! I wanted to reach out because we have a limited-time offer that might interest you. Would you like to hear about it?`,
+            `Hey! Just thought I'd check in - is there anything holding you back? Sometimes I can offer special pricing or solve concerns. Let me know!`,
             `Hi there! I know you were interested earlier. Just wanted to let you know this is still available, but we're getting limited stock. Want to secure yours?`,
-            `Hello! Following up on our chat. Many customers had similar questions initially - happy to address any concerns. What's on your mind? 🤔`,
-            `Hi! Quick question - what would make this decision easier for you? I'm here to help! 😊`,
+            `Hello! Following up on our chat. Many customers had similar questions initially - happy to address any concerns. What's on your mind?`,
+            `Hi! Quick question - what would make this decision easier for you? I'm here to help!`,
           ];
           followUpMessage = incentiveMessages[Math.floor(Math.random() * incentiveMessages.length)];
           break;
@@ -224,10 +224,10 @@ export class FollowUpService {
         case 'feedback_7days':
           // Feedback request after purchase
           const feedbackMessages = [
-            `Hi! Hope you're enjoying your purchase! 🎉 We'd love to hear your feedback - how has your experience been so far?`,
-            `Hey! It's been about a week since your order. How's everything going? We'd really appreciate your thoughts! 😊`,
-            `Hi there! Just checking in to see how you're liking everything. Your feedback helps us serve you better! Would love to hear from you. 💬`,
-            `Hello! Hope everything arrived perfectly and you're happy with your purchase! Mind sharing your experience? Your feedback means a lot to us! ⭐`,
+            `Hi! Hope you're enjoying your purchase! We'd love to hear your feedback - how has your experience been so far?`,
+            `Hey! It's been about a week since your order. How's everything going? We'd really appreciate your thoughts!`,
+            `Hi there! Just checking in to see how you're liking everything. Your feedback helps us serve you better! Would love to hear from you.`,
+            `Hello! Hope everything arrived perfectly and you're happy with your purchase! Mind sharing your experience? Your feedback means a lot to us!`,
           ];
           followUpMessage = feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)];
           break;
