@@ -33,6 +33,11 @@ export default function KnowledgeBasePage() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [scrapingWebsite, setScrapingWebsite] = useState(false);
 
+  // Knowledge edit states
+  const [editingKnowledge, setEditingKnowledge] = useState<any>(null);
+  const [isKnowledgeDialogOpen, setIsKnowledgeDialogOpen] = useState(false);
+  const [editContent, setEditContent] = useState("");
+
   // FAQ states
   const [faqs, setFaqs] = useState<any[]>([]);
   const [isFaqDialogOpen, setIsFaqDialogOpen] = useState(false);
@@ -101,6 +106,44 @@ export default function KnowledgeBasePage() {
       await loadKnowledge();
     } catch (error) {
       console.error("Error deleting knowledge:", error);
+    }
+  }
+
+  function openEditKnowledgeDialog(item: any) {
+    setEditingKnowledge(item);
+    setEditContent(item.content);
+    setIsKnowledgeDialogOpen(true);
+  }
+
+  async function updateKnowledge() {
+    if (!editContent.trim() || !editingKnowledge) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/knowledge/${editingKnowledge.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: editContent,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.message || "Failed to update knowledge");
+        return;
+      }
+
+      setIsKnowledgeDialogOpen(false);
+      setEditingKnowledge(null);
+      setEditContent("");
+      await loadKnowledge();
+      alert("Knowledge updated successfully!");
+    } catch (error) {
+      console.error("Error updating knowledge:", error);
+      alert("Failed to update knowledge. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -516,7 +559,16 @@ export default function KnowledgeBasePage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => openEditKnowledgeDialog(item)}
+                                title="Edit knowledge"
+                              >
+                                <Edit className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => deleteKnowledge(item.id)}
+                                title="Delete knowledge"
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -601,6 +653,47 @@ export default function KnowledgeBasePage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Knowledge Edit Dialog */}
+            <Dialog open={isKnowledgeDialogOpen} onOpenChange={setIsKnowledgeDialogOpen}>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Knowledge Base Entry</DialogTitle>
+                  <DialogDescription>
+                    Update your business information
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-content">Content</Label>
+                    <Textarea
+                      id="edit-content"
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      placeholder="Edit your business information..."
+                      className="min-h-[300px]"
+                      maxLength={50000}
+                    />
+                    <p className="text-sm text-gray-500 mt-2">
+                      {editContent.length} / 50,000 characters
+                    </p>
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsKnowledgeDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={updateKnowledge} disabled={loading}>
+                    Update Knowledge
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* FAQ Dialog */}
             <Dialog open={isFaqDialogOpen} onOpenChange={setIsFaqDialogOpen}>
