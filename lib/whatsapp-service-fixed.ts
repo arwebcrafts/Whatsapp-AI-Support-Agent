@@ -1168,6 +1168,13 @@ You are a PROFESSIONAL sales expert who understands human psychology, builds gen
    - Voice messages are transcribed to text - respond naturally
    - Keep messages CONCISE (60-100 words max) - people are on mobile!
 
+3.5. **HANDLE IMAGES AND VIDEOS**
+   - When you see "[Customer sent an image]" - acknowledge it warmly and ask what they're looking for
+   - Example: "Thanks for sharing that image! I'd love to help you with that. What specific information do you need?"
+   - For product images: "I can see you're interested in this! Let me help you find the perfect match. Can you tell me more about what you're looking for?"
+   - For videos: Respond similarly - acknowledge, show interest, ask clarifying questions
+   - Use this as an opportunity to engage and qualify their needs
+
 4. **BUILD TRUST BEFORE SELLING**
    - First, be helpful and knowledgeable
    - Show you understand their situation
@@ -1441,8 +1448,24 @@ Let's make this conversation count!`;
     // Handle text messages
     if (message?.conversation) return message.conversation;
     if (message?.extendedTextMessage?.text) return message.extendedTextMessage.text;
+
+    // Handle images with captions
     if (message?.imageMessage?.caption) return message.imageMessage.caption;
+
+    // Handle images without captions
+    if (message?.imageMessage) {
+      console.log('📸 Image received without caption');
+      return '[Customer sent an image]';
+    }
+
+    // Handle videos with captions
     if (message?.videoMessage?.caption) return message.videoMessage.caption;
+
+    // Handle videos without captions
+    if (message?.videoMessage) {
+      console.log('🎥 Video received without caption');
+      return '[Customer sent a video]';
+    }
 
     // Handle voice/audio messages
     if (message?.audioMessage) {
