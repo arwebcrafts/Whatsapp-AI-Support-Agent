@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { whatsappServiceFixed } from '@/lib/whatsapp-service-fixed';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { getPlanLimits } from '@/lib/plan-limits';
 
 export async function POST(req: NextRequest) {
   // SECURITY: Rate limit WhatsApp connection attempts
@@ -78,12 +79,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Agent ID is required. Please provide an agentId in the request body.' }, { status: 400 });
     }
 
-    // Check WhatsApp connection limit (1 connection for all plans)
+    // Check WhatsApp connection limit based on user's plan
+    // Get plan-specific limits: Starter=1, Professional=3, Business=10
+    const planLimits = getPlanLimits(user.planType || 'starter');
+    const maxConnections = planLimits.connectionLimit;
+
     const existingConnections = user.whatsappConnections.filter(c => c.isConnected && c.agentId !== agentId);
-    if (existingConnections.length >= 1) {
+
+    if (existingConnections.length >= maxConnections) {
+      // Determine if user should upgrade
+      const shouldUpgrade = user.planType === 'starter' || user.planType === 'professional';
+
       return NextResponse.json({
-        message: 'Connection limit reached. All plans (Starter, Professional, Enterprise, LTD) support 1 WhatsApp connection. Please disconnect your existing connection before connecting a new one.',
-        limit: 1,
+        message: `Connection limit reached. Your ${user.planType} plan supports ${maxConnections} connection${maxConnections > 1 ? 's' : ''}. Current: ${existingConnections.length}/${maxConnections}. ${shouldUpgrade ? 'Upgrade your plan for more connections!' : 'Please disconnect an existing connection first.'}`,
+        requiresUpgrade: shouldUpgrade,
+        limit: maxConnections,
         current: existingConnections.length,
         planType: user.planType
       }, { status: 403 });

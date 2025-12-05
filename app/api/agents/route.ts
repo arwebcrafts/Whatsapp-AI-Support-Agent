@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPlanLimits } from "@/lib/plan-limits";
 
 export async function GET(req: NextRequest) {
   try {
@@ -69,20 +70,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // CRITICAL: Check agent creation limit (1 agent per plan for all plans)
+    // CRITICAL: Check agent creation limit based on user's plan
     const existingAgents = await prisma.agent.count({
       where: { userId: user.id },
     });
 
-    // All plans (Starter, Professional, Business, Lifetime) get 1 agent
-    const maxAgents = 1;
+    // Get plan-specific limits: Starter=1, Professional=3, Business=10
+    const planLimits = getPlanLimits(user.planType || 'starter');
+    const maxAgents = planLimits.agentLimit;
 
     if (existingAgents >= maxAgents) {
+      // Determine if user should upgrade
+      const shouldUpgrade = user.planType === 'starter' || user.planType === 'professional';
+
       return NextResponse.json({
-        message: `You've reached your plan limit of ${maxAgents} agent. Please delete an existing agent before creating a new one.`,
-        requiresUpgrade: false,
+        message: `You've reached your ${user.planType} plan limit of ${maxAgents} agent${maxAgents > 1 ? 's' : ''}. ${shouldUpgrade ? 'Upgrade to get more agents!' : 'Please delete an existing agent to create a new one.'}`,
+        requiresUpgrade: shouldUpgrade,
         currentCount: existingAgents,
         maxCount: maxAgents,
+        currentPlan: user.planType,
       }, { status: 403 });
     }
 
