@@ -64,10 +64,13 @@ export default function Home() {
                 ⚡ Affordable WhatsApp Automation
               </Badge>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                Automate 90% of WhatsApp Chats, Close 3x More Sales - While You Sleep
+                Automate WhatsApp Chats
               </h1>
+              <p className="text-lg md:text-xl text-gray-700 mb-6 leading-relaxed">
+                Boost your business with WhaSales AI to automate WhatsApp chats and close more sales effortlessly. Our powerful AI WhatsApp automation tool replies instantly, works 24/7, and handles customer conversations just like a human. Whether you run an e-commerce store, service company, or local business, WhaSales AI helps you respond faster, qualify leads, and turn conversations into sales—without code or WhatsApp Business API. Save time, increase engagement, and grow your revenue while our intelligent chatbot manages chats automatically. Experience seamless WhatsApp business automation that converts conversations into customers—day or night.
+              </p>
               <p className="text-xl md:text-2xl text-gray-600 mb-8">
-                AI responds in &lt;3 seconds. Works 24/7. Learns your business. No coding required.
+                Automate WhatsApp Chats, Close 3x More Sales - While You Sleep
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <Link href="/signup">

@@ -6,8 +6,8 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WhaSales AI - Turn WhatsApp Chats Into Sales with AI Automation",
-  description: "AI-powered WhatsApp automation that replies instantly 24/7. Connect in 30 seconds, convert 3x more leads. No WhatsApp Business API needed. Start free trial today!",
+  title: "Automate WhatsApp Chats & Boost Sales | WhaSales AI",
+  description: "Automate WhatsApp chats 24/7 with AI. Reply instantly, close 3x more sales, and grow your business. No coding or WhatsApp API needed.",
   keywords: ["WhatsApp automation", "AI chatbot", "WhatsApp Business", "sales automation", "lead generation", "customer support automation"],
   authors: [{ name: "WhaSales AI" }],
   creator: "WhaSales AI",
