@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getOpenAIClient, estimateTokens } from '@/lib/openai-client';
 import { TokenUsageService } from '@/lib/token-usage-service';
+import { IntentDetector, EscalationManager } from '@/lib/intent-detector';
 
 // POST /api/conversations/[id]/suggest - Get AI suggestion for response
 export async function POST(
@@ -123,8 +124,25 @@ export async function POST(
     const businessType = conversation.agent?.businessType || 'customer service';
     const aiTone = conversation.agent?.aiTone || 'friendly';
 
-    // Generate AI suggestion
-    const systemPrompt = `You are ${agentName}, a ${aiTone} ${businessType} representative helping customers.
+    // ENHANCEMENT: Detect customer intent
+    const conversationHistoryArray = conversation.messages.map(msg => msg.messageText || '');
+    const intent = IntentDetector.detectIntent(lastCustomerMessage, conversationHistoryArray);
+
+    // Check available features
+    const hasProducts = await prisma.product.count({ where: { userId: user.id } }) > 0;
+    const hasAppointments = false; // Will be true when appointments system added
+    const hasOrders = false; // Will be true when orders system added
+
+    // Check if escalation needed
+    const messageCount = conversation.messages.filter(m => m.senderType === 'customer').length;
+    const escalationCheck = IntentDetector.shouldEscalate(
+      messageCount,
+      intent.intent === 'complaint',
+      false // Could track AI failures in future
+    );
+
+    // Generate base system prompt
+    let systemPrompt = `You are ${agentName}, a ${aiTone} ${businessType} representative helping customers.
 
 YOUR ROLE:
 - Agent Name: ${agentName}
@@ -144,6 +162,35 @@ CURRENT TASK:
 The customer just said: "${lastCustomerMessage}"
 
 Generate a helpful, professional response that DIRECTLY addresses what the customer just said. Use the knowledge base and FAQs when relevant. Be specific and personalized - avoid generic responses. Keep it concise and ${aiTone}.`;
+
+    // ENHANCEMENT: Add intent-specific instructions to system prompt
+    systemPrompt = IntentDetector.getEnhancedPrompt(
+      systemPrompt,
+      intent,
+      hasProducts,
+      hasAppointments,
+      hasOrders
+    );
+
+    // Add product context if customer is asking about products
+    if (intent.intent === 'product_inquiry' && hasProducts) {
+      const products = await prisma.product.findMany({
+        where: { userId: user.id },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (products.length > 0) {
+        const productContext = products.map(p =>
+          `Product: ${p.name}${p.brand ? ` by ${p.brand}` : ''}
+Price: ${p.currency} ${p.price || 'Contact for pricing'}
+${p.inStock ? '✅ In Stock' : '❌ Out of Stock'}
+${p.description ? `Description: ${p.description.substring(0, 200)}...` : ''}`
+        ).join('\n\n');
+
+        systemPrompt += `\n\nAVAILABLE PRODUCTS:\n${productContext}`;
+      }
+    }
 
 
     // Estimate tokens for quota check
@@ -192,7 +239,23 @@ Generate a helpful, professional response that DIRECTLY addresses what the custo
     const actualOutputTokens = completion.usage?.completion_tokens || estimateTokens(suggestion);
     await TokenUsageService.trackUsage(user.id, actualInputTokens, actualOutputTokens);
 
-    return NextResponse.json({ suggestion });
+    // ENHANCEMENT: Check if AI is confused and suggest escalation
+    const aiConfused = EscalationManager.detectAIConfusion(suggestion);
+    const shouldEscalate = escalationCheck.shouldEscalate || intent.shouldEscalate || aiConfused;
+
+    // Return enhanced response with intent and escalation info
+    return NextResponse.json({
+      suggestion,
+      metadata: {
+        intent: intent.intent,
+        confidence: intent.confidence,
+        shouldEscalate,
+        escalationReason: escalationCheck.reason || intent.escalationReason,
+        suggestedAction: intent.suggestedAction,
+        hasProducts,
+        messageCount,
+      }
+    });
   } catch (error) {
     console.error('Error generating suggestion:', error);
     return NextResponse.json(
