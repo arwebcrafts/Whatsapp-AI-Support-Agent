@@ -65,7 +65,7 @@ export default function ExitIntentPopup() {
             Wait! Don't Miss Out! 🎁
           </CardTitle>
           <CardDescription className="text-lg">
-            Get <span className="font-bold text-green-600">7 Days Free Trial</span> + Free Setup Guide
+            Get <span className="font-bold text-green-600">3 Days Free Trial</span> + Free Setup Guide
           </CardDescription>
         </CardHeader>
 
@@ -75,7 +75,7 @@ export default function ExitIntentPopup() {
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
-                <span>7-day free trial (no credit card required)</span>
+                <span>3-day free trial (no credit card required)</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>

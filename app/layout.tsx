@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Automate WhatsApp Chats & Boost Sales | WhaSales AI",
-  description: "Automate WhatsApp chats 24/7 with AI. Reply instantly, close 3x more sales, and grow your business. No coding or WhatsApp API needed.",
+  description: "Boost your business with WhaSales AI to automate WhatsApp chats and close more sales effortlessly. Our powerful AI WhatsApp automation tool replies instantly, works 24/7, and handles customer conversations just like a human. Whether you run an e-commerce store, service company, or local business, WhaSales AI helps you respond faster, qualify leads, and turn conversations into sales—without code or WhatsApp Business API. Save time, increase engagement, and grow your revenue while our intelligent chatbot manages chats automatically.",
   keywords: ["WhatsApp automation", "AI chatbot", "WhatsApp Business", "sales automation", "lead generation", "customer support automation"],
   authors: [{ name: "WhaSales AI" }],
   creator: "WhaSales AI",

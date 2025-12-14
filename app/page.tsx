@@ -48,7 +48,7 @@ export default function Home() {
                 <Button variant="outline" size="sm">Login</Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm">Start Free Trial</Button>
+                <Button size="sm">Start 3-Day Free Trial</Button>
               </Link>
             </nav>
           </div>
@@ -66,39 +66,58 @@ export default function Home() {
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
                 Automate WhatsApp Chats
               </h1>
-              <p className="text-lg md:text-xl text-gray-700 mb-6 leading-relaxed">
-                Boost your business with WhaSales AI to automate WhatsApp chats and close more sales effortlessly. Our powerful AI WhatsApp automation tool replies instantly, works 24/7, and handles customer conversations just like a human. Whether you run an e-commerce store, service company, or local business, WhaSales AI helps you respond faster, qualify leads, and turn conversations into sales—without code or WhatsApp Business API. Save time, increase engagement, and grow your revenue while our intelligent chatbot manages chats automatically. Experience seamless WhatsApp business automation that converts conversations into customers—day or night.
+              <p className="text-lg md:text-xl text-gray-700 mb-6 leading-relaxed max-w-3xl mx-auto">
+                AI replies to WhatsApp chats instantly, 24/7. Turn conversations into customers automatically—no coding or API needed.
               </p>
               <p className="text-xl md:text-2xl text-gray-600 mb-8">
                 Automate WhatsApp Chats, Close 3x More Sales - While You Sleep
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+
+              {/* Trust Indicators */}
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span>No credit card required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span>Setup in 5 minutes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span>Cancel anytime</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-4">
                 <Link href="/signup">
-                  <Button size="lg" className="w-full sm:w-auto text-lg">
-                    Start Free Trial
+                  <Button size="lg" className="w-full sm:w-auto text-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200">
+                    Start 3-Day Free Trial
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <Link href="#pricing">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg border-2 hover:bg-gray-50">
                     View Pricing
                   </Button>
                 </Link>
               </div>
 
+              <p className="text-sm text-gray-500 mb-12">Join 1,000+ businesses already using WhaSales AI</p>
+
               {/* Social Proof Stats */}
-              <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">1,000+</div>
-                  <div className="text-sm text-gray-600">Active Users</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-8">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 text-center border border-green-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="text-4xl font-bold text-green-600 mb-2">1,000+</div>
+                  <div className="text-sm font-medium text-gray-700">Happy Businesses</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">98%</div>
-                  <div className="text-sm text-gray-600">Satisfaction Rate</div>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 text-center border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">98%</div>
+                  <div className="text-sm font-medium text-gray-700">Satisfaction Rate</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">&lt;3s</div>
-                  <div className="text-sm text-gray-600">Response Time</div>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 text-center border border-purple-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">&lt;3s</div>
+                  <div className="text-sm font-medium text-gray-700">Avg Response Time</div>
                 </div>
               </div>
 
@@ -1059,7 +1078,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
                       </Link>
                     </CardFooter>
                   </Card>
@@ -1120,7 +1139,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
                       </Link>
                     </CardFooter>
                   </Card>
@@ -1178,7 +1197,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter>
                       <Link href="/signup" className="w-full">
-                        <Button className="w-full">Start Free Trial</Button>
+                        <Button className="w-full">Start 3-Day Free Trial</Button>
                       </Link>
                     </CardFooter>
                   </Card>
@@ -2006,8 +2025,8 @@ export default function Home() {
               Join thousands of businesses already using AI to close more deals
             </p>
             <Link href="/signup">
-              <Button size="lg" variant="secondary" className="text-lg">
-                Start Free Trial
+              <Button size="lg" variant="secondary" className="text-lg bg-white text-green-600 hover:bg-gray-100 shadow-lg">
+                Start 3-Day Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -2032,9 +2051,9 @@ export default function Home() {
             <div>
               <h4 className="font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-sm">
-                <li><Link href="#features">Features</Link></li>
-                <li><Link href="#pricing">Pricing</Link></li>
-                <li><Link href="/signup">Start Free Trial</Link></li>
+                <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/signup" className="hover:text-green-400 transition-colors">Start 3-Day Free Trial</Link></li>
               </ul>
             </div>
 
