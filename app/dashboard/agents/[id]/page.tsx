@@ -93,6 +93,9 @@ export default function AgentDetailPage() {
   const [isKnowledgeDialogOpen, setIsKnowledgeDialogOpen] = useState(false);
   const [editContent, setEditContent] = useState("");
 
+  // Tab state - to keep user on current tab after operations
+  const [activeTab, setActiveTab] = useState("settings");
+
   // FAQ states
   const [faqs, setFaqs] = useState<any[]>([]);
   const [isFaqDialogOpen, setIsFaqDialogOpen] = useState(false);
@@ -108,7 +111,7 @@ export default function AgentDetailPage() {
     loadFaqs();
   }, [agentId]);
 
-  async function loadAgent() {
+  async function loadAgent(options?: { preserveKnowledge?: boolean }) {
     try {
       setLoading(true);
       const res = await fetch(`/api/agents/${agentId}`);
@@ -122,11 +125,14 @@ export default function AgentDetailPage() {
         setResponseDelay(data.agent.responseDelay || 5);
 
         // Load manual knowledge base content into the field
-        const manualKnowledge = data.agent.agentKnowledge
-          .filter((ak: any) => ak.knowledge.sourceType === "manual")
-          .map((ak: any) => ak.knowledge.content)
-          .join("\n\n---\n\n");
-        setNewKnowledge(manualKnowledge);
+        // BUT only if we're not preserving existing unsaved content
+        if (!options?.preserveKnowledge) {
+          const manualKnowledge = data.agent.agentKnowledge
+            .filter((ak: any) => ak.knowledge.sourceType === "manual")
+            .map((ak: any) => ak.knowledge.content)
+            .join("\n\n---\n\n");
+          setNewKnowledge(manualKnowledge);
+        }
       } else {
         router.push("/dashboard/agents");
       }
@@ -266,7 +272,8 @@ export default function AgentDetailPage() {
         return;
       }
 
-      await loadAgent();
+      // Reload agent data but preserve any unsaved manual knowledge content
+      await loadAgent({ preserveKnowledge: true });
       alert(`File "${file.name}" uploaded successfully!`);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -303,7 +310,8 @@ export default function AgentDetailPage() {
 
       const data = await res.json();
       setWebsiteUrl("");
-      await loadAgent();
+      // Reload agent data but preserve any unsaved manual knowledge content
+      await loadAgent({ preserveKnowledge: true });
       alert(`Website scraped successfully!\nTitle: ${data.knowledge?.title || 'Unknown'}`);
     } catch (error) {
       console.error("Error scraping website:", error);
@@ -320,7 +328,8 @@ export default function AgentDetailPage() {
       await fetch(`/api/knowledge/${knowledgeId}`, {
         method: "DELETE",
       });
-      await loadAgent();
+      // Preserve manual knowledge content when deleting uploaded files/scraped websites
+      await loadAgent({ preserveKnowledge: true });
     } catch (error) {
       console.error("Error deleting knowledge:", error);
     }
@@ -354,7 +363,8 @@ export default function AgentDetailPage() {
       setIsKnowledgeDialogOpen(false);
       setEditingKnowledge(null);
       setEditContent("");
-      await loadAgent();
+      // Preserve manual knowledge content when editing uploaded files/scraped websites
+      await loadAgent({ preserveKnowledge: true });
       alert("Knowledge updated successfully!");
     } catch (error) {
       console.error("Error updating knowledge:", error);
@@ -550,7 +560,7 @@ export default function AgentDetailPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="settings" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
