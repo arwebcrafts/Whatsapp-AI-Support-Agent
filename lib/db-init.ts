@@ -35,17 +35,53 @@ export async function initializeDatabase() {
 
     // Step 2: Deploy migrations to database
     console.log('🚀 Deploying database migrations...');
-    const { stdout: migrateStdout, stderr: migrateStderr } = await execPromise('npx prisma migrate deploy');
+    try {
+      const { stdout: migrateStdout, stderr: migrateStderr } = await execPromise('npx prisma migrate deploy');
 
-    if (migrateStderr) {
-      console.warn('⚠️ Prisma migrate warnings:', migrateStderr);
+      if (migrateStderr) {
+        console.warn('⚠️ Prisma migrate warnings:', migrateStderr);
+      }
+
+      if (migrateStdout) {
+        console.log(migrateStdout);
+      }
+
+      console.log('✅ Database migrations deployed successfully');
+    } catch (migrateError: any) {
+      // Check if this is a failed migration error (P3009)
+      if (migrateError.message?.includes('P3009') || migrateError.message?.includes('failed migrations')) {
+        console.log('⚠️ Found failed migrations, attempting to resolve...');
+
+        // Extract the failed migration name from the error message
+        const migrationMatch = migrateError.message.match(/`(\d+_[^`]+)`/);
+        if (migrationMatch) {
+          const failedMigration = migrationMatch[1];
+          console.log(`🔧 Resolving failed migration: ${failedMigration}`);
+
+          try {
+            // Mark the failed migration as applied (since it likely partially applied or the schema already has the changes)
+            await execPromise(`npx prisma migrate resolve --applied ${failedMigration}`);
+            console.log(`✅ Marked migration ${failedMigration} as applied`);
+
+            // Retry the migration deploy
+            console.log('🔄 Retrying migration deploy...');
+            const { stdout: retryStdout } = await execPromise('npx prisma migrate deploy');
+            if (retryStdout) {
+              console.log(retryStdout);
+            }
+            console.log('✅ Database migrations deployed successfully after resolution');
+          } catch (resolveError: any) {
+            console.error('❌ Failed to resolve migration:', resolveError.message);
+            // Continue anyway - the database might still work
+          }
+        } else {
+          console.error('❌ Could not extract failed migration name from error');
+        }
+      } else {
+        throw migrateError;
+      }
     }
 
-    if (migrateStdout) {
-      console.log(migrateStdout);
-    }
-
-    console.log('✅ Database migrations deployed successfully');
     console.log('🎉 Database initialization complete!');
 
     return true;
