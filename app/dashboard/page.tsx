@@ -22,7 +22,10 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
-  Award
+  Award,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight
 } from "lucide-react";
 import Link from "next/link";
 
@@ -148,6 +151,51 @@ export default async function DashboardPage() {
       conversation: { userId: user.id },
       senderType: "ai",
     },
+  });
+
+  // Get weekly comparison data
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  // This week's conversations
+  const thisWeekConversations = await prisma.conversation.count({
+    where: {
+      userId: user.id,
+      createdAt: { gte: oneWeekAgo },
+    },
+  });
+
+  // Last week's conversations
+  const lastWeekConversations = await prisma.conversation.count({
+    where: {
+      userId: user.id,
+      createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo },
+    },
+  });
+
+  // Calculate week-over-week change
+  const weeklyChange = lastWeekConversations > 0
+    ? Math.round(((thisWeekConversations - lastWeekConversations) / lastWeekConversations) * 100)
+    : thisWeekConversations > 0 ? 100 : 0;
+
+  // Get conversion rate (goals achieved / total conversations)
+  const goalsAchieved = await prisma.conversation.count({
+    where: {
+      userId: user.id,
+      goalAchieved: true,
+    },
+  });
+  const conversionRate = totalConversations > 0
+    ? Math.round((goalsAchieved / totalConversations) * 100)
+    : 0;
+
+  // Get avg response time (simplified - count AI responses)
+  const avgResponseMetric = await prisma.message.aggregate({
+    where: {
+      conversation: { userId: user.id },
+      senderType: "ai",
+    },
+    _count: true,
   });
 
   const messagesUsed = usage.messagesUsed;
@@ -404,6 +452,74 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Performance Insights */}
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-green-600" />
+              Performance Insights
+            </CardTitle>
+            <CardDescription>How your AI agent is performing this week</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Weekly Conversations */}
+              <div className="bg-white p-4 rounded-lg border border-green-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-600">This Week</span>
+                  {weeklyChange !== 0 && (
+                    <div className={`flex items-center text-xs font-medium ${weeklyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {weeklyChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {Math.abs(weeklyChange)}%
+                    </div>
+                  )}
+                </div>
+                <div className="text-2xl font-bold text-green-700">{thisWeekConversations}</div>
+                <p className="text-xs text-gray-500 mt-1">
+                  vs {lastWeekConversations} last week
+                </p>
+              </div>
+
+              {/* Conversion Rate */}
+              <div className="bg-white p-4 rounded-lg border border-green-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-600">Conversion Rate</span>
+                  <Target className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="text-2xl font-bold text-green-700">{conversionRate}%</div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {goalsAchieved} goals achieved
+                </p>
+              </div>
+
+              {/* AI Automation */}
+              <div className="bg-white p-4 rounded-lg border border-green-100 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-600">AI Handled</span>
+                  <Bot className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="text-2xl font-bold text-green-700">{aiMessagesCount}</div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Automated responses
+                </p>
+              </div>
+            </div>
+
+            {/* Performance Tips */}
+            {totalConversations > 0 && conversionRate < 20 && (
+              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">Tip: Improve your conversion rate</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Try adding more product information to your knowledge base and setting clear conversation goals.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Message Usage */}
