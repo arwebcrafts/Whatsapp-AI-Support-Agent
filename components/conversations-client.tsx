@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,12 @@ import {
   Star,
   X,
   Plus,
-  Tag as TagIcon
+  Tag as TagIcon,
+  Bell,
+  BellOff,
+  Zap,
+  ArrowLeft,
+  ChevronDown
 } from "lucide-react";
 
 interface Conversation {
@@ -46,6 +51,16 @@ interface Message {
   createdAt: string;
 }
 
+// Quick reply templates
+const QUICK_REPLIES = [
+  { label: "Greeting", text: "Hi! Thank you for reaching out. How can I help you today?" },
+  { label: "Pricing", text: "I'd be happy to share our pricing with you. What specific product or service are you interested in?" },
+  { label: "Hours", text: "Our business hours are Monday to Friday, 9 AM to 6 PM. We're here to help!" },
+  { label: "Thanks", text: "Thank you for your interest! Is there anything else I can help you with?" },
+  { label: "Follow Up", text: "Just checking in! Did you have any questions about our products/services?" },
+  { label: "Order Status", text: "Let me check on your order status. Could you please provide your order number?" },
+];
+
 export default function ConversationsClient({ initialConversations }: { initialConversations: Conversation[] }) {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
@@ -64,7 +79,54 @@ export default function ConversationsClient({ initialConversations }: { initialC
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [addingTag, setAddingTag] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio for notifications
+  useEffect(() => {
+    audioRef.current = new Audio('/notification.mp3');
+    audioRef.current.volume = 0.5;
+
+    // Check if notifications are already enabled
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
+    }
+  }, []);
+
+  // Request notification permission
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === 'granted');
+    }
+  };
+
+  // Send browser notification
+  const sendNotification = useCallback((title: string, body: string, conversationId: string) => {
+    if (notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        tag: conversationId,
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        const conv = conversations.find(c => c.id === conversationId);
+        if (conv) {
+          setSelectedConv(conv);
+          setShowMobileChat(true);
+        }
+      };
+
+      // Play sound
+      audioRef.current?.play().catch(() => {});
+    }
+  }, [notificationsEnabled, conversations]);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -104,14 +166,40 @@ export default function ConversationsClient({ initialConversations }: { initialC
     return () => clearInterval(interval);
   }, [selectedConv?.id]);
 
-  // Auto-refresh conversation list every 10 seconds
+  // Auto-refresh conversation list every 10 seconds with notification check
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/conversations');
         if (res.ok) {
           const data = await res.json();
-          setConversations(data.conversations || []);
+          const newConversations = data.conversations || [];
+
+          // Check for new messages and send notifications
+          newConversations.forEach((conv: Conversation) => {
+            const lastCount = lastMessageCount[conv.id] || 0;
+            const currentCount = conv.messages?.length || 0;
+
+            if (currentCount > lastCount && lastCount > 0) {
+              const lastMsg = conv.messages[conv.messages.length - 1];
+              if (lastMsg?.senderType === 'customer') {
+                sendNotification(
+                  `New message from ${conv.customerName || conv.customerPhone}`,
+                  lastMsg.messageText.substring(0, 100),
+                  conv.id
+                );
+              }
+            }
+          });
+
+          // Update message counts
+          const newCounts: Record<string, number> = {};
+          newConversations.forEach((conv: Conversation) => {
+            newCounts[conv.id] = conv.messages?.length || 0;
+          });
+          setLastMessageCount(newCounts);
+
+          setConversations(newConversations);
         }
       } catch (error) {
         console.error("Error refreshing conversations:", error);
@@ -119,7 +207,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
     }, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastMessageCount, sendNotification]);
 
   // Load full messages for selected conversation with pagination
   const loadFullMessages = async (conversationId: string, silent = false) => {
@@ -141,11 +229,31 @@ export default function ConversationsClient({ initialConversations }: { initialC
     }
   };
 
-  // Filter conversations based on search
-  const filteredConversations = conversations.filter(conv =>
-    (conv.customerName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    conv.customerPhone.includes(searchQuery)
-  );
+  // Enhanced search - searches name, phone, AND message content
+  const filteredConversations = conversations.filter(conv => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return true;
+
+    // Search by name
+    if (conv.customerName?.toLowerCase().includes(query)) return true;
+
+    // Search by phone
+    if (conv.customerPhone.includes(query)) return true;
+
+    // Search by message content
+    const hasMatchingMessage = conv.messages?.some(msg =>
+      msg.messageText?.toLowerCase().includes(query)
+    );
+    if (hasMatchingMessage) return true;
+
+    // Search by tags
+    try {
+      const convTags = conv.tags ? JSON.parse(conv.tags) : [];
+      if (convTags.some((tag: string) => tag.toLowerCase().includes(query))) return true;
+    } catch {}
+
+    return false;
+  });
 
   // Format time
   const formatTime = (dateString: string) => {
@@ -396,19 +504,40 @@ export default function ConversationsClient({ initialConversations }: { initialC
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
-      {/* LEFT: Conversation List (25%) */}
-      <div className="w-[25%] border-r border-gray-200 bg-white flex flex-col">
-        {/* Search */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-50 border-gray-200"
-            />
+      {/* LEFT: Conversation List - Responsive */}
+      <div className={`${showMobileChat ? 'hidden md:flex' : 'flex'} w-full md:w-[25%] border-r border-gray-200 bg-white flex-col`}>
+        {/* Search & Notifications */}
+        <div className="p-3 md:p-4 border-b border-gray-200 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search name, phone, messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-200 text-sm"
+              />
+            </div>
+            {/* Notification Toggle */}
+            <Button
+              variant={notificationsEnabled ? "default" : "outline"}
+              size="icon"
+              onClick={requestNotificationPermission}
+              title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
+              className="h-9 w-9 flex-shrink-0"
+            >
+              {notificationsEnabled ? (
+                <Bell className="h-4 w-4" />
+              ) : (
+                <BellOff className="h-4 w-4" />
+              )}
+            </Button>
           </div>
+          {searchQuery && (
+            <p className="text-xs text-gray-500">
+              Found {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Conversation List */}
@@ -423,8 +552,11 @@ export default function ConversationsClient({ initialConversations }: { initialC
               {filteredConversations.map((conv) => (
                 <button
                   key={conv.id}
-                  onClick={() => setSelectedConv(conv)}
-                  className={`w-full p-4 text-left hover:bg-blue-50 transition-all duration-200 border-l-4 ${
+                  onClick={() => {
+                    setSelectedConv(conv);
+                    setShowMobileChat(true); // Show chat on mobile
+                  }}
+                  className={`w-full p-3 md:p-4 text-left hover:bg-blue-50 transition-all duration-200 border-l-4 ${
                     selectedConv?.id === conv.id
                       ? "bg-blue-50 border-l-blue-600 shadow-sm"
                       : "border-l-transparent hover:border-l-blue-300"
@@ -490,8 +622,8 @@ export default function ConversationsClient({ initialConversations }: { initialC
         </div>
       </div>
 
-      {/* CENTER: Full Chat Interface (55%) */}
-      <div className="w-[55%] flex flex-col bg-white">
+      {/* CENTER: Full Chat Interface - Responsive */}
+      <div className={`${showMobileChat ? 'flex' : 'hidden md:flex'} w-full md:w-[55%] flex-col bg-white`}>
         {!selectedConv ? (
           <div className="flex-1 flex items-center justify-center text-center px-6">
             <div>
@@ -507,22 +639,33 @@ export default function ConversationsClient({ initialConversations }: { initialC
         ) : (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
+            <div className="px-3 md:px-6 py-3 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900">
-                    {selectedConv.customerName || selectedConv.customerPhone}
-                  </h2>
-                  <p className="text-xs text-gray-500">{selectedConv.customerPhone}</p>
+                <div className="flex items-center gap-2">
+                  {/* Back button for mobile */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden h-8 w-8"
+                    onClick={() => setShowMobileChat(false)}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {selectedConv.customerName || selectedConv.customerPhone}
+                    </h2>
+                    <p className="text-xs text-gray-500">{selectedConv.customerPhone}</p>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 md:gap-2">
                   <Badge
                     variant={selectedConv.leadScore === "hot" ? "destructive" : "secondary"}
                     className="text-xs"
                   >
                     {selectedConv.leadScore.toUpperCase()}
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                     {selectedConv.aiMode === "auto" && "🤖 Auto"}
                     {selectedConv.aiMode === "copilot" && "✨ Co-Pilot"}
                     {selectedConv.aiMode === "manual" && "👤 Manual"}
@@ -593,7 +736,7 @@ export default function ConversationsClient({ initialConversations }: { initialC
             )}
 
             {/* Message Input Area */}
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="px-3 md:px-4 py-3 border-t border-gray-200 bg-gray-50">
               {selectedConv.aiMode === "auto" ? (
                 <div className="flex items-center justify-center gap-2 py-2">
                   <Bot className="h-4 w-4 text-green-600" />
@@ -602,30 +745,65 @@ export default function ConversationsClient({ initialConversations }: { initialC
                   </p>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder={
-                      selectedConv.aiMode === "copilot"
-                        ? "Type your message or use AI suggestion above..."
-                        : "Type your message..."
-                    }
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
+                <div className="space-y-2">
+                  {/* Quick Replies Toggle */}
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowQuickReplies(!showQuickReplies)}
+                      className="text-xs h-7"
+                    >
+                      <Zap className="h-3 w-3 mr-1" />
+                      Quick Replies
+                      <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showQuickReplies ? 'rotate-180' : ''}`} />
+                    </Button>
+
+                    {/* Quick Replies Dropdown */}
+                    {showQuickReplies && (
+                      <div className="absolute bottom-full left-0 mb-2 w-full max-w-md bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-2 space-y-1">
+                        {QUICK_REPLIES.map((reply, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setNewMessage(reply.text);
+                              setShowQuickReplies(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 rounded-md transition-colors"
+                          >
+                            <span className="font-medium text-blue-600">{reply.label}:</span>
+                            <span className="text-gray-600 ml-1 line-clamp-1">{reply.text}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder={
+                        selectedConv.aiMode === "copilot"
+                          ? "Type your message or use AI suggestion above..."
+                          : "Type your message..."
                       }
-                    }}
-                    className="flex-1 min-h-[60px] max-h-[120px] resize-none"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={sendingMessage || !newMessage.trim()}
-                    className="h-[60px] px-6"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      className="flex-1 min-h-[60px] max-h-[120px] resize-none text-sm"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={sendingMessage || !newMessage.trim()}
+                      className="h-[60px] px-4 md:px-6"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -633,8 +811,8 @@ export default function ConversationsClient({ initialConversations }: { initialC
         )}
       </div>
 
-      {/* RIGHT: Conversation Details (20%) */}
-      <div className="w-[20%] border-l border-gray-200 bg-white overflow-y-auto">
+      {/* RIGHT: Conversation Details - Hidden on mobile */}
+      <div className="hidden lg:block w-[20%] border-l border-gray-200 bg-white overflow-y-auto">
         {!selectedConv ? (
           <div className="p-6 text-center text-gray-400 text-sm">
             Select a conversation to view details
