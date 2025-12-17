@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { content, sourceType } = body;
+    const { content, sourceType, agentId } = body;
 
     if (!content) {
       return NextResponse.json(
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create knowledge base entry
     const item = await prisma.knowledgeBase.create({
       data: {
         userId: user.id,
@@ -67,6 +68,16 @@ export async function POST(req: NextRequest) {
         sourceType: sourceType || "manual",
       },
     });
+
+    // If agentId is provided, link the knowledge to the agent
+    if (agentId) {
+      await prisma.agentKnowledge.create({
+        data: {
+          agentId,
+          knowledgeId: item.id,
+        },
+      });
+    }
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
