@@ -151,7 +151,8 @@ export default function AgentDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, businessName, description, aiTone, responseDelay }),
       });
-      await loadAgent();
+      // Preserve manual knowledge content when saving agent settings
+      await loadAgent({ preserveKnowledge: true });
     } catch (error) {
       console.error("Error saving agent:", error);
     } finally {
@@ -166,7 +167,8 @@ export default function AgentDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !agent?.isActive }),
       });
-      await loadAgent();
+      // Preserve manual knowledge content when toggling agent
+      await loadAgent({ preserveKnowledge: true });
     } catch (error) {
       console.error("Error toggling agent:", error);
     }
@@ -191,7 +193,8 @@ export default function AgentDetailPage() {
             clearInterval(interval);
             setQrCode(null);
             setConnecting(false);
-            await loadAgent();
+            // Preserve manual knowledge content when WhatsApp connects
+            await loadAgent({ preserveKnowledge: true });
           }
         }, 3000);
       }
