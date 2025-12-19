@@ -14,6 +14,7 @@ export default function WhatsAppPage() {
   const [status, setStatus] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [agentId, setAgentId] = useState<string | null>(null);
+  const [agentError, setAgentError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDefaultAgent();
@@ -30,16 +31,27 @@ export default function WhatsAppPage() {
 
   async function loadDefaultAgent() {
     setLoadingAgent(true);
+    setAgentError(null);
     try {
       // Get or create user's default agent
       const res = await fetch('/api/whatsapp/default-agent');
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to load agent (${res.status})`);
+      }
+
       const data = await res.json();
 
       if (data.agent) {
         setAgentId(data.agent.id);
+        setAgentError(null);
+      } else {
+        throw new Error('No agent returned from server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading agent:', error);
+      setAgentError(error?.message || 'Failed to load agent');
     } finally {
       setLoadingAgent(false);
     }
@@ -64,17 +76,41 @@ export default function WhatsAppPage() {
   }
 
   async function connect() {
+    // If agentId is missing, try to reload it first
     if (!agentId) {
-      alert('No agent found. Please try refreshing the page.');
+      console.log('Agent ID missing, attempting to reload...');
+      setLoading(true);
+      try {
+        const res = await fetch('/api/whatsapp/default-agent');
+        const data = await res.json();
+
+        if (data.agent?.id) {
+          setAgentId(data.agent.id);
+          setAgentError(null);
+          // Now connect with the reloaded agent ID
+          await connectWithAgentId(data.agent.id);
+        } else {
+          alert('Could not load agent. Please refresh the page and try again.');
+        }
+      } catch (error) {
+        console.error('Error reloading agent:', error);
+        alert('Failed to load agent. Please refresh the page.');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
+    await connectWithAgentId(agentId);
+  }
+
+  async function connectWithAgentId(agentIdToConnect: string) {
     setLoading(true);
     try {
       const res = await fetch('/api/whatsapp/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, force: true }), // Force clear previous session
+        body: JSON.stringify({ agentId: agentIdToConnect, force: true }), // Force clear previous session
       });
 
       if (!res.ok) {
@@ -121,6 +157,23 @@ export default function WhatsAppPage() {
           <div className="text-center">
             <Smartphone className="h-12 w-12 mx-auto mb-4 text-gray-400 animate-pulse" />
             <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (agentError && !agentId) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Smartphone className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <p className="text-red-600 mb-4">{agentError}</p>
+            <Button onClick={loadDefaultAgent} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
           </div>
         </div>
       </DashboardLayout>
