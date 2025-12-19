@@ -36,8 +36,11 @@ interface WhatsAppSession {
   eventListeners?: Set<string>; // Track registered event listeners for cleanup
   keepAliveTimer?: NodeJS.Timeout; // Keep-alive heartbeat timer
   reconnectTimer?: NodeJS.Timeout; // Pending reconnection timer
+  presenceTimer?: NodeJS.Timeout; // Presence update timer to keep connection alive
   connectionHealthy?: boolean; // Track if connection is responding to keep-alives
   lastHeartbeat?: number; // Timestamp of last successful heartbeat
+  reconnectAttempts?: number; // Count of reconnection attempts
+  isManualDisconnect?: boolean; // Flag to track if user manually disconnected
 }
 
 class WhatsAppServiceFixed {
@@ -228,10 +231,13 @@ class WhatsAppServiceFixed {
         },
         printQRInTerminal: true, // Also print to terminal for debugging
         browser: ['WhaSales AI', 'Chrome', '1.0.0'],
-        defaultQueryTimeoutMs: 30000, // 30 second timeout to prevent infinite hangs
-        connectTimeoutMs: 60000, // 60 second connection timeout
-        keepAliveIntervalMs: 25000, // Send keep-alive every 25 seconds
+        defaultQueryTimeoutMs: 60000, // 60 second timeout for queries
+        connectTimeoutMs: 120000, // 2 minute connection timeout
+        keepAliveIntervalMs: 15000, // Send keep-alive every 15 seconds (more frequent)
         retryRequestDelayMs: 2000, // Wait 2 seconds before retrying failed requests
+        emitOwnEvents: true, // Emit events for own messages
+        markOnlineOnConnect: true, // Mark as online when connected
+        syncFullHistory: false, // Don't sync full history to reduce load
       });
 
       let qrCode: string | null = null;
@@ -419,28 +425,43 @@ class WhatsAppServiceFixed {
 
               // Retry connection using safe method (will generate new QR)
               this.safeReconnect(userId, agentId, 2000);
-            } else if (shouldReconnect) {
-              // Check if this was a manual close (isReconnecting flag set)
+            } else {
+              // Check if this was a manual disconnect by user
               const session = this.sessions.get(agentId);
-              if (session?.isReconnecting) {
+              if (session?.isManualDisconnect) {
                 console.log('⏸️ Manual disconnect detected - skipping auto-reconnect');
                 this.cleanupSession(agentId);
+                await this.updateConnectionStatus(agentId, false, null);
                 clearTimeout(timeout);
                 resolve(null);
                 return;
               }
 
-              console.log('🔄 Connection lost, will reconnect...');
+              // For all other disconnects (including loggedOut), try to reconnect
+              // This ensures connection stays alive unless user explicitly disconnects
+              if (shouldReconnect) {
+                console.log('🔄 Connection lost, will reconnect automatically...');
+              } else {
+                // Logged out from WhatsApp Web - but still try to reconnect with fresh session
+                console.log('🔄 Session expired, will reconnect with fresh QR...');
+
+                // Clear session files to force fresh QR
+                const agentAuthDir = path.join(this.authDir, agentId);
+                try {
+                  if (fs.existsSync(agentAuthDir)) {
+                    fs.rmSync(agentAuthDir, { recursive: true, force: true });
+                    console.log('✅ Cleared old session files for fresh start');
+                  }
+                } catch (error) {
+                  console.error('❌ Error clearing session files:', error);
+                }
+              }
 
               // Clean up session properly to allow fresh reconnection
               this.cleanupSession(agentId);
 
-              // Other connection issues - retry without clearing session files using safe method
-              this.safeReconnect(userId, agentId, 3000);
-            } else {
-              // Logged out - update database and cleanup properly
-              await this.updateConnectionStatus(agentId, false, null);
-              this.cleanupSession(agentId);
+              // Always try to reconnect (will generate new QR if needed)
+              this.forceReconnect(userId, agentId);
             }
 
             clearTimeout(timeout);
@@ -461,6 +482,8 @@ class WhatsAppServiceFixed {
               session.qr = null; // Clear QR once connected
               session.isReconnecting = false; // Clear reconnecting flag
               session.conflictRetries = 0; // Reset conflict counter on successful connection
+              session.reconnectAttempts = 0; // Reset reconnect attempts on success
+              session.isManualDisconnect = false; // Clear manual disconnect flag
               session.sock = sock; // Update socket reference
               session.connectionHealthy = true;
               session.lastHeartbeat = Date.now();
@@ -468,6 +491,9 @@ class WhatsAppServiceFixed {
 
             // Start keep-alive monitoring for this connection
             this.startKeepAlive(agentId);
+
+            // Start presence updates to keep connection alive
+            this.startPresenceUpdates(agentId);
 
             clearTimeout(timeout);
             resolve(null); // Already connected, no QR needed
@@ -1720,10 +1746,16 @@ Let's make this conversation count!`;
     session.connectionHealthy = true;
     session.lastHeartbeat = Date.now();
 
-    // Check connection health every 30 seconds
+    // Check connection health every 20 seconds (more frequent)
     session.keepAliveTimer = setInterval(async () => {
       const currentSession = this.sessions.get(agentId);
-      if (!currentSession || !currentSession.isConnected) {
+      if (!currentSession) {
+        this.stopKeepAlive(agentId);
+        return;
+      }
+
+      // Skip if manually disconnected
+      if (currentSession.isManualDisconnect) {
         this.stopKeepAlive(agentId);
         return;
       }
@@ -1737,11 +1769,11 @@ Let's make this conversation count!`;
           console.log(`⚠️ Connection health check failed for agent ${agentId} (state: ${state})`);
           currentSession.connectionHealthy = false;
 
-          // If unhealthy for more than 60 seconds, trigger reconnection
+          // If unhealthy for more than 30 seconds, trigger reconnection immediately
           const timeSinceLastHeartbeat = Date.now() - (currentSession.lastHeartbeat || 0);
-          if (timeSinceLastHeartbeat > 60000) {
-            console.log(`🔄 Connection dead for ${Math.round(timeSinceLastHeartbeat/1000)}s, triggering reconnection...`);
-            this.safeReconnect(currentSession.userId, agentId);
+          if (timeSinceLastHeartbeat > 30000) {
+            console.log(`🔄 Connection dead for ${Math.round(timeSinceLastHeartbeat/1000)}s, triggering immediate reconnection...`);
+            this.forceReconnect(currentSession.userId, agentId);
           }
         } else {
           currentSession.connectionHealthy = true;
@@ -1750,8 +1782,13 @@ Let's make this conversation count!`;
       } catch (error) {
         console.error(`Error in keep-alive check for ${agentId}:`, error);
         currentSession.connectionHealthy = false;
+
+        // Trigger reconnection on error
+        if (!currentSession.isManualDisconnect) {
+          this.forceReconnect(currentSession.userId, agentId);
+        }
       }
-    }, 30000); // Check every 30 seconds
+    }, 20000); // Check every 20 seconds
 
     console.log(`💓 Started keep-alive monitor for agent ${agentId}`);
   }
@@ -1766,6 +1803,84 @@ Let's make this conversation count!`;
       session.keepAliveTimer = undefined;
       console.log(`🛑 Stopped keep-alive monitor for agent ${agentId}`);
     }
+  }
+
+  /**
+   * Start presence updates to keep WhatsApp connection alive
+   * Sends periodic "available" presence to prevent session timeout
+   */
+  private startPresenceUpdates(agentId: string): void {
+    const session = this.sessions.get(agentId);
+    if (!session) return;
+
+    // Clear any existing presence timer
+    if (session.presenceTimer) {
+      clearInterval(session.presenceTimer);
+    }
+
+    // Send presence update every 5 minutes to keep connection alive
+    session.presenceTimer = setInterval(async () => {
+      const currentSession = this.sessions.get(agentId);
+      if (!currentSession || !currentSession.isConnected || !currentSession.sock) {
+        this.stopPresenceUpdates(agentId);
+        return;
+      }
+
+      try {
+        // Send "available" presence to keep session active
+        await currentSession.sock.sendPresenceUpdate('available');
+        console.log(`📍 Sent presence update for agent ${agentId}`);
+      } catch (error) {
+        console.error(`Error sending presence update for ${agentId}:`, error);
+        // Don't trigger reconnect here - keep-alive will handle it
+      }
+    }, 300000); // Every 5 minutes
+
+    console.log(`📍 Started presence updates for agent ${agentId}`);
+  }
+
+  /**
+   * Stop presence update timer for a session
+   */
+  private stopPresenceUpdates(agentId: string): void {
+    const session = this.sessions.get(agentId);
+    if (session?.presenceTimer) {
+      clearInterval(session.presenceTimer);
+      session.presenceTimer = undefined;
+      console.log(`🛑 Stopped presence updates for agent ${agentId}`);
+    }
+  }
+
+  /**
+   * Force immediate reconnection - more aggressive than safeReconnect
+   */
+  private forceReconnect(userId: string, agentId: string): void {
+    const session = this.sessions.get(agentId);
+
+    // Don't reconnect if manually disconnected
+    if (session?.isManualDisconnect) {
+      console.log(`⏹️ Skipping reconnection for ${agentId} - manually disconnected`);
+      return;
+    }
+
+    // Prevent overlapping reconnection attempts
+    if (session?.isReconnecting) {
+      console.log(`⏳ Reconnection already in progress for agent ${agentId}`);
+      return;
+    }
+
+    // Track reconnection attempts
+    const attempts = (session?.reconnectAttempts || 0) + 1;
+    if (session) {
+      session.reconnectAttempts = attempts;
+    }
+
+    console.log(`🔄 Force reconnecting agent ${agentId} (attempt ${attempts})...`);
+
+    // Calculate backoff delay based on attempts (max 30 seconds)
+    const backoffDelay = Math.min(attempts * 2000, 30000);
+
+    this.safeReconnect(userId, agentId, backoffDelay);
   }
 
   /**
@@ -1835,6 +1950,9 @@ Let's make this conversation count!`;
     // Stop keep-alive timer
     this.stopKeepAlive(agentId);
 
+    // Stop presence updates
+    this.stopPresenceUpdates(agentId);
+
     // Clear reconnection timer
     if (session.reconnectTimer) {
       clearTimeout(session.reconnectTimer);
@@ -1886,9 +2004,16 @@ Let's make this conversation count!`;
   async disconnectWhatsApp(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId);
 
-    if (session?.sock) {
+    if (session) {
+      // Mark as manual disconnect to prevent auto-reconnection
+      session.isManualDisconnect = true;
+      session.isReconnecting = false;
+
       // Stop keep-alive monitoring first
       this.stopKeepAlive(agentId);
+
+      // Stop presence updates
+      this.stopPresenceUpdates(agentId);
 
       // Clean up event listeners BEFORE logout to prevent memory leaks
       this.cleanupEventListeners(agentId);
@@ -1899,10 +2024,12 @@ Let's make this conversation count!`;
         session.reconnectTimer = undefined;
       }
 
-      try {
-        await session.sock.logout();
-      } catch (error) {
-        console.error('Error logging out:', error);
+      if (session.sock) {
+        try {
+          await session.sock.logout();
+        } catch (error) {
+          console.error('Error logging out:', error);
+        }
       }
     }
 
@@ -1915,7 +2042,7 @@ Let's make this conversation count!`;
       fs.rmSync(agentAuthDir, { recursive: true, force: true });
     }
 
-    console.log(`✅ Successfully disconnected and cleaned up agent ${agentId}`);
+    console.log(`✅ Successfully disconnected and cleaned up agent ${agentId} (manual disconnect)`);
   }
 
   getSession(agentId: string): WhatsAppSession | undefined {
