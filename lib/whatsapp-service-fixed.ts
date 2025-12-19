@@ -751,6 +751,30 @@ class WhatsAppServiceFixed {
     remoteJid: string
   ): Promise<void> {
     try {
+      // CRITICAL: Check if socket is actually alive before trying to send
+      let activeSock = sock;
+      if (!this.isSocketAlive(sock)) {
+        console.log('⚠️ Socket appears dead, getting fresh socket from session...');
+
+        // Get fresh socket from current session
+        const session = this.sessions.get(agentId);
+        if (session?.sock && this.isSocketAlive(session.sock)) {
+          activeSock = session.sock;
+          console.log('✅ Got fresh socket from session');
+        } else {
+          console.log('❌ No alive socket available, triggering reconnection...');
+
+          // Trigger reconnection
+          if (session && !session.isManualDisconnect) {
+            this.forceReconnect(userId, agentId);
+          }
+
+          // Can't send message without socket
+          console.log('⚠️ Skipping AI response - no active connection');
+          return;
+        }
+      }
+
       // Check limits
       const { canUserSendMessage } = await import('./trial-checker');
       const canSend = await canUserSendMessage(userId);
@@ -1449,23 +1473,59 @@ Let's make this conversation count!`;
 
       // Show "typing..." indicator
       try {
-        await sock.sendPresenceUpdate('composing', remoteJid);
+        await activeSock.sendPresenceUpdate('composing', remoteJid);
       } catch (error) {
         console.error('Error sending typing indicator:', error);
+        // Check if socket died during typing indicator
+        if (!this.isSocketAlive(activeSock)) {
+          console.log('⚠️ Socket died during typing, triggering reconnection...');
+          this.forceReconnect(userId, agentId);
+          return;
+        }
       }
 
       // Wait for realistic typing delay
       await new Promise(resolve => setTimeout(resolve, typingDelay));
 
+      // Re-check socket before sending (it might have died during the delay)
+      if (!this.isSocketAlive(activeSock)) {
+        // Try to get fresh socket
+        const session = this.sessions.get(agentId);
+        if (session?.sock && this.isSocketAlive(session.sock)) {
+          activeSock = session.sock;
+          console.log('✅ Got fresh socket after typing delay');
+        } else {
+          console.log('⚠️ Socket died during typing delay, skipping message send');
+          this.forceReconnect(userId, agentId);
+          return;
+        }
+      }
+
       // Stop typing indicator and set to "available"
       try {
-        await sock.sendPresenceUpdate('paused', remoteJid);
+        await activeSock.sendPresenceUpdate('paused', remoteJid);
       } catch (error) {
         console.error('Error clearing typing indicator:', error);
       }
 
-      // Send message via WhatsApp
-      await sock.sendMessage(remoteJid, { text: aiReply });
+      // Send message via WhatsApp with retry
+      try {
+        await activeSock.sendMessage(remoteJid, { text: aiReply });
+      } catch (sendError: any) {
+        console.error('Error sending message:', sendError);
+
+        // Check if it's a connection error
+        if (sendError?.message?.includes('Connection Closed') ||
+            sendError?.output?.statusCode === 428 ||
+            sendError?.output?.statusCode === 408) {
+          console.log('⚠️ Connection error while sending, triggering reconnection...');
+          this.forceReconnect(userId, agentId);
+
+          // TODO: Could queue this message for retry after reconnection
+        }
+
+        throw sendError; // Re-throw to be caught by outer catch
+      }
 
       // Save AI message
       await prisma.message.create({
@@ -1731,6 +1791,34 @@ Let's make this conversation count!`;
   }
 
   /**
+   * Check if a socket is truly alive and can send messages
+   */
+  private isSocketAlive(sock: any): boolean {
+    if (!sock) return false;
+
+    try {
+      // Check WebSocket ready state
+      const wsState = sock?.ws?.readyState;
+
+      // WebSocket states: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
+      // Only state 1 (OPEN) means the socket is truly alive
+      if (wsState !== 1 && wsState !== undefined) {
+        return false;
+      }
+
+      // Also check if socket has user info (indicates successful connection)
+      if (!sock.user?.id) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error checking socket state:', error);
+      return false;
+    }
+  }
+
+  /**
    * Start keep-alive heartbeat for a session
    * Monitors connection health and triggers reconnection if needed
    */
@@ -1761,12 +1849,10 @@ Let's make this conversation count!`;
       }
 
       try {
-        // Try to get connection state - this will fail if socket is dead
-        const state = currentSession.sock?.ws?.readyState;
-
-        // WebSocket states: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
-        if (state !== 1) {
-          console.log(`⚠️ Connection health check failed for agent ${agentId} (state: ${state})`);
+        // Use isSocketAlive for consistent checking
+        if (!this.isSocketAlive(currentSession.sock)) {
+          const wsState = currentSession.sock?.ws?.readyState;
+          console.log(`⚠️ Connection health check failed for agent ${agentId} (state: ${wsState})`);
           currentSession.connectionHealthy = false;
 
           // If unhealthy for more than 30 seconds, trigger reconnection immediately
