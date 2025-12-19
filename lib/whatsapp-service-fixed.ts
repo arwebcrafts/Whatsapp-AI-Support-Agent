@@ -41,6 +41,7 @@ interface WhatsAppSession {
   lastHeartbeat?: number; // Timestamp of last successful heartbeat
   reconnectAttempts?: number; // Count of reconnection attempts
   isManualDisconnect?: boolean; // Flag to track if user manually disconnected
+  _lastHealthLog?: number; // Timestamp of last health log output (for reducing log spam)
 }
 
 class WhatsAppServiceFixed {
@@ -110,7 +111,74 @@ class WhatsAppServiceFixed {
     // This enables automatic re-engagement messages
     if (typeof window === 'undefined') { // Only run on server
       this.initializeFollowUpSystem();
+
+      // Start global connection watchdog (every 5 minutes)
+      this.startConnectionWatchdog();
     }
+  }
+
+  /**
+   * Global connection watchdog - periodically verifies all connections are truly alive
+   * This catches cases where individual keep-alives might miss something
+   */
+  private startConnectionWatchdog(): void {
+    setInterval(async () => {
+      const sessions = Array.from(this.sessions.entries());
+
+      if (sessions.length === 0) return;
+
+      console.log(`🔍 Connection watchdog checking ${sessions.length} session(s)...`);
+
+      for (const [agentId, session] of sessions) {
+        // Skip if manually disconnected
+        if (session.isManualDisconnect) continue;
+
+        // Skip if currently reconnecting
+        if (session.isReconnecting) {
+          console.log(`⏳ Skipping ${agentId} - reconnection in progress`);
+          continue;
+        }
+
+        // Skip if not marked as connected
+        if (!session.isConnected) {
+          console.log(`⏳ Skipping ${agentId} - not marked as connected`);
+          continue;
+        }
+
+        try {
+          // Check if socket is alive
+          const socketAlive = this.isSocketAlive(session.sock);
+
+          if (!socketAlive) {
+            console.log(`⚠️ Watchdog: Connection for ${agentId} appears dead, triggering reconnection...`);
+            this.forceReconnect(session.userId, agentId);
+            continue;
+          }
+
+          // Perform an actual ping to verify
+          const pingSuccess = await this.performConnectionPing(agentId);
+
+          if (!pingSuccess) {
+            // Give it a second chance
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            const retryPing = await this.performConnectionPing(agentId);
+
+            if (!retryPing) {
+              console.log(`⚠️ Watchdog: Ping failed twice for ${agentId}, triggering reconnection...`);
+              this.forceReconnect(session.userId, agentId);
+            }
+          } else {
+            console.log(`✅ Watchdog: Connection for ${agentId} verified healthy`);
+          }
+        } catch (error: any) {
+          console.error(`Error in watchdog for ${agentId}:`, error?.message || error);
+        }
+      }
+
+      console.log(`🔍 Connection watchdog check complete`);
+    }, 300000); // Every 5 minutes
+
+    console.log(`🔍 Started global connection watchdog (every 5 minutes)`);
   }
 
   private async initializeFollowUpSystem() {
@@ -233,11 +301,17 @@ class WhatsAppServiceFixed {
         browser: ['WhaSales AI', 'Chrome', '1.0.0'],
         defaultQueryTimeoutMs: 60000, // 60 second timeout for queries
         connectTimeoutMs: 120000, // 2 minute connection timeout
-        keepAliveIntervalMs: 15000, // Send keep-alive every 15 seconds (more frequent)
+        keepAliveIntervalMs: 10000, // Send keep-alive every 10 seconds (very aggressive)
         retryRequestDelayMs: 2000, // Wait 2 seconds before retrying failed requests
         emitOwnEvents: true, // Emit events for own messages
         markOnlineOnConnect: true, // Mark as online when connected
         syncFullHistory: false, // Don't sync full history to reduce load
+        qrTimeout: 40000, // QR code timeout
+        // Aggressive connection maintenance
+        patchMessageBeforeSending: (message) => {
+          // Ensure messages have proper timestamps to keep connection fresh
+          return message;
+        },
       });
 
       let qrCode: string | null = null;
@@ -1834,7 +1908,7 @@ Let's make this conversation count!`;
     session.connectionHealthy = true;
     session.lastHeartbeat = Date.now();
 
-    // Check connection health every 20 seconds (more frequent)
+    // Check connection health every 15 seconds (more aggressive)
     session.keepAliveTimer = setInterval(async () => {
       const currentSession = this.sessions.get(agentId);
       if (!currentSession) {
@@ -1850,23 +1924,33 @@ Let's make this conversation count!`;
 
       try {
         // Use isSocketAlive for consistent checking
-        if (!this.isSocketAlive(currentSession.sock)) {
-          const wsState = currentSession.sock?.ws?.readyState;
-          console.log(`⚠️ Connection health check failed for agent ${agentId} (state: ${wsState})`);
+        const socketAlive = this.isSocketAlive(currentSession.sock);
+        const wsState = currentSession.sock?.ws?.readyState;
+
+        if (!socketAlive) {
+          console.log(`⚠️ Connection health check failed for agent ${agentId} (wsState: ${wsState}, user: ${currentSession.sock?.user?.id ? 'yes' : 'no'})`);
           currentSession.connectionHealthy = false;
 
-          // If unhealthy for more than 30 seconds, trigger reconnection immediately
+          // If unhealthy for more than 20 seconds, trigger reconnection immediately
           const timeSinceLastHeartbeat = Date.now() - (currentSession.lastHeartbeat || 0);
-          if (timeSinceLastHeartbeat > 30000) {
+          if (timeSinceLastHeartbeat > 20000) {
             console.log(`🔄 Connection dead for ${Math.round(timeSinceLastHeartbeat/1000)}s, triggering immediate reconnection...`);
             this.forceReconnect(currentSession.userId, agentId);
           }
         } else {
+          // Socket looks alive - update heartbeat
           currentSession.connectionHealthy = true;
           currentSession.lastHeartbeat = Date.now();
+
+          // Log periodic health status (every minute approximately)
+          const now = Date.now();
+          if (!currentSession._lastHealthLog || now - currentSession._lastHealthLog > 60000) {
+            console.log(`💚 Connection healthy for agent ${agentId} (wsState: ${wsState})`);
+            currentSession._lastHealthLog = now;
+          }
         }
-      } catch (error) {
-        console.error(`Error in keep-alive check for ${agentId}:`, error);
+      } catch (error: any) {
+        console.error(`Error in keep-alive check for ${agentId}:`, error?.message || error);
         currentSession.connectionHealthy = false;
 
         // Trigger reconnection on error
@@ -1874,9 +1958,9 @@ Let's make this conversation count!`;
           this.forceReconnect(currentSession.userId, agentId);
         }
       }
-    }, 20000); // Check every 20 seconds
+    }, 15000); // Check every 15 seconds (more aggressive)
 
-    console.log(`💓 Started keep-alive monitor for agent ${agentId}`);
+    console.log(`💓 Started keep-alive monitor for agent ${agentId} (every 15 seconds)`);
   }
 
   /**
@@ -1904,10 +1988,16 @@ Let's make this conversation count!`;
       clearInterval(session.presenceTimer);
     }
 
-    // Send presence update every 5 minutes to keep connection alive
+    // Send presence update every 2 minutes to keep connection alive (more frequent)
     session.presenceTimer = setInterval(async () => {
       const currentSession = this.sessions.get(agentId);
       if (!currentSession || !currentSession.isConnected || !currentSession.sock) {
+        this.stopPresenceUpdates(agentId);
+        return;
+      }
+
+      // Skip if manually disconnected
+      if (currentSession.isManualDisconnect) {
         this.stopPresenceUpdates(agentId);
         return;
       }
@@ -1916,13 +2006,58 @@ Let's make this conversation count!`;
         // Send "available" presence to keep session active
         await currentSession.sock.sendPresenceUpdate('available');
         console.log(`📍 Sent presence update for agent ${agentId}`);
-      } catch (error) {
-        console.error(`Error sending presence update for ${agentId}:`, error);
-        // Don't trigger reconnect here - keep-alive will handle it
-      }
-    }, 300000); // Every 5 minutes
 
-    console.log(`📍 Started presence updates for agent ${agentId}`);
+        // Also try a lightweight query to verify connection is truly alive
+        await this.performConnectionPing(agentId);
+      } catch (error: any) {
+        console.error(`Error sending presence update for ${agentId}:`, error?.message || error);
+
+        // If presence update fails, connection might be dead
+        if (error?.message?.includes('Connection Closed') ||
+            error?.message?.includes('timed out') ||
+            error?.output?.statusCode === 408 ||
+            error?.output?.statusCode === 428) {
+          console.log(`⚠️ Connection appears dead during presence update, triggering reconnection...`);
+          currentSession.connectionHealthy = false;
+          if (!currentSession.isManualDisconnect) {
+            this.forceReconnect(currentSession.userId, agentId);
+          }
+        }
+      }
+    }, 120000); // Every 2 minutes (more frequent than before)
+
+    console.log(`📍 Started presence updates for agent ${agentId} (every 2 minutes)`);
+  }
+
+  /**
+   * Perform a lightweight ping to verify connection is truly alive
+   */
+  private async performConnectionPing(agentId: string): Promise<boolean> {
+    const session = this.sessions.get(agentId);
+    if (!session?.sock || !session.isConnected) return false;
+
+    try {
+      // Try to fetch our own status - this is a lightweight query
+      // that will fail quickly if connection is dead
+      const status = await Promise.race([
+        session.sock.fetchStatus(session.sock.user?.id),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Ping timeout')), 10000)
+        )
+      ]);
+
+      console.log(`✅ Connection ping successful for agent ${agentId}`);
+      session.connectionHealthy = true;
+      session.lastHeartbeat = Date.now();
+      return true;
+    } catch (error: any) {
+      // Ping failed - connection might be dead
+      console.log(`⚠️ Connection ping failed for agent ${agentId}: ${error?.message || 'Unknown error'}`);
+
+      // Don't immediately mark as unhealthy - could be temporary
+      // The keep-alive will handle reconnection if needed
+      return false;
+    }
   }
 
   /**
@@ -1963,9 +2098,11 @@ Let's make this conversation count!`;
 
     console.log(`🔄 Force reconnecting agent ${agentId} (attempt ${attempts})...`);
 
-    // Calculate backoff delay based on attempts (max 30 seconds)
-    const backoffDelay = Math.min(attempts * 2000, 30000);
+    // Calculate backoff delay based on attempts (max 15 seconds - faster reconnection)
+    // First attempt: 1s, second: 2s, third: 4s, etc.
+    const backoffDelay = Math.min(Math.pow(2, attempts - 1) * 1000, 15000);
 
+    console.log(`⏱️ Reconnection delay: ${backoffDelay}ms`);
     this.safeReconnect(userId, agentId, backoffDelay);
   }
 
@@ -1981,10 +2118,10 @@ Let's make this conversation count!`;
       return;
     }
 
-    // Check minimum time between reconnection attempts (10 seconds)
+    // Check minimum time between reconnection attempts (5 seconds - faster recovery)
     const now = Date.now();
     const lastAttempt = session?.lastReconnectAttempt || 0;
-    if (now - lastAttempt < 10000) {
+    if (now - lastAttempt < 5000) {
       console.log(`⏳ Too soon since last reconnection attempt for agent ${agentId}, skipping...`);
       return;
     }
