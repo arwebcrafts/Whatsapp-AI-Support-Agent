@@ -63,13 +63,22 @@ export class TokenUsageService {
     }
 
     const { tokensUsed, tokenLimit } = usage;
-    const wouldExceed = tokensUsed + estimatedTokens > tokenLimit;
     const percentage = (tokensUsed / tokenLimit) * 100;
 
+    // Allow some buffer - only block if we're truly at 100% or the request would go significantly over
+    // This prevents blocking when estimate is overly conservative
+    const hardLimit = tokenLimit * 1.05; // Allow up to 5% overage
+    const wouldExceed = tokensUsed >= tokenLimit || (tokensUsed + estimatedTokens > hardLimit);
+
     if (wouldExceed) {
+      // Different message based on whether we're at limit or would exceed
+      const reason = tokensUsed >= tokenLimit
+        ? `Monthly token limit reached. Used ${tokensUsed.toLocaleString()} of ${tokenLimit.toLocaleString()} tokens (${percentage.toFixed(1)}%)`
+        : `Monthly token limit would be exceeded. Used ${tokensUsed.toLocaleString()} of ${tokenLimit.toLocaleString()} tokens (${percentage.toFixed(1)}%), next request needs ~${estimatedTokens.toLocaleString()} tokens`;
+
       return {
         allowed: false,
-        reason: `Monthly token limit exceeded. Used ${tokensUsed.toLocaleString()} of ${tokenLimit.toLocaleString()} tokens (${percentage.toFixed(1)}%)`,
+        reason,
         usage: { tokensUsed, tokenLimit, percentage },
       };
     }
