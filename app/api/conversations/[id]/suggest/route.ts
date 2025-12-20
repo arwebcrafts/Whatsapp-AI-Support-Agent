@@ -193,31 +193,7 @@ ${p.description ? `Description: ${p.description.substring(0, 200)}...` : ''}`
     }
 
 
-    // Estimate tokens for quota check
-    const estimatedInputTokens = estimateTokens(systemPrompt + 'Please suggest a response to the customer.');
-    const estimatedOutputTokens = 300; // max_tokens setting
-    const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
-
-    // Check token quota
-    const quotaCheck = await TokenUsageService.checkQuota(user.id, estimatedTotalTokens);
-    if (!quotaCheck.allowed) {
-      return NextResponse.json(
-        {
-          message: quotaCheck.reason,
-          usage: quotaCheck.usage,
-        },
-        { status: 429 }
-      );
-    }
-
-    // Check rate limit
-    const rateLimitCheck = await TokenUsageService.checkRateLimit(user.id);
-    if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
-        { message: rateLimitCheck.reason },
-        { status: 429 }
-      );
-    }
+    // Note: Token quota check removed - only message limits are enforced now
 
     // Get singleton OpenAI client
     const openai = getOpenAIClient();

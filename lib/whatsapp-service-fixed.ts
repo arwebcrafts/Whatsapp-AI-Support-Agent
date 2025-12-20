@@ -1486,26 +1486,8 @@ Remember: You're a PROFESSIONAL sales expert with deep knowledge (from the knowl
 
 Let's make this conversation count!`;
 
-      // Estimate tokens for quota check
-      const estimatedInputTokens = estimateTokens(systemPrompt + chatHistory.map(m => m.content).join('\n'));
-      const estimatedOutputTokens = 300; // max_tokens setting
-      const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
-
-      // Check token quota before making API call
-      const quotaCheck = await TokenUsageService.checkQuota(conversation.userId, estimatedTotalTokens);
-      if (!quotaCheck.allowed) {
-        console.warn(`Token quota exceeded for user ${conversation.userId}:`, quotaCheck.reason);
-        // Don't generate AI response if quota exceeded
-        return;
-      }
-
-      // Check rate limit
-      const rateLimitCheck = await TokenUsageService.checkRateLimit(conversation.userId);
-      if (!rateLimitCheck.allowed) {
-        console.warn(`Rate limit exceeded for user ${conversation.userId}:`, rateLimitCheck.reason);
-        // Don't generate AI response if rate limited
-        return;
-      }
+      // Note: Token quota check removed - only message limits are enforced now
+      // Message limit is already checked via canUserSendMessage before this function is called
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
