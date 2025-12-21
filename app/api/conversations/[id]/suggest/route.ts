@@ -210,8 +210,8 @@ ${p.description ? `Description: ${p.description.substring(0, 200)}...` : ''}`
 
     const suggestion = completion.choices[0]?.message?.content || '';
 
-    // Track actual token usage
-    const actualInputTokens = completion.usage?.prompt_tokens || estimatedInputTokens;
+    // Track actual token usage (use API response values, fallback to estimates)
+    const actualInputTokens = completion.usage?.prompt_tokens || 0;
     const actualOutputTokens = completion.usage?.completion_tokens || estimateTokens(suggestion);
     await TokenUsageService.trackUsage(user.id, actualInputTokens, actualOutputTokens);
 
