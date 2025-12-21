@@ -120,65 +120,136 @@ class WhatsAppServiceFixed {
   /**
    * Global connection watchdog - periodically verifies all connections are truly alive
    * This catches cases where individual keep-alives might miss something
+   * Also recovers connections that dropped and aren't in memory anymore
    */
   private startConnectionWatchdog(): void {
     setInterval(async () => {
-      const sessions = Array.from(this.sessions.entries());
+      try {
+        // PART 1: Check in-memory sessions
+        const sessions = Array.from(this.sessions.entries());
 
-      if (sessions.length === 0) return;
+        if (sessions.length > 0) {
+          console.log(`🔍 Connection watchdog checking ${sessions.length} in-memory session(s)...`);
 
-      console.log(`🔍 Connection watchdog checking ${sessions.length} session(s)...`);
+          for (const [agentId, session] of sessions) {
+            // Skip if manually disconnected
+            if (session.isManualDisconnect) continue;
 
-      for (const [agentId, session] of sessions) {
-        // Skip if manually disconnected
-        if (session.isManualDisconnect) continue;
-
-        // Skip if currently reconnecting
-        if (session.isReconnecting) {
-          console.log(`⏳ Skipping ${agentId} - reconnection in progress`);
-          continue;
-        }
-
-        // Skip if not marked as connected
-        if (!session.isConnected) {
-          console.log(`⏳ Skipping ${agentId} - not marked as connected`);
-          continue;
-        }
-
-        try {
-          // Check if socket is alive
-          const socketAlive = this.isSocketAlive(session.sock);
-
-          if (!socketAlive) {
-            console.log(`⚠️ Watchdog: Connection for ${agentId} appears dead, triggering reconnection...`);
-            this.forceReconnect(session.userId, agentId);
-            continue;
-          }
-
-          // Perform an actual ping to verify
-          const pingSuccess = await this.performConnectionPing(agentId);
-
-          if (!pingSuccess) {
-            // Give it a second chance
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            const retryPing = await this.performConnectionPing(agentId);
-
-            if (!retryPing) {
-              console.log(`⚠️ Watchdog: Ping failed twice for ${agentId}, triggering reconnection...`);
-              this.forceReconnect(session.userId, agentId);
+            // Skip if currently reconnecting
+            if (session.isReconnecting) {
+              console.log(`⏳ Skipping ${agentId} - reconnection in progress`);
+              continue;
             }
-          } else {
-            console.log(`✅ Watchdog: Connection for ${agentId} verified healthy`);
-          }
-        } catch (error: any) {
-          console.error(`Error in watchdog for ${agentId}:`, error?.message || error);
-        }
-      }
 
-      console.log(`🔍 Connection watchdog check complete`);
+            // Skip if not marked as connected
+            if (!session.isConnected) {
+              console.log(`⏳ Skipping ${agentId} - not marked as connected`);
+              continue;
+            }
+
+            try {
+              // Check if socket is alive
+              const socketAlive = this.isSocketAlive(session.sock);
+
+              if (!socketAlive) {
+                console.log(`⚠️ Watchdog: Connection for ${agentId} appears dead, triggering reconnection...`);
+                this.forceReconnect(session.userId, agentId);
+                continue;
+              }
+
+              // Perform an actual ping to verify
+              const pingSuccess = await this.performConnectionPing(agentId);
+
+              if (!pingSuccess) {
+                // Give it a second chance
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                const retryPing = await this.performConnectionPing(agentId);
+
+                if (!retryPing) {
+                  console.log(`⚠️ Watchdog: Ping failed twice for ${agentId}, triggering reconnection...`);
+                  this.forceReconnect(session.userId, agentId);
+                }
+              } else {
+                console.log(`✅ Watchdog: Connection for ${agentId} verified healthy`);
+              }
+            } catch (error: any) {
+              console.error(`Error in watchdog for ${agentId}:`, error?.message || error);
+            }
+          }
+        }
+
+        // PART 2: Check database for connections that should be active but aren't in memory
+        // This recovers connections that dropped without proper cleanup
+        await this.recoverDroppedConnections();
+
+        console.log(`🔍 Connection watchdog check complete`);
+      } catch (error: any) {
+        console.error('Error in connection watchdog:', error?.message || error);
+      }
     }, 300000); // Every 5 minutes
 
     console.log(`🔍 Started global connection watchdog (every 5 minutes)`);
+  }
+
+  /**
+   * Recover connections that are marked as connected in DB but not active in memory
+   */
+  private async recoverDroppedConnections(): Promise<void> {
+    try {
+      // Find all connections marked as connected in database
+      const dbConnections = await prisma.whatsAppConnection.findMany({
+        where: { isConnected: true },
+        include: { agent: true },
+      });
+
+      if (dbConnections.length === 0) return;
+
+      console.log(`🔄 Checking ${dbConnections.length} DB connection(s) for recovery...`);
+
+      for (const connection of dbConnections) {
+        if (!connection.agentId || !connection.userId) continue;
+
+        // Check if this connection has an active session in memory
+        const existingSession = this.sessions.get(connection.agentId);
+
+        if (existingSession && existingSession.isConnected) {
+          // Session exists and is connected - all good
+          continue;
+        }
+
+        if (existingSession?.isReconnecting) {
+          // Already reconnecting - skip
+          console.log(`⏳ Agent ${connection.agent?.name || connection.agentId} is already reconnecting`);
+          continue;
+        }
+
+        // No active session - need to restore this connection
+        const agentAuthDir = path.join(this.authDir, connection.agentId);
+
+        // Check if session files exist
+        if (fs.existsSync(agentAuthDir) && fs.existsSync(path.join(agentAuthDir, 'creds.json'))) {
+          console.log(`🔄 Watchdog: Recovering dropped connection for agent ${connection.agent?.name || connection.agentId}...`);
+
+          // Use connection manager to queue reconnection
+          try {
+            const { connectionManager } = await import('./connection-manager');
+            connectionManager.enqueue(connection.userId, connection.agentId, 1); // Priority 1 = high
+          } catch (error) {
+            // Fallback to direct connection if connection manager fails
+            console.log(`⚠️ Connection manager not available, connecting directly...`);
+            this.connectWhatsApp(connection.userId, connection.agentId).catch(err => {
+              console.error(`Failed to recover connection for ${connection.agentId}:`, err);
+            });
+          }
+        } else {
+          // No session files - mark as disconnected in DB
+          console.log(`⚠️ No session files for agent ${connection.agentId}, marking as disconnected`);
+          await this.updateConnectionStatus(connection.agentId, false, null);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error recovering dropped connections:', error?.message || error);
+    }
   }
 
   private async initializeFollowUpSystem() {
