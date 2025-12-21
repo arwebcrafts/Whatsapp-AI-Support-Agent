@@ -1504,8 +1504,8 @@ Let's make this conversation count!`;
 
       const aiReply = response.choices[0].message.content || '';
 
-      // Track actual token usage after API call
-      const actualInputTokens = response.usage?.prompt_tokens || estimatedInputTokens;
+      // Track actual token usage after API call (use API response values, fallback to 0)
+      const actualInputTokens = response.usage?.prompt_tokens || 0;
       const actualOutputTokens = response.usage?.completion_tokens || estimateTokens(aiReply);
       await TokenUsageService.trackUsage(conversation.userId, actualInputTokens, actualOutputTokens);
 
